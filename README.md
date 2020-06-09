@@ -13,7 +13,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Logging via syslog
 - Session tracking in logs
 - Multiple types of user are supported: admin, trainer, user, + more
-- Support tls web api calls
+- Support tls web api calls using JSON
 - Unfire relay upon rfid card removal
 
 
@@ -26,4 +26,9 @@ A simple ESP32 Based RFID Access Control System for tools
 - Enable heartbeat capability, to be used with a canary to alert upon device failure
 - Allow remote checking of current status of relay, to see if device is in use and by whom
 - Enable remote firing of relay via a web interface or api call - a remote unlock-and-lock ability
+- Add syslog bootup time to capture when the device was rebooted
+- Make variable in line 193 have a better name
+- Figure out sizing for JSON doc
+- Figure out sizing of variable for url
+- Convert l240-l247 in to a function
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database.
