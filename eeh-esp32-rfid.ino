@@ -222,7 +222,7 @@ void setup() {
   pinMode(ONBOARD_LED, OUTPUT);
   pinMode(RELAY, OUTPUT);
   disableLed();
-  disableRelay();
+  disableRelay("Disabled upon boot");
 
   //=============
   // https://randomnerdtutorials.com/esp32-esp8266-web-server-http-authentication/
@@ -256,11 +256,11 @@ void setup() {
 
       if (inputPin == "relay") {
         if (inputMessage.toInt() == 1) {
-          enableRelay();
-          Serial.print(iteration); Serial.println("Admin Web: Enable Relay");
+          enableRelay("Web Admin");
+          Serial.print(iteration); Serial.println(" Admin Web: Enable Relay");
           syslog.logf("%d Admin Web: Enable Relay", iteration);
         } else {
-          disableRelay();
+          disableRelay("Web Admin");
           Serial.print(iteration); Serial.println(" Admin Web: Disable Relay");
           syslog.logf("%d Admin Web: Disable Relay", iteration);
         }
@@ -341,7 +341,7 @@ void dowebcall(const char *foundrfid) {
             syslog.logf("%d ACCESS GRANTED:%s for %s", iteration, foundrfid, EEHDevice);
             currentRFIDaccess = true;
             enableLed();
-            enableRelay();
+            enableRelay(currentRFIDcard);
           } else {
             Serial.print(iteration); Serial.print(" ERROR: Device Mismatch: DetectedDevice:"); Serial.print(EEH_DEVICE); Serial.print(" JSONDevice:"); Serial.println(EEHDevice);
             syslog.logf(LOG_ERR, "%d ERROR: Device Mismatch: DetectedDevice:%s JSONDEevice:%s", iteration, EEH_DEVICE, EEHDevice);
@@ -430,7 +430,7 @@ void loop() {
         if (overRideActive) {
           // boss detected!
           enableLed();
-          enableRelay();
+          enableRelay(currentRFIDcard);
           currentRFIDaccess = true;
         } else {
           // normal user, do webcall
@@ -454,7 +454,7 @@ void loop() {
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
   disableLed();
-  disableRelay();
+  disableRelay(currentRFIDcard);
   currentRFIDcard = "";
   currentRFIDaccess = false;
   delay((checkCardTime * 1000));
@@ -464,16 +464,16 @@ void loop() {
   //mfrc522.PICC_DumpToSerial(&(mfrc522.uid));
 }
 
-void disableRelay() {
+void disableRelay(char* message) {
   digitalWrite(RELAY, HIGH);
   Serial.print(iteration); Serial.println(" Disable relay");
-  syslog.logf("%d Relay Disabled:%s", iteration, currentRFIDcard);
+  syslog.logf("%d Relay Disabled:%s", iteration, message);
 }
 
-void enableRelay() {
+void enableRelay(char* message) {
   digitalWrite(RELAY, LOW);
   Serial.print(iteration); Serial.println(" Enable relay");
-  syslog.logf("%d Relay Enabled:%s", iteration, currentRFIDcard);
+  syslog.logf("%d Relay Enabled:%s", iteration, message);
 }
 
 void disableLed() {
