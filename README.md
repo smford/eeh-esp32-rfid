@@ -26,10 +26,10 @@ A simple ESP32 Based RFID Access Control System for tools
 - Enable heartbeat capability, to be used with a canary to alert upon device failure
 - Allow remote checking of current status of relay, to see if device is in use and by whom
 - Add syslog bootup time to capture when the device was rebooted
-- Make variable in line 193 have a better name
 - Figure out sizing for JSON doc
 - Figure out sizing of variable for url
 - Convert l240-l247 in to a function
+- Lockdown mode
 - Scheduled reboots
 - API tokens
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
@@ -37,3 +37,4 @@ A simple ESP32 Based RFID Access Control System for tools
 ## Done
 - Add syslogs for web stuff
 - Enable remote firing of relay via a web interface or api call - a remote unlock-and-lock ability
+- Make variable str in line 193 have a better name

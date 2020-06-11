@@ -380,13 +380,13 @@ void loop() {
   }
 
   // new card detected
-  char str[32] = "";
-  array_to_string(mfrc522.uid.uidByte, 4, str);
+  char newcard[32] = "";
+  array_to_string(mfrc522.uid.uidByte, 4, newcard);
   iteration++;
-  Serial.print(iteration); Serial.print(" RFID Found: "); Serial.println(str);
+  Serial.print(iteration); Serial.print(" RFID Found: "); Serial.println(newcard);
 
   char serverURL[80];
-  sprintf(serverURL, "%s%s%s", serverURL1, str, serverURL2);
+  sprintf(serverURL, "%s%s%s", serverURL1, newcard, serverURL2);
   Serial.print(iteration); Serial.print(" ServerURL: "); Serial.println(serverURL);
 
   while (true) {
@@ -412,10 +412,10 @@ void loop() {
     if (control == 13 || control == 14) {
       //Serial.println("Card present");
 
-      if (strcmp(currentRFIDcard, str) != 0) {
-        Serial.print(iteration); Serial.print(" New Card Found:"); Serial.println(str);
-        syslog.logf("%d New Card Found:%s", iteration, str);
-        currentRFIDcard = str;
+      if (strcmp(currentRFIDcard, newcard) != 0) {
+        Serial.print(iteration); Serial.print(" New Card Found:"); Serial.println(newcard);
+        syslog.logf("%d New Card Found:%s", iteration, newcard);
+        currentRFIDcard = newcard;
 
         // check accessOverrideCodes
         bool overRideActive = false;
@@ -434,7 +434,7 @@ void loop() {
           currentRFIDaccess = true;
         } else {
           // normal user, do webcall
-          dowebcall(str);
+          dowebcall(newcard);
         }
         //===========
 
@@ -449,7 +449,7 @@ void loop() {
 
 
   Serial.print(iteration); Serial.println(" Card Removed");
-  syslog.logf("%d Card Removed:%s", iteration, str);
+  syslog.logf("%d Card Removed:%s", iteration, newcard);
 
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
