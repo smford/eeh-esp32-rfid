@@ -20,6 +20,7 @@ A simple ESP32 Based RFID Access Control System for tools
 ## Things to do
 - Add status light to signify when it is checking access, in trainer mode, locked, unlocked, etc
 - OTA updating of firmware
+- After remote reboot, change the url to be index rather than /reboot (can cause looping reboots)
 - Use wifimanager or IotWebConf to make configuration easier
 - Enable active checking of access, regularly poll and check whether card still has access
 - NTP time, to enforce windows of operation
@@ -37,4 +38,5 @@ A simple ESP32 Based RFID Access Control System for tools
 ## Done
 - Add syslogs for web stuff
 - Enable remote firing of relay via a web interface or api call - a remote unlock-and-lock ability
+- Remote reboot command via web interface and api
 - Make variable str in line 193 have a better name

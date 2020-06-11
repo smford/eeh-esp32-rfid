@@ -53,6 +53,9 @@ uint8_t control = 0x00;
 char* currentRFIDcard = "";
 bool currentRFIDaccess = false;
 
+// should we reboot the server?
+bool shouldReboot = false;
+
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance
 
 // A UDP instance to let us send and receive packets over UDP
@@ -88,6 +91,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   <p>Current RFID Access: %RFIDACCESS%</p>
   %BUTTONPLACEHOLDER1%
   %BUTTONPLACEHOLDER2%
+  <button onclick="rebootButton()">Reboot</button>
 <script>function toggleCheckbox(element, pin) {
   var xhr = new XMLHttpRequest();
   if(element.checked){ xhr.open("GET", "/update?state=1&pin="+pin, true); }
@@ -99,6 +103,12 @@ function logoutButton() {
   xhr.open("GET", "/logout", true);
   xhr.send();
   setTimeout(function(){ window.open("/logged-out","_self"); }, 1000);
+}
+function rebootButton() {
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "/reboot", true);
+  xhr.send();
+  setTimeout(function(){ window.open("/","_self"); }, 10000);
 }
 </script>
 </body>
@@ -203,8 +213,6 @@ void setup() {
     Serial.print(".");
   }
 
-  //syslog.logf("Booted: %s", DEVICE_HOSTNAME);
-
   Serial.println("\n\nNetwork Configuration:");
   Serial.println("----------------------");
   Serial.print("         SSID: "); Serial.println(WiFi.SSID());
@@ -218,7 +226,8 @@ void setup() {
   Serial.print("        DNS 3: "); Serial.println(WiFi.dnsIP(2));
   Serial.println();
 
-  // configure led
+  syslog.logf("Booted:%s", DEVICE_HOSTNAME);
+
   pinMode(ONBOARD_LED, OUTPUT);
   pinMode(RELAY, OUTPUT);
   disableLed();
@@ -239,6 +248,12 @@ void setup() {
 
   server.on("/logged-out", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/html", logout_html, processor);
+  });
+
+  server.on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request){
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
+      shouldReboot = true;
   });
 
   // Send a GET request to <ESP_IP>/update?state=<inputMessage>
@@ -368,6 +383,10 @@ void dowebcall(const char *foundrfid) {
 }
 
 void loop() {
+  // reboot from web admin set
+  if (shouldReboot) {
+    rebootESP("Web Admin");
+  }
 
   if ( !mfrc522.PICC_IsNewCardPresent()) {
     // no new card found, re-loop
@@ -482,6 +501,14 @@ void disableLed() {
 
 void enableLed() {
   digitalWrite(ONBOARD_LED, HIGH);
+}
+
+void rebootESP(char* message) {
+  Serial.print(iteration); Serial.print(" Rebooting ESP32: "); Serial.println(message);
+  syslog.logf("%d Rebooting ESP32:%s", iteration, message);
+  // wait 5 seconds to allow syslog to be sent
+  delay(5000);
+  ESP.restart();
 }
 
 String httpGETRequest(const char* serverURL) {
