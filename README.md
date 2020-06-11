@@ -29,7 +29,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Figure out sizing for JSON doc
 - Figure out sizing of variable for url
 - Convert l240-l247 in to a function
-- Lockdown mode
+- Lockdown mode / Device disabled except for admin users
 - Scheduled reboots
 - API tokens
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
