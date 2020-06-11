@@ -466,7 +466,7 @@ void loop() {
 
 void disableRelay(char* message) {
   digitalWrite(RELAY, HIGH);
-  Serial.print(iteration); Serial.println(" Disable relay: "); Serial.println(message);
+  Serial.print(iteration); Serial.print(" Disable relay: "); Serial.println(message);
   syslog.logf("%d Relay Disabled:%s", iteration, message);
 }
 
