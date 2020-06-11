@@ -466,13 +466,13 @@ void loop() {
 
 void disableRelay(char* message) {
   digitalWrite(RELAY, HIGH);
-  Serial.print(iteration); Serial.println(" Disable relay");
+  Serial.print(iteration); Serial.println(" Disable relay: "); Serial.println(message);
   syslog.logf("%d Relay Disabled:%s", iteration, message);
 }
 
 void enableRelay(char* message) {
   digitalWrite(RELAY, LOW);
-  Serial.print(iteration); Serial.println(" Enable relay");
+  Serial.print(iteration); Serial.print(" Enable relay: "); Serial.println(message);
   syslog.logf("%d Relay Enabled:%s", iteration, message);
 }
 
