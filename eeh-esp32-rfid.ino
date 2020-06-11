@@ -5,6 +5,8 @@
 #include <MFRC522.h>
 #include <WiFiUdp.h>
 #include <Syslog.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
 
 // syslog library: https://github.com/arcao/Syslog v2.0
 // mfrc522 library: https://github.com/miguelbalboa/rfid  v1.4.6
@@ -14,9 +16,9 @@
 #define SYSLOG_SERVER "192.168.10.21"
 #define SYSLOG_PORT 514
 #define DEVICE_HOSTNAME "esp32-1.home.narco.tk"
-#define APP_NAME "eeh-esp-rfid-laser"
+#define APP_NAME "eeh-esp32-rfid-laser"
 #define EEH_DEVICE "laser"
-#define ONBOARD_LED 2
+//#define ONBOARD_LED 2
 
 const char* ssid = "somessid";
 const char* password = "xxxx";
@@ -27,6 +29,17 @@ const int RST_PIN = 22; // Reset pin
 const int SS_PIN = 21; // Slave select pin
 
 const int RELAY = 26;
+const int ONBOARD_LED = 2;
+
+//=======
+const char* http_username = "admin";
+const char* http_password = "admin";
+
+const char* PARAM_INPUT_1 = "state";
+const char* PARAM_INPUT_2 = "pin";
+
+const int output = 2;
+//=======
 
 char *accessOverrideCodes[] = {"90379632", "boss2", "boss3"};
 
@@ -39,6 +52,7 @@ int loopnumber = 0;
 uint8_t control = 0x00;
 
 char* currentRFIDcard = "";
+bool currentRFIDaccess = false;
 
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance
 
@@ -48,6 +62,128 @@ WiFiUDP udpClient;
 Syslog syslog(udpClient, SYSLOG_SERVER, SYSLOG_PORT, DEVICE_HOSTNAME, APP_NAME, LOG_INFO);
 
 int iteration = 0; // holds the MSGID number for syslog, also represents the instance number of RFID action (connection or removal)
+
+AsyncWebServer server(80);
+
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE HTML><html>
+<head>
+  <title>%EEH_HOSTNAME%</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    html {font-family: Arial; display: inline-block; text-align: center;}
+    h2 {font-size: 2.6rem;}
+    body {max-width: 600px; margin:0px auto; padding-bottom: 10px;}
+    .switch {position: relative; display: inline-block; width: 120px; height: 68px} 
+    .switch input {display: none}
+    .slider {position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 34px}
+    .slider:before {position: absolute; content: ""; height: 52px; width: 52px; left: 8px; bottom: 8px; background-color: #fff; -webkit-transition: .4s; transition: .4s; border-radius: 68px}
+    input:checked+.slider {background-color: #2196F3}
+    input:checked+.slider:before {-webkit-transform: translateX(52px); -ms-transform: translateX(52px); transform: translateX(52px)}
+  </style>
+</head>
+<body>
+  <h2>%EEH_HOSTNAME%</h2>
+  <button onclick="logoutButton()">Logout</button>
+  <p>Current RFID Card: %PRESENTRFID%</p>
+  <p>Current RFID Access: %RFIDACCESS%</p>
+  %BUTTONPLACEHOLDER1%
+  %BUTTONPLACEHOLDER2%
+<script>function toggleCheckbox(element, pin) {
+  var xhr = new XMLHttpRequest();
+  if(element.checked){ xhr.open("GET", "/update?state=1&pin="+pin, true); }
+  else { xhr.open("GET", "/update?state=0&pin="+pin, true); }
+  xhr.send();
+}
+function logoutButton() {
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "/logout", true);
+  xhr.send();
+  setTimeout(function(){ window.open("/logged-out","_self"); }, 1000);
+}
+</script>
+</body>
+</html>
+)rawliteral";
+
+const char logout_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE HTML><html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+  <p>Logged out or <a href="/">return to homepage</a>.</p>
+  <p><strong>Note:</strong> close all web browser tabs to complete the logout process.</p>
+</body>
+</html>
+)rawliteral";
+
+// Replaces placeholder with button section in your web page
+String processor(const String& var) {
+  //Serial.println(var);
+  if (var == "BUTTONPLACEHOLDER1") {
+    String buttons = "";
+    String outputStateValue = outputState(ONBOARD_LED);
+    buttons+= "<p>LED</p><p><label class='switch'><input type='checkbox' onchange='toggleCheckbox(this, \"led\")' id='output' " + outputStateValue + "><span class='slider'></span></label></p>";
+    //buttons+= "<p>LED: <label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this, \"led\")\" id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label></p>";
+    //buttons+= "<p>LED: <label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this, 2)\" id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label></p>";
+    //buttons+= "<p>LED: <label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this, " + ONBOARD_LED + ")\" id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label></p>";
+
+    return buttons;
+  }
+
+  if (var == "BUTTONPLACEHOLDER2") {
+    String buttons = "";
+    String outputStateValue = outputState(RELAY);
+    //Serial.print("relay output state="); Serial.println(outputStateValue);
+    
+    // because HIGH = off, this needs to be reversed to make web button work
+    if (outputStateValue == "checked") {
+      outputStateValue = "";
+    } else {
+      outputStateValue = "checked";
+    }
+    buttons+= "<p>RELAY</p><p><label class='switch'><input type='checkbox' onchange='toggleCheckbox(this, \"relay\")' id='output' " + outputStateValue + "><span class='slider'></span></label></p>";
+    //buttons+= "<p>RELAY: <label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this, \\"relay\\") id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label></p>";
+    //buttons+= "<p>RELAY: <label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this, 26)\" id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label></p>";
+    //buttons+= "<p>RELAY: <label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this, " + RELAY + ")\" id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label></p>";
+    return buttons;
+  }
+
+  if (var == "EEH_HOSTNAME") {
+    String hostname = "default hostname";
+    hostname = DEVICE_HOSTNAME;
+    return hostname;
+  }
+
+  if (var == "PRESENTRFID") {
+    if (strcmp(currentRFIDcard, "") == 0) {
+      return "no one";
+    } else {
+      return currentRFIDcard;
+    }
+  }
+
+  if (var == "RFIDACCESS") {
+    if (currentRFIDaccess) {
+      return "Granted";
+    } else {
+      return "Denied";
+    }
+  }
+
+  return String();
+}
+
+String outputState(int PINCHECK){
+  if(digitalRead(PINCHECK)){
+    return "checked";
+  }
+  else {
+    return "";
+  }
+  return "";
+}
 
 void setup() {
   Serial.begin(115200);
@@ -62,7 +198,10 @@ void setup() {
   Serial.print("        App Name: "); Serial.println(APP_NAME);
   Serial.print("      EEH Device: "); Serial.println(EEH_DEVICE);
   Serial.print("   Syslog Server: "); Serial.print(SYSLOG_SERVER); Serial.print(":"); Serial.println(SYSLOG_PORT);
+  Serial.print("   API Wait Time: "); Serial.print(waitTime); Serial.println(" seconds");
   Serial.print(" RFID Card Delay: "); Serial.print(checkCardTime); Serial.println(" seconds");
+  Serial.print("       Relay Pin: "); Serial.println(RELAY);
+  Serial.print("         LED Pin: "); Serial.println(ONBOARD_LED);
   mfrc522.PCD_DumpVersionToSerial(); // Show details of PCD - MFRC522 Card Reader details
 
   Serial.print("\nConnecting to Wifi: ");
@@ -85,13 +224,71 @@ void setup() {
   Serial.print("        DNS 1: "); Serial.println(WiFi.dnsIP(0));
   Serial.print("        DNS 2: "); Serial.println(WiFi.dnsIP(1));
   Serial.print("        DNS 3: "); Serial.println(WiFi.dnsIP(2));
-  Serial.print("API Wait Time: "); Serial.print(waitTime); Serial.println(" seconds");
   Serial.println();
 
   // configure led
   pinMode(ONBOARD_LED, OUTPUT);
   pinMode(RELAY, OUTPUT);
+  disableLed();
   disableRelay();
+
+  //=============
+  // https://randomnerdtutorials.com/esp32-esp8266-web-server-http-authentication/
+  // Route for root / web page
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
+    request->send_P(200, "text/html", index_html, processor);
+  });
+
+  server.on("/logout", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(401);
+  });
+
+  server.on("/logged-out", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/html", logout_html, processor);
+  });
+
+  // Send a GET request to <ESP_IP>/update?state=<inputMessage>
+  server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    if(!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
+    String inputMessage;
+    String inputParam;
+    String inputPin;
+    // GET input1 value on <ESP_IP>/update?state=<inputMessage>
+    if (request->hasParam(PARAM_INPUT_1) && request->hasParam(PARAM_INPUT_2)) {
+      inputMessage = request->getParam(PARAM_INPUT_1)->value();
+      inputParam = PARAM_INPUT_1;
+      inputPin = request->getParam(PARAM_INPUT_2)->value();
+
+      if (inputPin == "relay") {
+        if (inputMessage.toInt() == 1) {
+          enableRelay();
+        } else {
+          disableRelay();
+        }
+      }
+
+      if (inputPin == "led") {
+        if (inputMessage.toInt() == 1) {
+          enableLed();
+        } else {
+          disableLed();
+        }
+      }
+
+    } else {
+      inputMessage = "No message sent";
+      inputParam = "none";
+    }
+    Serial.println(inputMessage);
+    request->send(200, "text/plain", "OK");
+  });
+
+  // Start server
+  server.begin();
+  //=============
 }
 
 void dowebcall(const char *foundrfid) {
@@ -147,6 +344,8 @@ void dowebcall(const char *foundrfid) {
           if (strcmp(EEH_DEVICE, EEHDevice) == 0) {
             Serial.print(iteration); Serial.println(" Devices Match");
             syslog.logf("%d ACCESS GRANTED:%s for %s", iteration, foundrfid, EEHDevice);
+            currentRFIDaccess = true;
+            enableLed();
             enableRelay();
           } else {
             Serial.print(iteration); Serial.print(" ERROR: Device Mismatch: DetectedDevice:"); Serial.print(EEH_DEVICE); Serial.print(" JSONDevice:"); Serial.println(EEHDevice);
@@ -248,7 +447,9 @@ void loop() {
 
         if (overRideActive) {
           // boss detected!
+          enableLed();
           enableRelay();
+          currentRFIDaccess = true;
         } else {
           // normal user, do webcall
           dowebcall(str);
@@ -270,8 +471,10 @@ void loop() {
 
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
+  disableLed();
   disableRelay();
   currentRFIDcard = "";
+  currentRFIDaccess = false;
   delay((checkCardTime * 1000));
 
   // Dump debug info about the card; PICC_HaltA() is automatically called
@@ -280,17 +483,23 @@ void loop() {
 }
 
 void disableRelay() {
-  digitalWrite(ONBOARD_LED, LOW);
   digitalWrite(RELAY, HIGH);
   Serial.print(iteration); Serial.println(" Disable relay");
   syslog.logf("%d Relay Disabled:%s", iteration, currentRFIDcard);
 }
 
 void enableRelay() {
-  digitalWrite(ONBOARD_LED, HIGH);
   digitalWrite(RELAY, LOW);
   Serial.print(iteration); Serial.println(" Enable relay");
   syslog.logf("%d Relay Enabled:%s", iteration, currentRFIDcard);
+}
+
+void disableLed() {
+  digitalWrite(ONBOARD_LED, LOW);
+}
+
+void enableLed() {
+  digitalWrite(ONBOARD_LED, HIGH);
 }
 
 String httpGETRequest(const char* serverURL) {
