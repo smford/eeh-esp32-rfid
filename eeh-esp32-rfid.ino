@@ -108,6 +108,7 @@ function rebootButton() {
   var xhr = new XMLHttpRequest();
   xhr.open("GET", "/reboot", true);
   xhr.send();
+  // i think _self needs to be changed to /index.html or something similar to prevent refreshes of the webpage and cached credentials constantly rebooting esp32
   setTimeout(function(){ window.open("/","_self"); }, 10000);
 }
 </script>
@@ -358,15 +359,15 @@ void dowebcall(const char *foundrfid) {
             enableLed();
             enableRelay(currentRFIDcard);
           } else {
-            Serial.print(iteration); Serial.print(" ERROR: Device Mismatch: DetectedDevice:"); Serial.print(EEH_DEVICE); Serial.print(" JSONDevice:"); Serial.println(EEHDevice);
+            Serial.print(iteration); Serial.print(" ERROR: Device Mismatch: DetectedDevice: "); Serial.print(EEH_DEVICE); Serial.print(" JSONDevice:"); Serial.println(EEHDevice);
             syslog.logf(LOG_ERR, "%d ERROR: Device Mismatch: DetectedDevice:%s JSONDEevice:%s", iteration, EEH_DEVICE, EEHDevice);
           }
         } else {
-          Serial.print(iteration); Serial.print(" ERROR: Access Denied:"); Serial.print(foundrfid); Serial.print(" for "); Serial.println(EEHDevice);
+          Serial.print(iteration); Serial.print(" ERROR: Access Denied: "); Serial.print(foundrfid); Serial.print(" for "); Serial.println(EEHDevice);
           syslog.logf(LOG_ERR, "%d ERROR: Access Denied: %s for %s", iteration, foundrfid, EEHDevice);
         }
       } else {
-        Serial.print(iteration); Serial.print(" ERROR: RFID Mismatch: DetectedRFID:"); Serial.print(foundrfid); Serial.print(" JSONRFID:"); Serial.println(RFID);
+        Serial.print(iteration); Serial.print(" ERROR: RFID Mismatch: DetectedRFID: "); Serial.print(foundrfid); Serial.print(" JSONRFID:"); Serial.println(RFID);
         syslog.logf(LOG_ERR, "%d ERROR: Access Denied DetectedRFID:%s JSONRFID:%s for %s", iteration, foundrfid, RFID, EEHDevice);
       }
 
@@ -432,7 +433,7 @@ void loop() {
       //Serial.println("Card present");
 
       if (strcmp(currentRFIDcard, newcard) != 0) {
-        Serial.print(iteration); Serial.print(" New Card Found:"); Serial.println(newcard);
+        Serial.print(iteration); Serial.print(" New Card Found: "); Serial.println(newcard);
         syslog.logf("%d New Card Found:%s", iteration, newcard);
         currentRFIDcard = newcard;
 
@@ -467,7 +468,7 @@ void loop() {
   }
 
 
-  Serial.print(iteration); Serial.println(" Card Removed");
+  Serial.print(iteration); Serial.print(" Card Removed: "); Serial.println(newcard);
   syslog.logf("%d Card Removed:%s", iteration, newcard);
 
   mfrc522.PICC_HaltA();
@@ -521,11 +522,11 @@ String httpGETRequest(const char* serverURL) {
   String payload = "{}";
 
   if (httpResponseCode > 0) {
-    Serial.print(iteration); Serial.print(" HTTP Response code:"); Serial.println(httpResponseCode);
+    Serial.print(iteration); Serial.print(" HTTP Response code: "); Serial.println(httpResponseCode);
     syslog.logf("%d HTTP Response Code:%d", iteration, httpResponseCode);
     payload = http.getString();
   } else {
-    Serial.print(iteration); Serial.print(" ERROR: HTTP Response Code:"); Serial.println(httpResponseCode);
+    Serial.print(iteration); Serial.print(" ERROR: HTTP Response Code: "); Serial.println(httpResponseCode);
     syslog.logf(LOG_ERR, "%d ERROR: HTTP Response Code:%s", iteration, httpResponseCode);
   }
   // Free resources
