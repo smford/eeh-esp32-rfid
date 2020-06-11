@@ -18,7 +18,6 @@
 #define DEVICE_HOSTNAME "esp32-1.home.narco.tk"
 #define APP_NAME "eeh-esp32-rfid-laser"
 #define EEH_DEVICE "laser"
-//#define ONBOARD_LED 2
 
 const char* ssid = "somessid";
 const char* password = "xxxx";
@@ -48,7 +47,6 @@ unsigned long sinceLastRunTime = 0;
 unsigned long waitTime = 2; // in seconds
 unsigned long checkCardTime = 5; // in secondsE
 String returnedJSON;
-int loopnumber = 0;
 uint8_t control = 0x00;
 
 char* currentRFIDcard = "";
@@ -120,15 +118,10 @@ const char logout_html[] PROGMEM = R"rawliteral(
 
 // Replaces placeholder with button section in your web page
 String processor(const String& var) {
-  //Serial.println(var);
   if (var == "BUTTONPLACEHOLDER1") {
     String buttons = "";
     String outputStateValue = outputState(ONBOARD_LED);
     buttons+= "<p>LED</p><p><label class='switch'><input type='checkbox' onchange='toggleCheckbox(this, \"led\")' id='output' " + outputStateValue + "><span class='slider'></span></label></p>";
-    //buttons+= "<p>LED: <label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this, \"led\")\" id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label></p>";
-    //buttons+= "<p>LED: <label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this, 2)\" id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label></p>";
-    //buttons+= "<p>LED: <label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this, " + ONBOARD_LED + ")\" id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label></p>";
-
     return buttons;
   }
 
@@ -144,9 +137,6 @@ String processor(const String& var) {
       outputStateValue = "checked";
     }
     buttons+= "<p>RELAY</p><p><label class='switch'><input type='checkbox' onchange='toggleCheckbox(this, \"relay\")' id='output' " + outputStateValue + "><span class='slider'></span></label></p>";
-    //buttons+= "<p>RELAY: <label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this, \\"relay\\") id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label></p>";
-    //buttons+= "<p>RELAY: <label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this, 26)\" id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label></p>";
-    //buttons+= "<p>RELAY: <label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this, " + RELAY + ")\" id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label></p>";
     return buttons;
   }
 
@@ -293,7 +283,6 @@ void setup() {
 
 void dowebcall(const char *foundrfid) {
   Serial.print(iteration); Serial.println(" Starting dowebcall");
-  //StaticJsonDocument<200> doc;
   unsigned long currentRunTime = millis();
 
   if ((currentRunTime - sinceLastRunTime) < (waitTime * 1000)) {
@@ -312,15 +301,11 @@ void dowebcall(const char *foundrfid) {
       sprintf(serverURL, "%s%s%s", serverURL1, foundrfid, serverURL2);
       Serial.print(iteration); Serial.print(" dowebcall ServerURL: "); Serial.println(serverURL);
 
-      //Serial.println("before 1");
       returnedJSON = httpGETRequest(serverURL);
       Serial.print(iteration); Serial.print(" ReturnedJSON:"); Serial.println(returnedJSON);
-      //Serial.println("after 1");
 
-      //Serial.println("before 2");
       Serial.print(iteration); Serial.println(" JSON Deserialization");
       DeserializationError error = deserializeJson(doc, returnedJSON);
-      //Serial.println("after 2");
       if (error) {
         Serial.print(iteration); Serial.print(F(" DeserializeJson() failed: ")); Serial.println(error.c_str());
         syslog.logf(LOG_ERR,  "%d Error Decoding JSON: %s", iteration, error.c_str());
@@ -366,9 +351,6 @@ void dowebcall(const char *foundrfid) {
       Serial.println("WiFi Disconnected");
       //return false;
     }
-    //Serial.print("            Loop: "); Serial.println(loopnumber);
-    //Serial.print("  currentRunTime: "); Serial.println(currentRunTime);
-    //Serial.print("sinceLastRunTime: "); Serial.println(sinceLastRunTime);
   } else {
     Serial.print(iteration); Serial.println(" Not doing webcall, firing too fast");
   }
@@ -376,7 +358,6 @@ void dowebcall(const char *foundrfid) {
 }
 
 void loop() {
-
 
   if ( !mfrc522.PICC_IsNewCardPresent()) {
     // no new card found, re-loop
@@ -421,20 +402,11 @@ void loop() {
     if (control == 13 || control == 14) {
       //Serial.println("Card present");
 
-      // Log message can be formated like with printf function.
-      //syslog.logf(LOG_ERR,  "This is error message no. %d", iteration);
-
       if (strcmp(currentRFIDcard, str) != 0) {
-        //Serial.print("old currentRFIDcard:"); Serial.println(currentRFIDcard);
-        //Serial.print("        strRFIDcard:"); Serial.println(str);
         Serial.print(iteration); Serial.print(" New Card Found:"); Serial.println(str);
         syslog.logf("%d New Card Found:%s", iteration, str);
-        //iteration++;
         currentRFIDcard = str;
-        //Serial.print("new currentRFIDcard:"); Serial.println(currentRFIDcard);
-        //Serial.print("        strRFIDcard:"); Serial.println(str);
 
-        //===========
         // check accessOverrideCodes
         bool overRideActive = false;
         for (byte i = 0; i < (sizeof(accessOverrideCodes) / sizeof(accessOverrideCodes[0])); i++) {
@@ -503,31 +475,21 @@ void enableLed() {
 }
 
 String httpGETRequest(const char* serverURL) {
-  //Serial.println("before 3");
   HTTPClient http;
 
   http.begin(serverURL);
-  //Serial.println("after 3");
 
-  //Serial.println("before 4");
   int httpResponseCode = http.GET();
-  //Serial.println("after 4");
 
   String payload = "{}";
 
   if (httpResponseCode > 0) {
-    //Serial.println("before 5");
     Serial.print(iteration); Serial.print(" HTTP Response code:"); Serial.println(httpResponseCode);
     syslog.logf("%d HTTP Response Code:%d", iteration, httpResponseCode);
-    //Serial.println("after 5");
-    //Serial.println("before 7");
     payload = http.getString();
-    //Serial.println("after 7");
   } else {
-    //Serial.println("before 6");
     Serial.print(iteration); Serial.print(" ERROR: HTTP Response Code:"); Serial.println(httpResponseCode);
     syslog.logf(LOG_ERR, "%d ERROR: HTTP Response Code:%s", iteration, httpResponseCode);
-    //Serial.println("after 6");
   }
   // Free resources
   http.end();
