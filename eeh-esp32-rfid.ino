@@ -18,6 +18,7 @@
 #define DEVICE_HOSTNAME "esp32-1.home.narco.tk"
 #define APP_NAME "eeh-esp32-rfid-laser"
 #define EEH_DEVICE "laser"
+#define WEB_SERVER_PORT 80
 
 const char* ssid = "somessid";
 const char* password = "xxxx";
@@ -61,7 +62,7 @@ Syslog syslog(udpClient, SYSLOG_SERVER, SYSLOG_PORT, DEVICE_HOSTNAME, APP_NAME, 
 
 int iteration = 0; // holds the MSGID number for syslog, also represents the instance number of RFID action (connection or removal)
 
-AsyncWebServer server(80);
+AsyncWebServer server(WEB_SERVER_PORT);
 
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
@@ -128,14 +129,14 @@ String processor(const String& var) {
   if (var == "BUTTONPLACEHOLDER2") {
     String buttons = "";
     String outputStateValue = outputState(RELAY);
-    //Serial.print("relay output state="); Serial.println(outputStateValue);
     
-    // because HIGH = off, this needs to be reversed to make web button work
+    // because HIGH = off for the relay, this needs to be reversed to make web button work
     if (outputStateValue == "checked") {
       outputStateValue = "";
     } else {
       outputStateValue = "checked";
     }
+
     buttons+= "<p>RELAY</p><p><label class='switch'><input type='checkbox' onchange='toggleCheckbox(this, \"relay\")' id='output' " + outputStateValue + "><span class='slider'></span></label></p>";
     return buttons;
   }
@@ -192,6 +193,7 @@ void setup() {
   Serial.print(" RFID Card Delay: "); Serial.print(checkCardTime); Serial.println(" seconds");
   Serial.print("       Relay Pin: "); Serial.println(RELAY);
   Serial.print("         LED Pin: "); Serial.println(ONBOARD_LED);
+  Serial.print(" Web Server Port: "); Serial.println(WEB_SERVER_PORT);
   mfrc522.PCD_DumpVersionToSerial(); // Show details of PCD - MFRC522 Card Reader details
 
   Serial.print("\nConnecting to Wifi: ");
@@ -249,30 +251,38 @@ void setup() {
     // GET input1 value on <ESP_IP>/update?state=<inputMessage>
     if (request->hasParam(PARAM_INPUT_1) && request->hasParam(PARAM_INPUT_2)) {
       inputMessage = request->getParam(PARAM_INPUT_1)->value();
-      inputParam = PARAM_INPUT_1;
+      inputParam = PARAM_INPUT_1; // check to remove
       inputPin = request->getParam(PARAM_INPUT_2)->value();
 
       if (inputPin == "relay") {
         if (inputMessage.toInt() == 1) {
           enableRelay();
+          Serial.print(iteration); Serial.println("Admin Web: Enable Relay");
+          syslog.logf("%d Admin Web: Enable Relay", iteration);
         } else {
           disableRelay();
+          Serial.print(iteration); Serial.println(" Admin Web: Disable Relay");
+          syslog.logf("%d Admin Web: Disable Relay", iteration);
         }
       }
 
       if (inputPin == "led") {
         if (inputMessage.toInt() == 1) {
           enableLed();
+          Serial.print(iteration); Serial.println(" Admin Web: Enable LED");
+          syslog.logf("%d Admin Web: Enable LED", iteration);
         } else {
           disableLed();
+          Serial.print(iteration); Serial.println(" Admin Web: Disable LED");
+          syslog.logf("%d Admin Web: Disable LED", iteration);
         }
       }
 
     } else {
       inputMessage = "No message sent";
-      inputParam = "none";
+      inputParam = "none"; // check to remove
     }
-    Serial.println(inputMessage);
+    //Serial.println(inputMessage);
     request->send(200, "text/plain", "OK");
   });
 
