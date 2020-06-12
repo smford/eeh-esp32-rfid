@@ -18,6 +18,8 @@ A simple ESP32 Based RFID Access Control System for tools
 
 
 ## Things to do
+- Add requester ip details to web admin logs
+- Add unknown card found to logs
 - Add status light to signify when it is checking access, in trainer mode, locked, unlocked, etc
 - OTA updating of firmware
 - After remote reboot, change the url to be index rather than /reboot (can cause looping reboots)
