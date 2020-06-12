@@ -27,8 +27,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - Add fullstatus link to web admin
 - Enable active checking of access, regularly poll and check whether card still has access
 - NTP time, to enforce windows of operation
-- Enable status capability, to see what the current status of the system is (whos logged in, whether leds or relay on, etc) /status
-- Allow remote checking of current status of relay, to see if device is in use and by whom
 - Figure out sizing for JSON doc
 - Figure out sizing of variable for url
 - Log off a user via the web admin
@@ -48,3 +46,5 @@ A simple ESP32 Based RFID Access Control System for tools
 - Add syslog bootup time to capture when the device was rebooted
 - Enable heartbeat capability, to be used with a canary to alert upon device failure /health
 - Make variable str in line 193 have a better name
+- Enable status capability, to see what the current status of the system is (whos logged in, whether leds or relay on, etc) /status
+- Allow remote checking of current status of relay, to see if device is in use and by whom
