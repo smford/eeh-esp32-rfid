@@ -271,6 +271,21 @@ void setup() {
     request->send(200, "text/plain", "OK");
   });
 
+  server.on("/fullstatus", HTTP_GET, [](AsyncWebServerRequest *request){
+    Serial.println("Full Status Check Fired");
+    syslog.logf("Full Status Check Fired");
+    if (!request->authenticate(http_username, http_password)) {
+      return request->requestAuthentication();
+    }
+    request->send(200, "application/json", getFullStatus());
+  });
+
+  server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request){
+    Serial.println("Status Check Fired");
+    syslog.logf("Status Check Fired");
+    request->send(200, "application/json", getStatus());
+  });
+
   // Send a GET request to <ESP_IP>/update?state=<inputMessage>
   server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
     if (!request->authenticate(http_username, http_password)) {
@@ -525,6 +540,20 @@ void rebootESP(char* message) {
   // wait 5 seconds to allow syslog to be sent
   delay(5000);
   ESP.restart();
+}
+
+String getFullStatus() {
+  Serial.println("getting status");
+  // {"Timestamp":"2020-06-12 01:24:29.979233047 +0100 BST m=+204897.028579088","RFID":"7AA5E03F","EEHDevice":"laser","Grant":"true"}
+  //{"Timestamp":"2020-06-12 01:24:29.979233047 +0100 BST m=+204897.028579088","Hostname":"", "AppName":"", "EEHDevice":"laser", "SyslogServer":"", "SyslogPort":"", "Firmware":"", "APIWait":"", "RFIDDelay":"", "WebServerPort":"", "SSID":"", "WifiStatus":"", "MacAddress":"", "IPAddress":"", "Subnet":"", "Gateway":"", "DNS1":"", "DNS2":"", "DNS3":"", "RelayPin":"", "RelayPinStatus":"", "LEDPin":"", "LEDPinStatus":"", "RFID":"7AA5E03F","Grant":"true"}
+  String mockFullStatus = "{\"Timestamp\":\"2020-06-12 01:24:29.979233047 +0100 BST m=+204897.028579088\",\"Hostname\":\"\", \"AppName\":\"\", \"EEHDevice\":\"laser\", \"SyslogServer\":\"\", \"SyslogPort\":\"\", \"Firmware\":\"\", \"APIWait\":\"\", \"RFIDDelay\":\"\", \"WebServerPort\":\"\", \"SSID\":\"\", \"WifiStatus\":\"\", \"MacAddress\":\"\", \"IPAddress\":\"\", \"Subnet\":\"\", \"Gateway\":\"\", \"DNS1\":\"\", \"DNS2\":\"\", \"DNS3\":\"\", \"RelayPin\":\"\", \"RelayPinStatus\":\"\", \"LEDPin\":\"\", \"LEDPinStatus\":\"\", \"RFID\":\"7AA5E03F\",\"Grant\":\"true\"}";
+
+  return mockFullStatus;
+}
+
+String getStatus() {
+  Serial.println("getting un-authed status");
+  return "getting un-authed status";
 }
 
 String httpGETRequest(const char* serverURL) {
