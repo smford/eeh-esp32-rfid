@@ -212,7 +212,7 @@ void setup() {
   Serial.print("         LED Pin: "); Serial.println(ONBOARD_LED);
   Serial.print(" Web Server Port: "); Serial.println(WEB_SERVER_PORT);
   Serial.print("     ESP32 Flash: "); Serial.println(FIRMWARE_VERSION);
-  mfrc522.PCD_DumpVersionToSerial(); // Show details of PCD - MFRC522 Card Reader details
+  Serial.print(" MFRC522 Version: "); Serial.println(getmfrcversion());
 
   Serial.print("\nConnecting to Wifi: ");
   WiFi.begin(ssid, password);
@@ -549,12 +549,61 @@ void rebootESP(char* message) {
 }
 
 String getFullStatus() {
-  Serial.println("getting status");
-  // {"Timestamp":"2020-06-12 01:24:29.979233047 +0100 BST m=+204897.028579088","RFID":"7AA5E03F","EEHDevice":"laser","Grant":"true"}
-  //{"Timestamp":"2020-06-12 01:24:29.979233047 +0100 BST m=+204897.028579088","Hostname":"", "AppName":"", "EEHDevice":"laser", "OverrideUsers":"", "SyslogServer":"", "SyslogPort":"", "Firmware":"", "APIWait":"", "RFIDDelay":"", "WebServerPort":"", "SSID":"", "WifiStatus":"", "MacAddress":"", "IPAddress":"", "Subnet":"", "Gateway":"", "DNS1":"", "DNS2":"", "DNS3":"", "RelayPin":"", "RelayPinStatus":"", "LEDPin":"", "LEDPinStatus":"", "RFID":"7AA5E03F","Grant":"true"}
-  String mockFullStatus = "{\"Timestamp\":\"2020-06-12 01:24:29.979233047 +0100 BST m=+204897.028579088\",\"Hostname\":\"\", \"AppName\":\"\", \"EEHDevice\":\"laser\", \"OverrideUsers\":\"\", \"SyslogServer\":\"\", \"SyslogPort\":\"\", \"Firmware\":\"\", \"APIWait\":\"\", \"RFIDDelay\":\"\", \"WebServerPort\":\"\", \"SSID\":\"\", \"WifiStatus\":\"\", \"MacAddress\":\"\", \"IPAddress\":\"\", \"Subnet\":\"\", \"Gateway\":\"\", \"DNS1\":\"\", \"DNS2\":\"\", \"DNS3\":\"\", \"RelayPin\":\"\", \"RelayPinStatus\":\"\", \"LEDPin\":\"\", \"LEDPinStatus\":\"\", \"RFID\":\"7AA5E03F\",\"Grant\":\"true\"}";
+  StaticJsonDocument<1200> fullStatusDoc;
 
-  return mockFullStatus;
+  fullStatusDoc["Timestamp"] = "2020-06-12 01:24:29.979233047 +0100 BST m=+204897.028579088";
+  fullStatusDoc["Hostname"] = DEVICE_HOSTNAME;
+  fullStatusDoc["AppName"] = APP_NAME;
+  fullStatusDoc["EEHDevice"] = EEH_DEVICE;
+  fullStatusDoc["OverrideUsers"] = getAccessOverrideCodes();
+  fullStatusDoc["SyslogServer"] = SYSLOG_SERVER;
+  fullStatusDoc["SyslogPort"] = SYSLOG_PORT;
+  fullStatusDoc["ServerURL1"] = serverURL1;
+  fullStatusDoc["ServerURL2"] = serverURL2;
+  fullStatusDoc["Firmware"] = FIRMWARE_VERSION;
+  fullStatusDoc["MFRC522SlaveSelect"] = SS_PIN;
+  fullStatusDoc["MFRC522ResetPin"] = RST_PIN;
+  fullStatusDoc["MFRC522Firmware"] = getmfrcversion();
+  fullStatusDoc["APIWait"] = waitTime;
+  fullStatusDoc["RFIDDelay"] = checkCardTime;
+  fullStatusDoc["ShouldReboot"] = shouldReboot;
+  fullStatusDoc["WebServerPort"] = WEB_SERVER_PORT;
+  fullStatusDoc["SSID"] = WiFi.SSID();
+  fullStatusDoc["WifiStatus"] = WiFi.status();
+  fullStatusDoc["MacAddress"] = WiFi.macAddress();
+  fullStatusDoc["IPAddress"] = WiFi.localIP().toString();
+  fullStatusDoc["Subnet"] = WiFi.subnetMask().toString();
+  fullStatusDoc["Gateway"] = WiFi.gatewayIP().toString();
+  fullStatusDoc["DNS1"] = WiFi.dnsIP(0).toString();
+  fullStatusDoc["DNS2"] = WiFi.dnsIP(1).toString();
+  fullStatusDoc["DNS3"] = WiFi.dnsIP(2).toString();
+  fullStatusDoc["RelayPin"] = RELAY;
+
+  // note this is the opposite of what is expected due to the way the relay works
+  if (digitalRead(RELAY)) {
+    fullStatusDoc["RelayPinStatus"] = "off";
+  } else {
+    fullStatusDoc["RelayPinStatus"] = "on";
+  }
+
+  fullStatusDoc["LEDPin"] = ONBOARD_LED;
+  if (digitalRead(ONBOARD_LED)) {
+    fullStatusDoc["LEDPinStatus"] = "on";
+  } else {
+    fullStatusDoc["LEDPinStatus"] = "off";
+  }
+
+  if (strcmp(currentRFIDcard, "") == 0) {
+    fullStatusDoc["RFID"] = "NONE";
+  } else {
+    fullStatusDoc["RFID"] = currentRFIDcard;
+  }
+  fullStatusDoc["Grant"] = currentRFIDaccess;
+
+  String fullStatus = "";
+  serializeJson(fullStatusDoc, fullStatus);
+
+  return fullStatus;
 }
 
 String getStatus() {
@@ -596,4 +645,34 @@ void array_to_string(byte array[], unsigned int len, char buffer[])
     buffer[i * 2 + 1] = nib2  < 0xA ? '0' + nib2  : 'A' + nib2  - 0xA;
   }
   buffer[len * 2] = '\0';
+}
+
+String getmfrcversion() {
+  String mfrcver;
+  switch (mfrc522.PCD_ReadRegister(mfrc522.VersionReg)) {
+    case 0x91:
+      mfrcver = "v1.0";
+      break;
+    case 0x92:
+      mfrcver = "v2.0";
+      break;
+    default:
+      mfrcver = "0x" + String(mfrc522.PCD_ReadRegister(mfrc522.VersionReg), HEX) + ":counterfeit";
+  }
+  return mfrcver;
+}
+
+String getAccessOverrideCodes() {
+  String nicelist = "";
+  String tempcomma = "";
+  for (int i = 0; i < (sizeof(accessOverrideCodes) / sizeof(accessOverrideCodes[0])); i++) {
+    if (i == 0) {
+      tempcomma = "";
+    } else {
+      tempcomma = ", ";
+    }
+    nicelist += tempcomma + String(accessOverrideCodes[i]);
+  }
+  Serial.println(nicelist);
+  return nicelist;
 }
