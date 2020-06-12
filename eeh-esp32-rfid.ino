@@ -257,6 +257,12 @@ void setup() {
       shouldReboot = true;
   });
 
+  server.on("/health", HTTP_GET, [](AsyncWebServerRequest *request){
+    Serial.println("Healthcheck Fired");
+    syslog.logf("Healthcheck Fired");
+    request->send(200, "text/plain", "OK");
+  });
+
   // Send a GET request to <ESP_IP>/update?state=<inputMessage>
   server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
     if(!request->authenticate(http_username, http_password))
