@@ -162,7 +162,7 @@ String processor(const String& var) {
 
   if (var == "PRESENTRFID") {
     if (strcmp(currentRFIDcard, "") == 0) {
-      return "no one";
+      return "NONE";
     } else {
       return currentRFIDcard;
     }
