@@ -155,9 +155,7 @@ String processor(const String& var) {
   }
 
   if (var == "EEH_HOSTNAME") {
-    String hostname = "default hostname";
-    hostname = DEVICE_HOSTNAME;
-    return hostname;
+    return DEVICE_HOSTNAME;
   }
 
   if (var == "PRESENTRFID") {
