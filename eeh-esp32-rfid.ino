@@ -252,9 +252,10 @@ void setup() {
   });
 
   server.on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request){
-    if(!request->authenticate(http_username, http_password))
+    if (!request->authenticate(http_username, http_password)) {
       return request->requestAuthentication();
-      shouldReboot = true;
+    }
+    shouldReboot = true;
   });
 
   server.on("/health", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -265,8 +266,9 @@ void setup() {
 
   // Send a GET request to <ESP_IP>/update?state=<inputMessage>
   server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
-    if(!request->authenticate(http_username, http_password))
+    if (!request->authenticate(http_username, http_password)) {
       return request->requestAuthentication();
+    }
     String inputMessage;
     String inputParam;
     String inputPin;
