@@ -19,6 +19,7 @@
 #define APP_NAME "eeh-esp32-rfid-laser"
 #define EEH_DEVICE "laser"
 #define WEB_SERVER_PORT 80
+#define FIRMWARE_VERSION "v1.0"
 
 const char* ssid = "somessid";
 const char* password = "xxxx";
@@ -87,6 +88,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 <body>
   <h2>%EEH_HOSTNAME%</h2>
   <button onclick="logoutButton()">Logout</button>
+  <p>Firmware Version: %FIRMWARE%</p>
   <p>Current RFID Card: %PRESENTRFID%</p>
   <p>Current RFID Access: %RFIDACCESS%</p>
   %BUTTONPLACEHOLDER1%
@@ -174,6 +176,10 @@ String processor(const String& var) {
     }
   }
 
+  if (var == "FIRMWARE") {
+    return FIRMWARE_VERSION;
+  }
+
   return String();
 }
 
@@ -205,6 +211,7 @@ void setup() {
   Serial.print("       Relay Pin: "); Serial.println(RELAY);
   Serial.print("         LED Pin: "); Serial.println(ONBOARD_LED);
   Serial.print(" Web Server Port: "); Serial.println(WEB_SERVER_PORT);
+  Serial.print("     ESP32 Flash: "); Serial.println(FIRMWARE_VERSION);
   mfrc522.PCD_DumpVersionToSerial(); // Show details of PCD - MFRC522 Card Reader details
 
   Serial.print("\nConnecting to Wifi: ");
