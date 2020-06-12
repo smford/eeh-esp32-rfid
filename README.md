@@ -24,15 +24,20 @@ A simple ESP32 Based RFID Access Control System for tools
 - OTA updating of firmware
 - After remote reboot, change the url to be index rather than /reboot (can cause looping reboots)
 - Use wifimanager or IotWebConf to make configuration easier
+- Add fullstatus link to web admin
 - Enable active checking of access, regularly poll and check whether card still has access
 - NTP time, to enforce windows of operation
 - Enable status capability, to see what the current status of the system is (whos logged in, whether leds or relay on, etc) /status
 - Allow remote checking of current status of relay, to see if device is in use and by whom
 - Figure out sizing for JSON doc
 - Figure out sizing of variable for url
+- Log off a user via the web admin
+- Ban a user via the web admin
 - Convert l240-l247 in to a function
 - Lockdown mode / Device disabled except for admin users
 - Scheduled reboots
+- Regularly send "in use data" back to somewhere
+- Add a sensor to detect whether the laser is actually firing and ship somewhere
 - API tokens
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 
