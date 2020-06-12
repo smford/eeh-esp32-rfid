@@ -391,14 +391,20 @@ void dowebcall(const char *foundrfid) {
           } else {
             Serial.print(iteration); Serial.print(" ERROR: Device Mismatch: DetectedDevice: "); Serial.print(EEH_DEVICE); Serial.print(" JSONDevice:"); Serial.println(EEHDevice);
             syslog.logf(LOG_ERR, "%d ERROR: Device Mismatch: DetectedDevice:%s JSONDEevice:%s", iteration, EEH_DEVICE, EEHDevice);
+            disableLed();
+            disableRelay("Device Mismatch");
           }
         } else {
           Serial.print(iteration); Serial.print(" ERROR: Access Denied: "); Serial.print(foundrfid); Serial.print(" for "); Serial.println(EEHDevice);
           syslog.logf(LOG_ERR, "%d ERROR: Access Denied: %s for %s", iteration, foundrfid, EEHDevice);
+          disableLed();
+          disableRelay("Access Denied");
         }
       } else {
         Serial.print(iteration); Serial.print(" ERROR: RFID Mismatch: DetectedRFID: "); Serial.print(foundrfid); Serial.print(" JSONRFID:"); Serial.println(RFID);
         syslog.logf(LOG_ERR, "%d ERROR: Access Denied DetectedRFID:%s JSONRFID:%s for %s", iteration, foundrfid, RFID, EEHDevice);
+        disableLed();
+        disableRelay("RFID Mismatch");
       }
 
       sinceLastRunTime = millis();
