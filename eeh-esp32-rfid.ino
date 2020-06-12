@@ -606,7 +606,21 @@ String getFullStatus() {
 
 String getStatus() {
   Serial.println("getting un-authed status");
-  return "getting un-authed status";
+  StaticJsonDocument<200> shortStatusDoc;
+  shortStatusDoc["Timestamp"] = "2020-06-12 01:24:29.979233047 +0100 BST m=+204897.028579088";
+  shortStatusDoc["Hostname"] = DEVICE_HOSTNAME;
+
+  // note this is the opposite of what is expected due to the way the relay works
+  if (digitalRead(RELAY)) {
+    shortStatusDoc[EEH_DEVICE] = "off";
+  } else {
+    shortStatusDoc[EEH_DEVICE] = "on";
+  }
+
+  String shortStatus = "";
+
+  serializeJson(shortStatusDoc, shortStatus);
+  return shortStatus;
 }
 
 String httpGETRequest(const char* serverURL) {
