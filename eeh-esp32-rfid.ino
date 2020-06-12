@@ -42,7 +42,7 @@ const char* PARAM_INPUT_2 = "pin";
 const int output = 2;
 //=======
 
-char *accessOverrideCodes[] = {"90379632", "boss2", "boss3"};
+char *accessOverrideCodes[] = {"90379632", "boss2aaa", "boss3bbb"};
 
 char* serverURL;
 unsigned long sinceLastRunTime = 0;
