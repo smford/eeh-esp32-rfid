@@ -45,7 +45,8 @@ const char* http_password = "admin";
 const char* PARAM_INPUT_1 = "state";
 const char* PARAM_INPUT_2 = "pin";
 
-const int output = 2;
+// possibly delete
+//const int output = 2;
 //=======
 
 char *accessOverrideCodes[] = {"90379632", "boss2aaa", "boss3bbb"};
@@ -706,7 +707,6 @@ String getAccessOverrideCodes() {
     }
     nicelist += tempcomma + String(accessOverrideCodes[i]);
   }
-  Serial.println(nicelist);
   return nicelist;
 }
 
