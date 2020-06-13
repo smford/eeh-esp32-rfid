@@ -7,11 +7,12 @@
 #include <Syslog.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include <ezTime.h>
 
 // syslog library: https://github.com/arcao/Syslog v2.0
 // mfrc522 library: https://github.com/miguelbalboa/rfid  v1.4.6
 // arduinojson library: https://github.com/bblanchon/ArduinoJson & https://arduinojson.org/ v6.15.2
-
+// eztime library: https://github.com/ropg/ezTime v.0.8.3
 
 #define SYSLOG_SERVER "192.168.10.21"
 #define SYSLOG_PORT 514
@@ -21,8 +22,13 @@
 #define WEB_SERVER_PORT 80
 #define FIRMWARE_VERSION "v1.0"
 
-const char* ssid = "somessid";
-const char* password = "xxxx";
+// Provide official timezone names
+// https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+#define NTPTIMEZONE "Europe/London"
+#define NTPSYNCTIME 120
+
+//const char* ssid = "ssid";
+//const char* password = "password";
 //const char* serverURL1 = "https://mock-rfid-system.herokuapp.com/check?rfid=";
 const char* serverURL1 = "http://192.168.10.21:56000/check?rfid=";
 const char* serverURL2 = "&device=laser";
@@ -57,12 +63,18 @@ bool currentRFIDaccess = false;
 // should we reboot the server?
 bool shouldReboot = false;
 
+// MFRC522
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance
 
 // A UDP instance to let us send and receive packets over UDP
 WiFiUDP udpClient;
 
+// Syslog
 Syslog syslog(udpClient, SYSLOG_SERVER, SYSLOG_PORT, DEVICE_HOSTNAME, APP_NAME, LOG_INFO);
+
+// NTP
+Timezone myTZ;
+String bootTime;
 
 int iteration = 0; // holds the MSGID number for syslog, also represents the instance number of RFID action (connection or removal)
 
@@ -211,6 +223,8 @@ void setup() {
   Serial.print(" Web Server Port: "); Serial.println(WEB_SERVER_PORT);
   Serial.print("     ESP32 Flash: "); Serial.println(FIRMWARE_VERSION);
   Serial.print(" MFRC522 Version: "); Serial.println(getmfrcversion());
+  Serial.print("   NTP Time Sync: "); Serial.println(NTPSYNCTIME);
+  Serial.print("   NTP Time Zone: "); Serial.println(NTPTIMEZONE);
 
   Serial.print("\nConnecting to Wifi: ");
   WiFi.begin(ssid, password);
@@ -418,6 +432,10 @@ void dowebcall(const char *foundrfid) {
 }
 
 void loop() {
+
+  //display time sync events
+  events();
+
   // reboot from web admin set
   if (shouldReboot) {
     rebootESP("Web Admin");
@@ -549,8 +567,9 @@ void rebootESP(char* message) {
 String getFullStatus() {
   StaticJsonDocument<1200> fullStatusDoc;
 
-  fullStatusDoc["Timestamp"] = "2020-06-12 01:24:29.979233047 +0100 BST m=+204897.028579088";
+  fullStatusDoc["Timestamp"] = printTime();
   fullStatusDoc["Hostname"] = DEVICE_HOSTNAME;
+  fullStatusDoc["BootTime"] = bootTime;
   fullStatusDoc["AppName"] = APP_NAME;
   fullStatusDoc["EEHDevice"] = EEH_DEVICE;
   fullStatusDoc["OverrideUsers"] = getAccessOverrideCodes();
@@ -562,6 +581,8 @@ String getFullStatus() {
   fullStatusDoc["MFRC522SlaveSelect"] = SS_PIN;
   fullStatusDoc["MFRC522ResetPin"] = RST_PIN;
   fullStatusDoc["MFRC522Firmware"] = getmfrcversion();
+  fullStatusDoc["NTPSyncTime"] = NTPSYNCTIME;
+  fullStatusDoc["NTPTimeZone"] = NTPTIMEZONE;
   fullStatusDoc["APIWait"] = waitTime;
   fullStatusDoc["RFIDDelay"] = checkCardTime;
   fullStatusDoc["ShouldReboot"] = shouldReboot;
@@ -687,4 +708,8 @@ String getAccessOverrideCodes() {
   }
   Serial.println(nicelist);
   return nicelist;
+}
+
+String printTime() {
+  return myTZ.dateTime();
 }

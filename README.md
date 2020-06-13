@@ -26,7 +26,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Use wifimanager or IotWebConf to make configuration easier
 - Add fullstatus link to web admin
 - Enable active checking of access, regularly poll and check whether card still has access
-- NTP time, to enforce windows of operation
+- Enforce windows of operation
 - Figure out sizing for JSON doc
 - Figure out sizing of variable for url
 - Log off a user via the web admin
@@ -38,9 +38,11 @@ A simple ESP32 Based RFID Access Control System for tools
 - Add a sensor to detect whether the laser is actually firing and ship somewhere
 - API tokens
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
+- Fix reboot function
 
 ## Done
 - Add syslogs for web stuff
+- Enable NTP
 - Enable remote firing of relay via a web interface or api call - a remote unlock-and-lock ability
 - Remote reboot command via web interface and api
 - Add syslog bootup time to capture when the device was rebooted
