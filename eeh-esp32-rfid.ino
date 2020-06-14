@@ -107,7 +107,9 @@ const char index_html[] PROGMEM = R"rawliteral(
   <h2>%EEH_HOSTNAME%</h2>
   <button onclick="logoutButton()">Logout</button>
   <button onclick="displayConfig()">Display Config</button>
-  <p>Device Time: %DEVICETIME%</p>
+  <button onclick="refreshNTP()">Refresh NTP</button>
+  <button onclick="rebootButton()">Reboot</button>
+  <p>Device Time: <span id="ntptime">%DEVICETIME%</span></p>
   <p>Firmware Version: %FIRMWARE%</p>
   <p>Current RFID Card: %PRESENTRFID%</p>
   <p>Current RFID Access: %RFIDACCESS%</p>
@@ -115,7 +117,6 @@ const char index_html[] PROGMEM = R"rawliteral(
   %RELAYSLIDER%
   <p id="configheader"></p>
   <p id="configdetails"></p>
-  <button onclick="rebootButton()">Reboot</button>
 <script>function toggleCheckbox(element, pin) {
   var xhr = new XMLHttpRequest();
   if(element.checked){ xhr.open("GET", "/update?state=1&pin="+pin, true); }
@@ -133,6 +134,15 @@ function rebootButton() {
   xhr.open("GET", "/reboot", true);
   xhr.send();
   setTimeout(function(){ window.open("/reboot","_self"); }, 0);
+}
+function refreshNTP() {
+  document.getElementById("ntptime").innerHTML = "Updating ...";
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "/ntprefresh", true);
+  xhr.send();
+  setTimeout(function(){
+    document.getElementById("ntptime").innerHTML = xhr.responseText;
+   },5000);
 }
 function displayConfig() {
   document.getElementById("configheader").innerHTML = "<h3>Configuration<h3>";
@@ -361,6 +371,17 @@ void setup() {
     }
     request->send(200, "text/html", reboot_html);
     shouldReboot = true;
+  });
+
+  server.on("/ntprefresh", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (!request->authenticate(http_username, http_password)) {
+      return request->requestAuthentication();
+    }
+    //request->send(200, "text/html", "ok");
+    Serial.println("Admin Web: NTP Update Fired");
+    syslog.logf("Admin Web: NTP Update Fired");
+    updateNTP();
+    request->send(200, "text/html", printTime());
   });
 
   server.on("/health", HTTP_GET, [](AsyncWebServerRequest *request){

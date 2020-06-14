@@ -39,7 +39,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - Add a sensor to detect whether the laser is actually firing and ship somewhere
 - API tokens
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
-- Force ntp sync via api and web admin
 - If bootTime = Thursday, 01-Jan-1970 00:00:16 UTC, refresh it for the most current time
 - Upon boot, pull time from server, then start using utp
 - If ntp sync fails 10 times, force a reboot
@@ -47,6 +46,7 @@ A simple ESP32 Based RFID Access Control System for tools
 ## Done
 - Add syslogs for web stuff
 - Enable NTP
+- Force ntp sync via api and web admin
 - Fix reboot function
 - Enable remote firing of relay via a web interface or api call - a remote unlock-and-lock ability
 - Remote reboot command via web interface and api
