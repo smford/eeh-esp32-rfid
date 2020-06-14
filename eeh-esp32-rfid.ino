@@ -149,9 +149,9 @@ function displayConfig() {
   //document.getElementById("configdetails").innerHTML = displaydata;
 
   // nice table:
-  var displaydata = "<table><tr><th>Setting</th><th>Value</th></tr>";
+  var displaydata = "<table><tr><th align='left'>Setting</th><th align='left'>Value</th></tr>";
   for (var key of Object.keys(mydata)) {
-    displaydata = displaydata + "<tr><td>" + key + "</td><td>" + mydata[key] + "</td></tr>";
+    displaydata = displaydata + "<tr><td align='left'>" + key + "</td><td align='left'>" + mydata[key] + "</td></tr>";
   }
   displaydata = displaydata + "</table>";
   document.getElementById("configdetails").innerHTML = displaydata;
