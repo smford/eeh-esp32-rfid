@@ -137,10 +137,27 @@ function rebootButton() {
 function displayConfig() {
   document.getElementById("configheader").innerHTML = "<h3>Configuration<h3>";
   xmlhttp=new XMLHttpRequest();
-  xmlhttp.open("GET", "/status", false);
+  xmlhttp.open("GET", "/fullstatus", false);
   xmlhttp.send();
-  var data = JSON.parse(xmlhttp.responseText);
-  document.getElementById("configdetails").innerHTML = data.Timestamp + ", " + data.Hostname + ", " + data.laser;
+  var mydata = JSON.parse(xmlhttp.responseText);
+
+  // working:
+  // var displaydata = "";
+  // for (var key of Object.keys(mydata)) {
+  //  displaydata = displaydata + key + ":" + mydata[key] + "<br>";
+  // }
+  //document.getElementById("configdetails").innerHTML = displaydata;
+
+  // nice table:
+  var displaydata = "<table><tr><th>Setting</th><th>Value</th></tr>";
+  for (var key of Object.keys(mydata)) {
+    displaydata = displaydata + "<tr><td>" + key + "</td><td>" + mydata[key] + "</td></tr>";
+  }
+  displaydata = displaydata + "</table>";
+  document.getElementById("configdetails").innerHTML = displaydata;
+
+  // this works:
+  // document.getElementById("configdetails").innerHTML = Object.entries(mydata);
 }
 </script>
 </body>
