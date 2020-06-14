@@ -105,12 +105,15 @@ const char index_html[] PROGMEM = R"rawliteral(
 <body>
   <h2>%EEH_HOSTNAME%</h2>
   <button onclick="logoutButton()">Logout</button>
+  <button onclick="displayConfig()">Display Config</button>
   <p>Device Time: %DEVICETIME%</p>
   <p>Firmware Version: %FIRMWARE%</p>
   <p>Current RFID Card: %PRESENTRFID%</p>
   <p>Current RFID Access: %RFIDACCESS%</p>
   %LEDSLIDER%
   %RELAYSLIDER%
+  <p id="configheader"></p>
+  <p id="configdetails"></p>
   <button onclick="rebootButton()">Reboot</button>
 <script>function toggleCheckbox(element, pin) {
   var xhr = new XMLHttpRequest();
@@ -129,6 +132,14 @@ function rebootButton() {
   xhr.open("GET", "/reboot", true);
   xhr.send();
   setTimeout(function(){ window.open("/reboot","_self"); }, 0);
+}
+function displayConfig() {
+  document.getElementById("configheader").innerHTML = "<h3>Configuration<h3>";
+  xmlhttp=new XMLHttpRequest();
+  xmlhttp.open("GET", "/status", false);
+  xmlhttp.send();
+  var data = JSON.parse(xmlhttp.responseText);
+  document.getElementById("configdetails").innerHTML = data.Timestamp + ", " + data.Hostname + ", " + data.laser;
 }
 </script>
 </body>
