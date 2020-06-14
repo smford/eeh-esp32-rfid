@@ -314,7 +314,7 @@ void setup() {
   // https://randomnerdtutorials.com/esp32-esp8266-web-server-http-authentication/
   // Route for root / web page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    if(!request->authenticate(http_username, http_password))
+    if (!request->authenticate(http_username, http_password)) {
       return request->requestAuthentication();
     request->send_P(200, "text/html", index_html, processor);
   });
