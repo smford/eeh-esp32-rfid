@@ -28,6 +28,8 @@ A simple ESP32 Based RFID Access Control System for tools
 - Enable active checking of access, regularly poll and check whether card still has access
 - Enforce windows of operation
 - Figure out sizing for JSON doc
+- Upon boot, pull time from server, then start using utp
+- If ntp sync fails 10 times, force a reboot
 - Figure out sizing of variable for url
 - Log off a user via the web admin
 - Ban a user via the web admin

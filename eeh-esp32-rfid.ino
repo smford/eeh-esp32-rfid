@@ -25,7 +25,9 @@
 // Provide official timezone names
 // https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 #define NTPTIMEZONE "Europe/London"
-#define NTPSYNCTIME 120
+#define NTPSYNCTIME 60
+#define NTPWAITSYNCTIME 10
+#define NTPSERVER "europe.pool.ntp.org"
 
 //const char* ssid = "ssid";
 //const char* password = "password";
@@ -76,6 +78,8 @@ Syslog syslog(udpClient, SYSLOG_SERVER, SYSLOG_PORT, DEVICE_HOSTNAME, APP_NAME, 
 // NTP
 Timezone myTZ;
 String bootTime;
+ezDebugLevel_t NTPDEBUG = ERROR; // NONE, ERROR, INFO, DEBUG
+
 
 int iteration = 0; // holds the MSGID number for syslog, also represents the instance number of RFID action (connection or removal)
 
@@ -101,6 +105,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 <body>
   <h2>%EEH_HOSTNAME%</h2>
   <button onclick="logoutButton()">Logout</button>
+  <p>Device Time: %DEVICETIME%</p>
   <p>Firmware Version: %FIRMWARE%</p>
   <p>Current RFID Card: %PRESENTRFID%</p>
   <p>Current RFID Access: %RFIDACCESS%</p>
@@ -191,6 +196,10 @@ String processor(const String& var) {
     return FIRMWARE_VERSION;
   }
 
+  if (var == "DEVICETIME") {
+    return printTime();
+  }
+
   return String();
 }
 
@@ -223,7 +232,9 @@ void setup() {
   Serial.print("         LED Pin: "); Serial.println(ONBOARD_LED);
   Serial.print(" Web Server Port: "); Serial.println(WEB_SERVER_PORT);
   Serial.print("     ESP32 Flash: "); Serial.println(FIRMWARE_VERSION);
+  Serial.print("  Flash Compiled: "); Serial.println(String(__DATE__) + " " + String(__TIME__));
   Serial.print(" MFRC522 Version: "); Serial.println(getmfrcversion());
+  Serial.print("      NTP Server: "); Serial.println(NTPSERVER);
   Serial.print("   NTP Time Sync: "); Serial.println(NTPSYNCTIME);
   Serial.print("   NTP Time Zone: "); Serial.println(NTPTIMEZONE);
 
@@ -297,6 +308,12 @@ void setup() {
     Serial.println("Status Check Fired");
     syslog.logf("Status Check Fired");
     request->send(200, "application/json", getStatus());
+  });
+
+  // delete this in the future
+  server.on("/time", HTTP_GET, [](AsyncWebServerRequest *request){
+    Serial.println(printTime());
+    request->send(200, "text/plain", printTime());
   });
 
   // Send a GET request to <ESP_IP>/update?state=<inputMessage>
@@ -434,7 +451,7 @@ void dowebcall(const char *foundrfid) {
 
 void loop() {
 
-  //display time sync events
+  // display ntp sync events
   events();
 
   // reboot from web admin set
@@ -566,7 +583,7 @@ void rebootESP(char* message) {
 }
 
 String getFullStatus() {
-  StaticJsonDocument<1200> fullStatusDoc;
+  StaticJsonDocument<1500> fullStatusDoc;
 
   fullStatusDoc["Timestamp"] = printTime();
   fullStatusDoc["Hostname"] = DEVICE_HOSTNAME;
@@ -579,11 +596,14 @@ String getFullStatus() {
   fullStatusDoc["ServerURL1"] = serverURL1;
   fullStatusDoc["ServerURL2"] = serverURL2;
   fullStatusDoc["Firmware"] = FIRMWARE_VERSION;
+  fullStatusDoc["CompileTime"] = String(__DATE__) + " " + String(__TIME__);
   fullStatusDoc["MFRC522SlaveSelect"] = SS_PIN;
   fullStatusDoc["MFRC522ResetPin"] = RST_PIN;
   fullStatusDoc["MFRC522Firmware"] = getmfrcversion();
+  fullStatusDoc["NTPServer"] = NTPSERVER;
   fullStatusDoc["NTPSyncTime"] = NTPSYNCTIME;
   fullStatusDoc["NTPTimeZone"] = NTPTIMEZONE;
+  fullStatusDoc["NTPWaitSynctime"] = NTPWAITSYNCTIME;
   fullStatusDoc["APIWait"] = waitTime;
   fullStatusDoc["RFIDDelay"] = checkCardTime;
   fullStatusDoc["ShouldReboot"] = shouldReboot;
@@ -629,7 +649,7 @@ String getFullStatus() {
 String getStatus() {
   Serial.println("getting un-authed status");
   StaticJsonDocument<200> shortStatusDoc;
-  shortStatusDoc["Timestamp"] = "2020-06-12 01:24:29.979233047 +0100 BST m=+204897.028579088";
+  shortStatusDoc["Timestamp"] = printTime();
   shortStatusDoc["Hostname"] = DEVICE_HOSTNAME;
 
   // note this is the opposite of what is expected due to the way the relay works
