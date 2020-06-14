@@ -354,6 +354,15 @@ void setup() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     if (!request->authenticate(http_username, http_password)) {
       return request->requestAuthentication();
+    }
+      /*----------
+int headers = request->headers();
+int i;
+for(i=0;i<headers;i++){
+  AsyncWebHeader* h = request->getHeader(i);
+  Serial.printf("HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str());
+}
+      //----------*/
     request->send_P(200, "text/html", index_html, processor);
   });
 
