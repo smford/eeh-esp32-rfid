@@ -29,8 +29,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - Enable active checking of access, regularly poll and check whether card still has access
 - Enforce windows of operation
 - Figure out sizing for JSON doc
-- Upon boot, pull time from server, then start using utp
-- If ntp sync fails 10 times, force a reboot
 - Figure out sizing of variable for url
 - Log off a user via the web admin
 - Ban a user via the web admin
@@ -41,6 +39,10 @@ A simple ESP32 Based RFID Access Control System for tools
 - Add a sensor to detect whether the laser is actually firing and ship somewhere
 - API tokens
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
+- Force ntp sync via api and web admin
+- If bootTime = Thursday, 01-Jan-1970 00:00:16 UTC, refresh it for the most current time
+- Upon boot, pull time from server, then start using utp
+- If ntp sync fails 10 times, force a reboot
 
 ## Done
 - Add syslogs for web stuff
