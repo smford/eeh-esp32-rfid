@@ -27,7 +27,8 @@
 #define NTPTIMEZONE "Europe/London"
 #define NTPSYNCTIME 60
 #define NTPWAITSYNCTIME 10
-#define NTPSERVER "europe.pool.ntp.org"
+#define NTPSERVER "192.168.10.21"
+//#define NTPSERVER "europe.pool.ntp.org"
 
 //const char* ssid = "ssid";
 //const char* password = "password";
@@ -78,7 +79,7 @@ Syslog syslog(udpClient, SYSLOG_SERVER, SYSLOG_PORT, DEVICE_HOSTNAME, APP_NAME, 
 // NTP
 Timezone myTZ;
 String bootTime;
-ezDebugLevel_t NTPDEBUG = ERROR; // NONE, ERROR, INFO, DEBUG
+ezDebugLevel_t NTPDEBUG = DEBUG; // NONE, ERROR, INFO, DEBUG
 
 
 int iteration = 0; // holds the MSGID number for syslog, also represents the instance number of RFID action (connection or removal)
