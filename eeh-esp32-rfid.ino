@@ -109,8 +109,8 @@ const char index_html[] PROGMEM = R"rawliteral(
   <p>Firmware Version: %FIRMWARE%</p>
   <p>Current RFID Card: %PRESENTRFID%</p>
   <p>Current RFID Access: %RFIDACCESS%</p>
-  %BUTTONPLACEHOLDER1%
-  %BUTTONPLACEHOLDER2%
+  %LEDSLIDER%
+  %RELAYSLIDER%
   <button onclick="rebootButton()">Reboot</button>
 <script>function toggleCheckbox(element, pin) {
   var xhr = new XMLHttpRequest();
@@ -148,16 +148,48 @@ const char logout_html[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
+// reboot_html base upon https://gist.github.com/Joel-James/62d98e8cb3a1b6b05102
+const char reboot_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE HTML><html>
+<h3>
+  Rebooting, returning to main page in <span id="countdown">30</span> seconds
+</h3>
+<script type="text/javascript">
+    
+    // Total seconds to wait
+    var seconds = 30;
+    
+    function countdown() {
+        seconds = seconds - 1;
+        if (seconds < 0) {
+            // Chnage your redirection link here
+            window.location = "/";
+        } else {
+            // Update remaining seconds
+            document.getElementById("countdown").innerHTML = seconds;
+            // Count down using javascript
+            window.setTimeout("countdown()", 1000);
+        }
+    }
+    
+    // Run countdown function
+    countdown();
+    
+</script>
+</html>
+)rawliteral";
+
+
 // Replaces placeholder with button section in your web page
 String processor(const String& var) {
-  if (var == "BUTTONPLACEHOLDER1") {
+  if (var == "LEDSLIDER") {
     String buttons = "";
     String outputStateValue = outputState(ONBOARD_LED);
     buttons+= "<p>LED</p><p><label class='switch'><input type='checkbox' onchange='toggleCheckbox(this, \"led\")' id='output' " + outputStateValue + "><span class='slider'></span></label></p>";
     return buttons;
   }
 
-  if (var == "BUTTONPLACEHOLDER2") {
+  if (var == "RELAYSLIDER") {
     String buttons = "";
     String outputStateValue = outputState(RELAY);
     
@@ -258,12 +290,25 @@ void setup() {
   Serial.print("        DNS 3: "); Serial.println(WiFi.dnsIP(2));
   Serial.println();
 
-  syslog.logf("Booted:%s", DEVICE_HOSTNAME);
-
   pinMode(ONBOARD_LED, OUTPUT);
   pinMode(RELAY, OUTPUT);
   disableLed();
-  disableRelay("Disabled upon boot");
+  disableRelay("Automatically Disabled Relay upon boot");
+  Serial.println();
+
+  // configure time, wait 10 seconds then progress, otherwise it can stall
+  Serial.print("Attempting to NTP Sync time for "); Serial.print(NTPWAITSYNCTIME); Serial.println(" seconds");
+  waitForSync(NTPWAITSYNCTIME);
+  setInterval(NTPSYNCTIME);
+  setServer(NTPSERVER);
+  setDebug(NTPDEBUG);
+  myTZ.setLocation(F(NTPTIMEZONE));
+  Serial.print(String(NTPTIMEZONE) + ": "); Serial.println(printTime());
+
+  bootTime = printTime();
+  Serial.print("Booted at: "); Serial.println(bootTime);
+  syslog.logf("Booted");
+
 
   //=============
   // https://randomnerdtutorials.com/esp32-esp8266-web-server-http-authentication/
