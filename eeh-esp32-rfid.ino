@@ -128,8 +128,7 @@ function rebootButton() {
   var xhr = new XMLHttpRequest();
   xhr.open("GET", "/reboot", true);
   xhr.send();
-  // i think _self needs to be changed to /index.html or something similar to prevent refreshes of the webpage and cached credentials constantly rebooting esp32
-  setTimeout(function(){ window.open("/","_self"); }, 10000);
+  setTimeout(function(){ window.open("/reboot","_self"); }, 0);
 }
 </script>
 </body>
@@ -331,6 +330,7 @@ void setup() {
     if (!request->authenticate(http_username, http_password)) {
       return request->requestAuthentication();
     }
+    request->send(200, "text/html", reboot_html);
     shouldReboot = true;
   });
 
