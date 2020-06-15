@@ -442,12 +442,10 @@ for(i=0;i<headers;i++){
       return request->requestAuthentication();
     }
     String inputMessage;
-    String inputParam;
     String inputPin;
     // GET input1 value on <ESP_IP>/update?state=<inputMessage>
     if (request->hasParam(PARAM_INPUT_1) && request->hasParam(PARAM_INPUT_2)) {
       inputMessage = request->getParam(PARAM_INPUT_1)->value();
-      inputParam = PARAM_INPUT_1; // check to remove
       inputPin = request->getParam(PARAM_INPUT_2)->value();
 
       String logmessage = "Client:" + request->client()->remoteIP().toString() + " Toggle Slider" + inputMessage + ":" + inputPin;
@@ -481,7 +479,6 @@ for(i=0;i<headers;i++){
 
     } else {
       inputMessage = "No message sent";
-      inputParam = "none"; // check to remove
     }
     //Serial.println(inputMessage);
     request->send(200, "text/plain", "OK");
