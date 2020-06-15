@@ -363,6 +363,9 @@ for(i=0;i<headers;i++){
   Serial.printf("HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str());
 }
       //----------*/
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /";
+    Serial.println(logmessage);
+    syslog.log(logmessage);
     request->send_P(200, "text/html", index_html, processor);
   });
 
@@ -371,6 +374,9 @@ for(i=0;i<headers;i++){
   });
 
   server.on("/logged-out", HTTP_GET, [](AsyncWebServerRequest *request){
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /logged-out";
+    Serial.println(logmessage);
+    syslog.log(logmessage);
     request->send_P(200, "text/html", logout_html, processor);
   });
 
@@ -378,6 +384,9 @@ for(i=0;i<headers;i++){
     if (!request->authenticate(http_username, http_password)) {
       return request->requestAuthentication();
     }
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /reboot";
+    Serial.println(logmessage);
+    syslog.log(logmessage);
     request->send(200, "text/html", reboot_html);
     shouldReboot = true;
   });
@@ -387,21 +396,24 @@ for(i=0;i<headers;i++){
       return request->requestAuthentication();
     }
     //request->send(200, "text/html", "ok");
-    Serial.println("Admin Web: NTP Update Fired");
-    syslog.logf("Admin Web: NTP Update Fired");
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /ntprefresh";
+    Serial.println(logmessage);
+    syslog.log(logmessage);
     updateNTP();
     request->send(200, "text/html", printTime());
   });
 
   server.on("/health", HTTP_GET, [](AsyncWebServerRequest *request){
-    Serial.println("Healthcheck Fired");
-    syslog.logf("Healthcheck Fired");
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /health";
+    Serial.println(logmessage);
+    syslog.log(logmessage);
     request->send(200, "text/plain", "OK");
   });
 
   server.on("/fullstatus", HTTP_GET, [](AsyncWebServerRequest *request){
-    Serial.println("Full Status Check Fired");
-    syslog.logf("Full Status Check Fired");
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /fullstatus";
+    Serial.println(logmessage);
+    syslog.log(logmessage);
     if (!request->authenticate(http_username, http_password)) {
       return request->requestAuthentication();
     }
@@ -409,14 +421,17 @@ for(i=0;i<headers;i++){
   });
 
   server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request){
-    Serial.println("Status Check Fired");
-    syslog.logf("Status Check Fired");
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /status";
+    Serial.println(logmessage);
+    syslog.log(logmessage);
     request->send(200, "application/json", getStatus());
   });
 
   // delete this in the future
   server.on("/time", HTTP_GET, [](AsyncWebServerRequest *request){
-    Serial.println(printTime());
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /time";
+    Serial.println(logmessage);
+    syslog.log(logmessage);
     request->send(200, "text/plain", printTime());
   });
 
@@ -433,6 +448,11 @@ for(i=0;i<headers;i++){
       inputMessage = request->getParam(PARAM_INPUT_1)->value();
       inputParam = PARAM_INPUT_1; // check to remove
       inputPin = request->getParam(PARAM_INPUT_2)->value();
+
+      String logmessage = "Client:" + request->client()->remoteIP().toString() + " Toggle Slider" + inputMessage + ":" + inputPin;
+      Serial.println(logmessage);
+      syslog.log(logmessage);
+      logmessage = "";
 
       if (inputPin == "relay") {
         if (inputMessage.toInt() == 1) {
