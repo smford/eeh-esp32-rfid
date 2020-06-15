@@ -9,10 +9,11 @@
 #include <ESPAsyncWebServer.h>
 #include <ezTime.h>
 
+// eztime library: https://github.com/ropg/ezTime v0.8.3
+// esp async webserver library: https://github.com/me-no-dev/ESPAsyncWebServer v1.2.3
 // syslog library: https://github.com/arcao/Syslog v2.0
 // mfrc522 library: https://github.com/miguelbalboa/rfid  v1.4.6
 // arduinojson library: https://github.com/bblanchon/ArduinoJson & https://arduinojson.org/ v6.15.2
-// eztime library: https://github.com/ropg/ezTime v.0.8.3
 
 #define SYSLOG_SERVER "192.168.10.21"
 #define SYSLOG_PORT 514
