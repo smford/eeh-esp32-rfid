@@ -8,10 +8,14 @@ A simple ESP32 Based RFID Access Control System for tools
 - Generic Relay Board
 
 ## Features
+- Web Admin interface
+- Short and Full Status information
+- Webapi: reboot, status check, time check, full status check, refresh ntp, + more
 - Upon RFID being presented eeh-esp32-rfid will check whether that card has been granted access to the device and fire the relay
-- Users can be baked in to the firmware or checked against a server
+- Users can be baked in to the firmware (super boss access, incase of network connectivity problems) or checked against a server (normal user access)
 - Logging via syslog
 - Session tracking in logs
+- NTP Time synchronisation
 - Multiple types of user are supported: admin, trainer, user, + more
 - Support tls web api calls using JSON
 - Unfire relay upon rfid card removal
@@ -30,12 +34,15 @@ A simple ESP32 Based RFID Access Control System for tools
 - Figure out sizing of variable for url
 - Log off a user via the web admin
 - Ban a user via the web admin
-- Convert l240-l247 in to a function
+- Fix bootTime when ntp fails
+- Convert to a function: Serial.print(iteration); Serial.println(" Checking access");
 - Lockdown mode / Device disabled except for admin users
 - Scheduled reboots
 - Regularly send "in use data" back to somewhere
 - Add a sensor to detect whether the laser is actually firing and ship somewhere
+- Convert "if (!mfrc522.PICC_IsNewCardPresent()) {" to a function
 - API tokens
+- Standardise time format: https://github.com/ropg/ezTime#built-in-date-and-time-formats
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 - If bootTime = Thursday, 01-Jan-1970 00:00:16 UTC, refresh it for the most current time
 - Upon boot, pull time from server, then start using utp
