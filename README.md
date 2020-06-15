@@ -47,6 +47,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Force ntp sync via api and web admin
 - Fix reboot function
 - Enable remote firing of relay via a web interface or api call - a remote unlock-and-lock ability
+- Added NTP Sync Status to fullstatus
 - Remote reboot command via web interface and api
 - Add syslog bootup time to capture when the device was rebooted
 - Enable heartbeat capability, to be used with a canary to alert upon device failure /health

@@ -708,6 +708,7 @@ String getFullStatus() {
   fullStatusDoc["NTPSyncTime"] = NTPSYNCTIME;
   fullStatusDoc["NTPTimeZone"] = NTPTIMEZONE;
   fullStatusDoc["NTPWaitSynctime"] = NTPWAITSYNCTIME;
+  fullStatusDoc["NTPSyncStatus"] = getTimeStatus();
   fullStatusDoc["APIWait"] = waitTime;
   fullStatusDoc["RFIDDelay"] = checkCardTime;
   fullStatusDoc["ShouldReboot"] = shouldReboot;
@@ -836,4 +837,22 @@ String getAccessOverrideCodes() {
 
 String printTime() {
   return myTZ.dateTime();
+}
+
+String getTimeStatus() {
+  String myTimeStatus;
+  switch (timeStatus()) {
+    case 0:
+      myTimeStatus = "Time Not Set";
+      break;
+    case 1:
+      myTimeStatus = "Time Needs Syncing";
+      break;
+    case 2:
+      myTimeStatus = "Time Set";
+      break;
+    default:
+      myTimeStatus = "Unknown";
+  }
+  return myTimeStatus;
 }
