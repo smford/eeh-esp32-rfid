@@ -24,7 +24,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - OTA updating of firmware
 - Make json output of boss's be a struct
 - Use wifimanager or IotWebConf to make configuration easier
-- Add fullstatus link to web admin
 - Enable active checking of access, regularly poll and check whether card still has access
 - Enforce windows of operation
 - Figure out sizing for JSON doc
@@ -54,4 +53,5 @@ A simple ESP32 Based RFID Access Control System for tools
 - After remote reboot, change the url to be index rather than /reboot (can cause looping reboots)
 - Make variable str in line 193 have a better name
 - Enable status capability, to see what the current status of the system is (whos logged in, whether leds or relay on, etc) /status
+- Add fullstatus link to web admin
 - Allow remote checking of current status of relay, to see if device is in use and by whom
