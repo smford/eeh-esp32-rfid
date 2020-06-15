@@ -22,7 +22,7 @@ A simple ESP32 Based RFID Access Control System for tools
 
 
 ## Things to do
-- Add requester ip details to web admin logs
+- Add requester ip details to web admin logs: https://techtutorialsx.com/2018/02/17/esp32-arduino-web-server-getting-client-ip/
 - Add unknown card found to logs
 - Add status light to signify when it is checking access, in trainer mode, locked, unlocked, etc
 - OTA updating of firmware
@@ -42,6 +42,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Add a sensor to detect whether the laser is actually firing and ship somewhere
 - Convert "if (!mfrc522.PICC_IsNewCardPresent()) {" to a function
 - API tokens
+- Standardise logging style and mechanism
 - Standardise time format: https://github.com/ropg/ezTime#built-in-date-and-time-formats
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 - If bootTime = Thursday, 01-Jan-1970 00:00:16 UTC, refresh it for the most current time
