@@ -71,22 +71,22 @@ bool shouldReboot = false;
 // MFRC522
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance
 
-// A UDP instance to let us send and receive packets over UDP
-WiFiUDP udpClient;
-
 // Syslog
+WiFiUDP udpClient;
 Syslog syslog(udpClient, SYSLOG_SERVER, SYSLOG_PORT, DEVICE_HOSTNAME, APP_NAME, LOG_INFO);
 
 // NTP
 Timezone myTZ;
 String bootTime;
-ezDebugLevel_t NTPDEBUG = DEBUG; // NONE, ERROR, INFO, DEBUG
+ezDebugLevel_t NTPDEBUG = INFO; // NONE, ERROR, INFO, DEBUG
 
+// represents the instance number of RFID action (discovery or removal)
+int iteration = 0;
 
-int iteration = 0; // holds the MSGID number for syslog, also represents the instance number of RFID action (connection or removal)
-
+// initialise webserver
 AsyncWebServer server(WEB_SERVER_PORT);
 
+// index.html
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
@@ -151,30 +151,19 @@ function displayConfig() {
   xmlhttp.open("GET", "/fullstatus", false);
   xmlhttp.send();
   var mydata = JSON.parse(xmlhttp.responseText);
-
-  // working:
-  // var displaydata = "";
-  // for (var key of Object.keys(mydata)) {
-  //  displaydata = displaydata + key + ":" + mydata[key] + "<br>";
-  // }
-  //document.getElementById("configdetails").innerHTML = displaydata;
-
-  // nice table:
   var displaydata = "<table><tr><th align='left'>Setting</th><th align='left'>Value</th></tr>";
   for (var key of Object.keys(mydata)) {
     displaydata = displaydata + "<tr><td align='left'>" + key + "</td><td align='left'>" + mydata[key] + "</td></tr>";
   }
   displaydata = displaydata + "</table>";
   document.getElementById("configdetails").innerHTML = displaydata;
-
-  // this works:
-  // document.getElementById("configdetails").innerHTML = Object.entries(mydata);
 }
 </script>
 </body>
 </html>
 )rawliteral";
 
+// logout.html
 const char logout_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
@@ -187,39 +176,34 @@ const char logout_html[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
-// reboot_html base upon https://gist.github.com/Joel-James/62d98e8cb3a1b6b05102
+// reboot.html base upon https://gist.github.com/Joel-James/62d98e8cb3a1b6b05102
 const char reboot_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <h3>
   Rebooting, returning to main page in <span id="countdown">30</span> seconds
 </h3>
 <script type="text/javascript">
-    
-    // Total seconds to wait
-    var seconds = 30;
-    
-    function countdown() {
-        seconds = seconds - 1;
-        if (seconds < 0) {
-            // Chnage your redirection link here
-            window.location = "/";
-        } else {
-            // Update remaining seconds
-            document.getElementById("countdown").innerHTML = seconds;
-            // Count down using javascript
-            window.setTimeout("countdown()", 1000);
-        }
+  var seconds = 30;
+  function countdown() {
+    seconds = seconds - 1;
+    if (seconds < 0) {
+      // Chnage your redirection link here
+      window.location = "/";
+    } else {
+      // Update remaining seconds
+      document.getElementById("countdown").innerHTML = seconds;
+      // Count down using javascript
+      window.setTimeout("countdown()", 1000);
     }
-    
-    // Run countdown function
-    countdown();
-    
+  }
+  // Run countdown function
+  countdown();
 </script>
 </html>
 )rawliteral";
 
 
-// Replaces placeholder with button section in your web page
+// parses and processes index.html
 String processor(const String& var) {
   if (var == "LEDSLIDER") {
     String buttons = "";
@@ -274,6 +258,7 @@ String processor(const String& var) {
   return String();
 }
 
+// checks state of a pin, used when writing button slider position
 String outputState(int PINCHECK){
   if(digitalRead(PINCHECK)){
     return "checked";
@@ -333,6 +318,7 @@ void setup() {
   pinMode(RELAY, OUTPUT);
   disableLed("Automatically Disable LED upon boot");
   disableRelay("Automatically Disable Relay upon boot");
+
   Serial.println();
 
   // configure time, wait 10 seconds then progress, otherwise it can stall
@@ -348,22 +334,24 @@ void setup() {
   Serial.print("Booted at: "); Serial.println(bootTime);
   syslog.logf("Booted");
 
-
-  //=============
   // https://randomnerdtutorials.com/esp32-esp8266-web-server-http-authentication/
   // Route for root / web page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     if (!request->authenticate(http_username, http_password)) {
       return request->requestAuthentication();
     }
-      /*----------
-int headers = request->headers();
-int i;
-for(i=0;i<headers;i++){
-  AsyncWebHeader* h = request->getHeader(i);
-  Serial.printf("HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str());
-}
-      //----------*/
+
+    /*
+    //----------
+    int headers = request->headers();
+    int i;
+    for(i=0;i<headers;i++){
+      AsyncWebHeader* h = request->getHeader(i);
+      Serial.printf("HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str());
+    }
+    //----------
+    */
+
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " /";
     Serial.println(logmessage);
     syslog.log(logmessage);
@@ -428,7 +416,7 @@ for(i=0;i<headers;i++){
     request->send(200, "application/json", getStatus());
   });
 
-  // delete this in the future
+  // used for checking whether time is sync
   server.on("/time", HTTP_GET, [](AsyncWebServerRequest *request){
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " /time";
     Serial.println(logmessage);
@@ -436,14 +424,13 @@ for(i=0;i<headers;i++){
     request->send(200, "text/plain", printTime());
   });
 
-  // Send a GET request to <ESP_IP>/update?state=<inputMessage>
+  // called when slider has been toggled
   server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
     if (!request->authenticate(http_username, http_password)) {
       return request->requestAuthentication();
     }
     String inputMessage;
     String inputPin;
-    // GET input1 value on <ESP_IP>/update?state=<inputMessage>
     if (request->hasParam(PARAM_INPUT_1) && request->hasParam(PARAM_INPUT_2)) {
       inputMessage = request->getParam(PARAM_INPUT_1)->value();
       inputPin = request->getParam(PARAM_INPUT_2)->value();
@@ -476,13 +463,10 @@ for(i=0;i<headers;i++){
     } else {
       inputMessage = "No message sent";
     }
-    //Serial.println(inputMessage);
     request->send(200, "text/plain", "OK");
   });
 
-  // Start server
   server.begin();
-  //=============
 }
 
 void dowebcall(const char *foundrfid) {
@@ -499,7 +483,6 @@ void dowebcall(const char *foundrfid) {
 
   if ((currentRunTime - sinceLastRunTime) > (waitTime * 1000)) {
     if (WiFi.status() == WL_CONNECTED) {
-      //syslog.logf("Wifi Connected: %s", DEVICE_HOSTNAME);
       StaticJsonDocument<200> doc;
       char serverURL[240];
       sprintf(serverURL, "%s%s%s", serverURL1, foundrfid, serverURL2);
@@ -566,21 +549,20 @@ void dowebcall(const char *foundrfid) {
 }
 
 void loop() {
-
-  // display ntp sync events
+  // display ntp sync events on serial
   events();
 
-  // reboot from web admin set
+  // reboot if we've told it to reboot
   if (shouldReboot) {
     rebootESP("Web Admin");
   }
 
-  if ( !mfrc522.PICC_IsNewCardPresent()) {
+  if (!mfrc522.PICC_IsNewCardPresent()) {
     // no new card found, re-loop
     return;
   }
 
-  if ( !mfrc522.PICC_ReadCardSerial()) {
+  if (!mfrc522.PICC_ReadCardSerial()) {
     // no serial means no real card found, re-loop
     return;
   }
@@ -614,21 +596,17 @@ void loop() {
       control += 0x4;
     }
 
-    //Serial.print("control:");Serial.println(control);
     if (control == 13 || control == 14) {
-      //Serial.println("Card present");
-
+      // a new card has been found
       if (strcmp(currentRFIDcard, newcard) != 0) {
         Serial.print(iteration); Serial.print(" New Card Found: "); Serial.println(newcard);
-        syslog.logf("%d New Card Found:%s", iteration, newcard);
+        syslog.logf("%d New Card Found: %s", iteration, newcard);
         currentRFIDcard = newcard;
 
         // check accessOverrideCodes
         bool overRideActive = false;
         for (byte i = 0; i < (sizeof(accessOverrideCodes) / sizeof(accessOverrideCodes[0])); i++) {
           if (strcmp(currentRFIDcard, accessOverrideCodes[i]) == 0) {
-            //Serial.print(iteration); Serial.print(" Access Override Detected: "); Serial.println(accessOverrideCodes[i]);
-            //syslog.logf("%d Access Override Detected for %s on %s", iteration, currentRFIDcard, EEH_DEVICE);
             overRideActive = true;
           }
         }
