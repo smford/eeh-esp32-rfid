@@ -41,7 +41,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - Add a sensor to detect whether the laser is actually firing and ship somewhere
 - Convert "if (!mfrc522.PICC_IsNewCardPresent()) {" to a function
 - API tokens
-- Standardise logging style and mechanism
 - Standardise time format: https://github.com/ropg/ezTime#built-in-date-and-time-formats
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 - If bootTime = Thursday, 01-Jan-1970 00:00:16 UTC, refresh it for the most current time
@@ -63,4 +62,5 @@ A simple ESP32 Based RFID Access Control System for tools
 - Make variable str in line 193 have a better name
 - Enable status capability, to see what the current status of the system is (whos logged in, whether leds or relay on, etc) /status
 - Add fullstatus link to web admin
+- Standardise logging style and mechanism
 - Allow remote checking of current status of relay, to see if device is in use and by whom

@@ -331,8 +331,8 @@ void setup() {
 
   pinMode(ONBOARD_LED, OUTPUT);
   pinMode(RELAY, OUTPUT);
-  disableLed();
-  disableRelay("Automatically Disabled Relay upon boot");
+  disableLed("Automatically Disable LED upon boot");
+  disableRelay("Automatically Disable Relay upon boot");
   Serial.println();
 
   // configure time, wait 10 seconds then progress, otherwise it can stall
@@ -456,20 +456,20 @@ for(i=0;i<headers;i++){
       if (inputPin == "relay") {
         if (inputMessage.toInt() == 1) {
           logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable Relay";
-          enableRelayStr(logmessage);
+          enableRelay(logmessage);
         } else {
           logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable Relay";
-          disableRelayStr(logmessage);
+          disableRelay(logmessage);
         }
       }
 
       if (inputPin == "led") {
         if (inputMessage.toInt() == 1) {
           logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable LED";
-          enableLedStr(logmessage);
+          enableLed(logmessage);
         } else {
           logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable LED";
-          disableLedStr(logmessage);
+          disableLed(logmessage);
         }
       }
 
@@ -503,6 +503,9 @@ void dowebcall(const char *foundrfid) {
       StaticJsonDocument<200> doc;
       char serverURL[240];
       sprintf(serverURL, "%s%s%s", serverURL1, foundrfid, serverURL2);
+
+      String logmessage = "";
+
       Serial.print(iteration); Serial.print(" dowebcall ServerURL: "); Serial.println(serverURL);
 
       returnedJSON = httpGETRequest(serverURL);
@@ -531,28 +534,23 @@ void dowebcall(const char *foundrfid) {
         Serial.print(iteration); Serial.println(" RFID Matches");
         if (strcmp(Grant, "true") == 0) {
           if (strcmp(EEH_DEVICE, EEHDevice) == 0) {
-            Serial.print(iteration); Serial.println(" Devices Match");
-            syslog.logf("%d ACCESS GRANTED:%s for %s", iteration, foundrfid, EEHDevice);
             currentRFIDaccess = true;
-            enableLedStr(String(iteration) + " Enable LED: " + String(currentRFIDcard));
-            enableRelayStr(String(iteration) + " Enable Relay: " + String(currentRFIDcard));
+            enableLed(String(iteration) + " Access Granted: Enable LED: " + String(currentRFIDcard));
+            enableRelay(String(iteration) + " Access Granted: Enable Relay: " + String(currentRFIDcard));
           } else {
-            Serial.print(iteration); Serial.print(" ERROR: Device Mismatch: DetectedDevice: "); Serial.print(EEH_DEVICE); Serial.print(" JSONDevice:"); Serial.println(EEHDevice);
-            syslog.logf(LOG_ERR, "%d ERROR: Device Mismatch: DetectedDevice:%s JSONDEevice:%s", iteration, EEH_DEVICE, EEHDevice);
-            disableLed();
-            disableRelay("Device Mismatch");
+            logmessage = String(iteration) + " Device Mismatch: Expected:" + String(EEH_DEVICE) + " Got:" + EEHDevice;
+            disableLed(logmessage);
+            disableRelay(logmessage);
           }
         } else {
-          Serial.print(iteration); Serial.print(" ERROR: Access Denied: "); Serial.print(foundrfid); Serial.print(" for "); Serial.println(EEHDevice);
-          syslog.logf(LOG_ERR, "%d ERROR: Access Denied: %s for %s", iteration, foundrfid, EEHDevice);
-          disableLed();
-          disableRelay("Access Denied");
+          logmessage = String(iteration) + " Access Denied: " + foundrfid;
+          disableLed(logmessage);
+          disableRelay(logmessage);
         }
       } else {
-        Serial.print(iteration); Serial.print(" ERROR: RFID Mismatch: DetectedRFID: "); Serial.print(foundrfid); Serial.print(" JSONRFID:"); Serial.println(RFID);
-        syslog.logf(LOG_ERR, "%d ERROR: Access Denied DetectedRFID:%s JSONRFID:%s for %s", iteration, foundrfid, RFID, EEHDevice);
-        disableLed();
-        disableRelay("RFID Mismatch");
+        logmessage = String(iteration) + " RFID Mismatch: Expected:" + foundrfid + " Got:" + RFID;
+        disableLed(logmessage);
+        disableRelay(logmessage);
       }
 
       sinceLastRunTime = millis();
@@ -637,15 +635,13 @@ void loop() {
 
         if (overRideActive) {
           // access override detected
-          enableLedStr(String(iteration) + " Access Override Detected: Enable LED: " + String(currentRFIDcard));
-          enableRelayStr(String(iteration) + " Access Override Detected: Enable Relay: " + String(currentRFIDcard));
+          enableLed(String(iteration) + " Access Override Detected: Enable LED: " + String(currentRFIDcard));
+          enableRelay(String(iteration) + " Access Override Detected: Enable Relay: " + String(currentRFIDcard));
           currentRFIDaccess = true;
         } else {
           // normal user, do webcall
           dowebcall(newcard);
         }
-        //===========
-
 
       } else {
         //Serial.println("same card, not checking again");
@@ -657,8 +653,8 @@ void loop() {
 
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
-  disableLed();
-  disableRelayStr(String(iteration) + " " + "Disable Relay: Card Removed: " + String(newcard));
+  disableLed(String(iteration) + " " + "Access Revoked: Card Removed: Disable LED: " + String(newcard));
+  disableRelay(String(iteration) + " " + "Access Revoked: Card Removed: Disable Relay: " + String(newcard));
   currentRFIDcard = "";
   currentRFIDaccess = false;
   delay((checkCardTime * 1000));
@@ -668,47 +664,25 @@ void loop() {
   //mfrc522.PICC_DumpToSerial(&(mfrc522.uid));
 }
 
-void disableRelay(char* message) {
-  digitalWrite(RELAY, HIGH);
-  Serial.print(iteration); Serial.print(" Disable relay: "); Serial.println(message);
-  syslog.logf("%d Relay Disabled:%s", iteration, message);
-}
-
-void disableRelayStr(String message) {
-  digitalWrite(RELAY, HIGH);
-  Serial.println(message);
-  syslog.log(message);
-  //Serial.print(iteration); Serial.print(" Disable relay: "); Serial.println(message);
-  //syslog.logf("%d Relay Disabled:%s", iteration, message);
-}
-
-void enableRelay(char* message) {
-  digitalWrite(RELAY, LOW);
-  Serial.print(iteration); Serial.print(" Enable relay: "); Serial.println(message);
-  syslog.logf("%d Relay Enabled:%s", iteration, message);
-}
-
-void enableRelayStr(String message) {
+void enableRelay(String message) {
   digitalWrite(RELAY, LOW);
   Serial.println(message);
   syslog.log(message);
 }
 
-void disableLed() {
-  digitalWrite(ONBOARD_LED, LOW);
+void disableRelay(String message) {
+  digitalWrite(RELAY, HIGH);
+  Serial.println(message);
+  syslog.log(message);
 }
 
-void disableLedStr(String message) {
+void disableLed(String message) {
   digitalWrite(ONBOARD_LED, LOW);
   Serial.println(message);
   syslog.log(message);
 }
 
-void enableLed() {
-  digitalWrite(ONBOARD_LED, HIGH);
-}
-
-void enableLedStr(String message) {
+void enableLed(String message) {
   digitalWrite(ONBOARD_LED, HIGH);
   Serial.println(message);
   syslog.log(message);
