@@ -46,6 +46,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - If bootTime = Thursday, 01-Jan-1970 00:00:16 UTC, refresh it for the most current time
 - Upon boot, pull time from server, then start using utp
 - If ntp sync fails 10 times, force a reboot
+- NTP sync sometimes doesnt change time to correct zone, likely problem querying eztime server
 
 ## Done
 - Add syslogs for web stuff
