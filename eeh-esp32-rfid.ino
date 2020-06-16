@@ -80,6 +80,16 @@ Timezone myTZ;
 String bootTime;
 ezDebugLevel_t NTPDEBUG = INFO; // NONE, ERROR, INFO, DEBUG
 
+// internal ESP32 temp sensor
+#ifdef __cplusplus
+extern "C" {
+#endif
+uint8_t temprature_sens_read();
+#ifdef __cplusplus
+}
+#endif
+uint8_t temprature_sens_read();
+
 // represents the instance number of RFID action (discovery or removal)
 int iteration = 0;
 
@@ -289,6 +299,8 @@ void setup() {
   Serial.print(" Web Server Port: "); Serial.println(WEB_SERVER_PORT);
   Serial.print("     ESP32 Flash: "); Serial.println(FIRMWARE_VERSION);
   Serial.print("  Flash Compiled: "); Serial.println(String(__DATE__) + " " + String(__TIME__));
+  Serial.print("      ESP32 Temp: "); Serial.print((temprature_sens_read() - 32) / 1.8); Serial.println("C");
+
   Serial.print(" MFRC522 Version: "); Serial.println(getmfrcversion());
   Serial.print("      NTP Server: "); Serial.println(NTPSERVER);
   Serial.print("   NTP Time Sync: "); Serial.println(NTPSYNCTIME);
@@ -688,6 +700,7 @@ String getFullStatus() {
   fullStatusDoc["ServerURL1"] = serverURL1;
   fullStatusDoc["ServerURL2"] = serverURL2;
   fullStatusDoc["Firmware"] = FIRMWARE_VERSION;
+  fullStatusDoc["Temp"] = String((temprature_sens_read() - 32) / 1.8) + "C";
   fullStatusDoc["CompileTime"] = String(__DATE__) + " " + String(__TIME__);
   fullStatusDoc["MFRC522SlaveSelect"] = SS_PIN;
   fullStatusDoc["MFRC522ResetPin"] = RST_PIN;

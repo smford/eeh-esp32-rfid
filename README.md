@@ -64,4 +64,5 @@ A simple ESP32 Based RFID Access Control System for tools
 - Enable status capability, to see what the current status of the system is (whos logged in, whether leds or relay on, etc) /status
 - Add fullstatus link to web admin
 - Standardise logging style and mechanism
+- Added internal ESP32 temp to full status
 - Allow remote checking of current status of relay, to see if device is in use and by whom
