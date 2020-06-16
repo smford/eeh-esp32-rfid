@@ -455,25 +455,21 @@ for(i=0;i<headers;i++){
 
       if (inputPin == "relay") {
         if (inputMessage.toInt() == 1) {
-          enableRelay("Web Admin");
-          Serial.print(iteration); Serial.println(" Admin Web: Enable Relay");
-          syslog.logf("%d Admin Web: Enable Relay", iteration);
+          logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable Relay";
+          enableRelayStr(logmessage);
         } else {
-          disableRelay("Web Admin");
-          Serial.print(iteration); Serial.println(" Admin Web: Disable Relay");
-          syslog.logf("%d Admin Web: Disable Relay", iteration);
+          logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable Relay";
+          disableRelayStr(logmessage);
         }
       }
 
       if (inputPin == "led") {
         if (inputMessage.toInt() == 1) {
-          enableLed();
-          Serial.print(iteration); Serial.println(" Admin Web: Enable LED");
-          syslog.logf("%d Admin Web: Enable LED", iteration);
+          logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable LED";
+          enableLedStr(logmessage);
         } else {
-          disableLed();
-          Serial.print(iteration); Serial.println(" Admin Web: Disable LED");
-          syslog.logf("%d Admin Web: Disable LED", iteration);
+          logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable LED";
+          disableLedStr(logmessage);
         }
       }
 
@@ -538,8 +534,8 @@ void dowebcall(const char *foundrfid) {
             Serial.print(iteration); Serial.println(" Devices Match");
             syslog.logf("%d ACCESS GRANTED:%s for %s", iteration, foundrfid, EEHDevice);
             currentRFIDaccess = true;
-            enableLed();
-            enableRelay(currentRFIDcard);
+            enableLedStr(String(iteration) + " Enable LED: " + String(currentRFIDcard));
+            enableRelayStr(String(iteration) + " Enable Relay: " + String(currentRFIDcard));
           } else {
             Serial.print(iteration); Serial.print(" ERROR: Device Mismatch: DetectedDevice: "); Serial.print(EEH_DEVICE); Serial.print(" JSONDevice:"); Serial.println(EEHDevice);
             syslog.logf(LOG_ERR, "%d ERROR: Device Mismatch: DetectedDevice:%s JSONDEevice:%s", iteration, EEH_DEVICE, EEHDevice);
@@ -633,16 +629,16 @@ void loop() {
         bool overRideActive = false;
         for (byte i = 0; i < (sizeof(accessOverrideCodes) / sizeof(accessOverrideCodes[0])); i++) {
           if (strcmp(currentRFIDcard, accessOverrideCodes[i]) == 0) {
-            Serial.print(iteration); Serial.print(" Access Override Detected: "); Serial.println(accessOverrideCodes[i]);
-            syslog.logf("%d Access Override Detected for %s on %s", iteration, currentRFIDcard, EEH_DEVICE);
+            //Serial.print(iteration); Serial.print(" Access Override Detected: "); Serial.println(accessOverrideCodes[i]);
+            //syslog.logf("%d Access Override Detected for %s on %s", iteration, currentRFIDcard, EEH_DEVICE);
             overRideActive = true;
           }
         }
 
         if (overRideActive) {
-          // boss detected!
-          enableLed();
-          enableRelay(currentRFIDcard);
+          // access override detected
+          enableLedStr(String(iteration) + " Access Override Detected: Enable LED: " + String(currentRFIDcard));
+          enableRelayStr(String(iteration) + " Access Override Detected: Enable Relay: " + String(currentRFIDcard));
           currentRFIDaccess = true;
         } else {
           // normal user, do webcall
@@ -659,14 +655,10 @@ void loop() {
     }
   }
 
-
-  Serial.print(iteration); Serial.print(" Card Removed: "); Serial.println(newcard);
-  syslog.logf("%d Card Removed:%s", iteration, newcard);
-
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
   disableLed();
-  disableRelay(currentRFIDcard);
+  disableRelayStr(String(iteration) + " " + "Disable Relay: Card Removed: " + String(newcard));
   currentRFIDcard = "";
   currentRFIDaccess = false;
   delay((checkCardTime * 1000));
@@ -682,18 +674,44 @@ void disableRelay(char* message) {
   syslog.logf("%d Relay Disabled:%s", iteration, message);
 }
 
+void disableRelayStr(String message) {
+  digitalWrite(RELAY, HIGH);
+  Serial.println(message);
+  syslog.log(message);
+  //Serial.print(iteration); Serial.print(" Disable relay: "); Serial.println(message);
+  //syslog.logf("%d Relay Disabled:%s", iteration, message);
+}
+
 void enableRelay(char* message) {
   digitalWrite(RELAY, LOW);
   Serial.print(iteration); Serial.print(" Enable relay: "); Serial.println(message);
   syslog.logf("%d Relay Enabled:%s", iteration, message);
 }
 
+void enableRelayStr(String message) {
+  digitalWrite(RELAY, LOW);
+  Serial.println(message);
+  syslog.log(message);
+}
+
 void disableLed() {
   digitalWrite(ONBOARD_LED, LOW);
 }
 
+void disableLedStr(String message) {
+  digitalWrite(ONBOARD_LED, LOW);
+  Serial.println(message);
+  syslog.log(message);
+}
+
 void enableLed() {
   digitalWrite(ONBOARD_LED, HIGH);
+}
+
+void enableLedStr(String message) {
+  digitalWrite(ONBOARD_LED, HIGH);
+  Serial.println(message);
+  syslog.log(message);
 }
 
 void rebootESP(char* message) {

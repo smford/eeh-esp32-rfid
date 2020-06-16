@@ -22,7 +22,6 @@ A simple ESP32 Based RFID Access Control System for tools
 
 
 ## Things to do
-- Add requester ip details to web admin logs: https://techtutorialsx.com/2018/02/17/esp32-arduino-web-server-getting-client-ip/
 - Add unknown card found to logs
 - Add status light to signify when it is checking access, in trainer mode, locked, unlocked, etc
 - OTA updating of firmware
@@ -55,6 +54,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Force ntp sync via api and web admin
 - Fix reboot function
 - Enable remote firing of relay via a web interface or api call - a remote unlock-and-lock ability
+- Add requester ip details to web admin logs
 - Added NTP Sync Status to fullstatus
 - Remote reboot command via web interface and api
 - Add syslog bootup time to capture when the device was rebooted
