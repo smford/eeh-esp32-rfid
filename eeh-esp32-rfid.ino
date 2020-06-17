@@ -34,10 +34,13 @@
 //const char* ssid = "ssid";
 //const char* password = "password";
 //const char* serverURL1 = "https://mock-rfid-system.herokuapp.com/check?rfid=";
-const char* serverURL1 = "http://192.168.10.21:56000/check?rfid=";
+//const char* serverURL1 = "http://192.168.10.21:56000/check?rfid=";
+const char* serverURL1 = "http://192.168.10.21:8180/check.php?rfid=";
 const char* serverURL2 = "&device=laser";
-const int RST_PIN = 22; // Reset pin
-const int SS_PIN = 21; // Slave select pin
+
+// mfrc522 is in spi mode
+const int RST_PIN = 33; // Reset pin
+const int SS_PIN = 32; // Slave select pin
 
 const int RELAY = 26;
 const int ONBOARD_LED = 2;

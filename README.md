@@ -20,6 +20,12 @@ A simple ESP32 Based RFID Access Control System for tools
 - Support tls web api calls using JSON
 - Unfire relay upon rfid card removal
 
+## Pin Out
+
+
+## Electrical Stuff to do
+- the relay fires when writing the firmware
+- power relay via 5v to optically isolate from the ESP32 - toggle jumper
 
 ## Things to do
 - Add unknown card found to logs
@@ -28,6 +34,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Make json output of boss's be a struct
 - Use wifimanager or IotWebConf to make configuration easier
 - Enable active checking of access, regularly poll and check whether card still has access
+- Make defining of serverURL and its handling less gross
 - Enforce windows of operation
 - Figure out sizing for JSON doc
 - Figure out sizing of variable for url
