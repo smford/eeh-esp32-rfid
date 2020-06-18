@@ -6,6 +6,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - ESP32 Dev Board
 - MFRC522 RFID Board
 - Generic Relay Board
+- I2C 2004 LCD
 
 ## Features
 - Web Admin interface
@@ -26,6 +27,7 @@ A simple ESP32 Based RFID Access Control System for tools
 ## Electrical Stuff to do
 - the relay fires when writing the firmware
 - power relay via 5v to optically isolate from the ESP32 - toggle jumper
+- add I2C LCD
 
 ## Things to do
 - Add unknown card found to logs
@@ -44,6 +46,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Convert to a function: Serial.print(iteration); Serial.println(" Checking access");
 - Lockdown mode / Device disabled except for admin users
 - Scheduled reboots
+- Add output to LCD
 - Regularly send "in use data" back to somewhere
 - Add a sensor to detect whether the laser is actually firing and ship somewhere
 - Convert "if (!mfrc522.PICC_IsNewCardPresent()) {" to a function
