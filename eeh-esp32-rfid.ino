@@ -68,6 +68,8 @@ uint8_t control = 0x00;
 char* currentRFIDcard = "";
 bool currentRFIDaccess = false;
 
+String APITOKEN = "abcde";
+
 // should we reboot the server?
 bool shouldReboot = false;
 
@@ -120,6 +122,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 <body>
   <h2>%EEH_HOSTNAME%</h2>
   <button onclick="logoutButton()">Logout</button>
+  <button onclick="grantAccessButton()">Grant Access to Current Card</button>
   <button onclick="displayConfig()">Display Config</button>
   <button onclick="refreshNTP()">Refresh NTP</button>
   <button onclick="rebootButton()">Reboot</button>
@@ -127,6 +130,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   <p>Firmware Version: %FIRMWARE%</p>
   <p>Current RFID Card: %PRESENTRFID%</p>
   <p>Current RFID Access: %RFIDACCESS%</p>
+  <p id="grantaccess"></p>
   %LEDSLIDER%
   %RELAYSLIDER%
   <p id="configheader"></p>
@@ -142,6 +146,15 @@ function logoutButton() {
   xhr.open("GET", "/logout", true);
   xhr.send();
   setTimeout(function(){ window.open("/logged-out","_self"); }, 1000);
+}
+function grantAccessButton() {
+  document.getElementById("grantaccess").innerHTML = "Updating ...";
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "/grant", true);
+  xhr.send();
+  setTimeout(function(){
+    document.getElementById("grantaccess").innerHTML = xhr.responseText;
+   },5000);
 }
 function rebootButton() {
   var xhr = new XMLHttpRequest();
@@ -395,6 +408,17 @@ void setup() {
     shouldReboot = true;
   });
 
+  server.on("/grant", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (!request->authenticate(http_username, http_password)) {
+      return request->requestAuthentication();
+    }
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /grant";
+    Serial.println(logmessage);
+    syslog.log(logmessage);
+    //String grantAccess(String myurl)
+    request->send(200, "text/html", grantAccess("http://192.168.10.21:8180/adduser.php?device=laser&newrfid=bb&api=abcde"));
+  });
+
   server.on("/ntprefresh", HTTP_GET, [](AsyncWebServerRequest *request){
     if (!request->authenticate(http_username, http_password)) {
       return request->requestAuthentication();
@@ -482,6 +506,15 @@ void setup() {
   });
 
   server.begin();
+}
+
+String grantAccess(const char *myurl) {
+  Serial.println("starting grant access");
+  //char serverURL[240];
+  //sprintf(serverURL, "%s%s%s", serverURL1, foundrfid, serverURL2);
+  String grantaccessresult = httpGETRequest(myurl);
+  Serial.print("grant access result: "); Serial.println(grantaccessresult);
+  return grantaccessresult;
 }
 
 void dowebcall(const char *foundrfid) {
