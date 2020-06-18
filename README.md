@@ -47,6 +47,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Lockdown mode / Device disabled except for admin users
 - Scheduled reboots
 - Add output to LCD
+- Regularly pull down user last from server and store in spifs
 - Regularly send "in use data" back to somewhere
 - Add a sensor to detect whether the laser is actually firing and ship somewhere
 - Convert "if (!mfrc522.PICC_IsNewCardPresent()) {" to a function
