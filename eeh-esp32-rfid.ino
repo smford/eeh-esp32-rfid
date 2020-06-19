@@ -602,19 +602,16 @@ void dowebcall(const char *foundrfid) {
             enableLed(String(iteration) + " Access Granted: Enable LED: " + String(currentRFIDcard));
             enableRelay(String(iteration) + " Access Granted: Enable Relay: " + String(currentRFIDcard));
           } else {
-            logmessage = String(iteration) + " Device Mismatch: Expected:" + String(EEH_DEVICE) + " Got:" + EEHDevice;
-            disableLed(logmessage);
-            disableRelay(logmessage);
+            disableLed(String(iteration) + " Device Mismatch: Disable LED: Expected:" + String(EEH_DEVICE) + " Got:" + EEHDevice);
+            disableRelay(String(iteration) + " Device Mismatch: Disable Relay: Expected:" + String(EEH_DEVICE) + " Got:" + EEHDevice);
           }
         } else {
-          logmessage = String(iteration) + " Access Denied: " + foundrfid;
-          disableLed(logmessage);
-          disableRelay(logmessage);
+          disableLed(String(iteration) + " Access Denied: Disable LED: " + foundrfid);
+          disableRelay(String(iteration) + " Access Denied: Disable Relay: " + foundrfid);
         }
       } else {
-        logmessage = String(iteration) + " RFID Mismatch: Expected:" + foundrfid + " Got:" + RFID;
-        disableLed(logmessage);
-        disableRelay(logmessage);
+        disableLed(String(iteration) + " RFID Mismatch: Disable LED: Expected:" + foundrfid + " Got:" + RFID);
+        disableRelay(String(iteration) + " RFID Mismatch: Disable Relay: Expected:" + foundrfid + " Got:" + RFID);
       }
 
       sinceLastRunTime = millis();
