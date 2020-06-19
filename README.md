@@ -56,11 +56,13 @@ A simple ESP32 Based RFID Access Control System for tools
 - Upon boot, pull time from server, then start using utp
 - If ntp sync fails 10 times, force a reboot
 - When a card is removed or presented, auto refresh the web admin page
+- Sort out logging levels info or info+error
 
 ## Bugs
 - Bad/odd http response codes can cause a crash - often seen when having trouble doing web calls
 - NTP sync sometimes doesnt change time to correct zone, likely problem querying eztime server
 - If bootTime = Thursday, 01-Jan-1970 00:00:16 UTC, refresh it for the most current time
+- Reboot button doesnt always work
 
 ## Nice to have
 - Allow settings to be updated via web admin
@@ -68,6 +70,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - OTA updating of firmware
 - Use wifimanager or IotWebConf to make configuration easier
 - Enforce windows of operation
+- Add a debugging mode
 
 ## Abandoned
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
