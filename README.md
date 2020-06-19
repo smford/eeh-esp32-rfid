@@ -38,7 +38,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - Figure out sizing for JSON doc
 - Figure out sizing of variable for url
 - Display username on main web admin
-- Dislplay full user details from button on web admin
 - Log off a user via the web admin
 - Convert to a function: Serial.print(iteration); Serial.println(" Checking access");
 - Lockdown mode / Device disabled except for admin users
@@ -58,6 +57,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - If ntp sync fails 10 times, force a reboot
 - When a card is removed or presented, auto refresh the web admin page
 - Sort out logging levels info or info+error
+- change grantUser() and getUserDetails() in to a generic function
 
 ## Bugs
 - Bad/odd http response codes can cause a crash - often seen when having trouble doing web calls
@@ -77,6 +77,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 
 ## Done
+- Display full user details from button on web admin
 - Clean up moduser.php result when displayed on web admin after granting or revoking access
 - Add syslogs for web stuff
 - Enable NTP

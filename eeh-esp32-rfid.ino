@@ -136,6 +136,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   <h2>%EEH_HOSTNAME%</h2>
   <p>Device Time: <span id="ntptime">%DEVICETIME%</span> | Firmware Version: %FIRMWARE%</p>
   <button onclick="logoutButton()">Logout Web Admin</button>
+  <button onclick="getUserDetailsButton()" %GRANTBUTTONENABLE%>See Current Card User Details</button>
   <button onclick="grantAccessButton()" %GRANTBUTTONENABLE%>Grant Access to Current Card</button>
   <button onclick="revokeAccessButton()" %GRANTBUTTONENABLE%>Revoke Access to Current Card</button>
   <button onclick="displayConfig()">Display Config</button>
@@ -167,7 +168,16 @@ function grantAccessButton() {
   xhr.send();
   setTimeout(function(){
     document.getElementById("statusdetails").innerHTML = xhr.responseText;
-   },5000);
+  },5000);
+}
+function getUserDetailsButton() {
+  document.getElementById("statusdetails").innerHTML = "Updating ...";
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "/getuser", true);
+  xhr.send();
+  setTimeout(function(){
+    document.getElementById("statusdetails").innerHTML = xhr.responseText;
+  },5000);
 }
 function revokeAccessButton() {
   document.getElementById("statusdetails").innerHTML = "Updating ...";
@@ -176,7 +186,7 @@ function revokeAccessButton() {
   xhr.send();
   setTimeout(function(){
     document.getElementById("statusdetails").innerHTML = xhr.responseText;
-   },5000);
+  },5000);
 }
 function rebootButton() {
   var xhr = new XMLHttpRequest();
@@ -191,7 +201,7 @@ function refreshNTP() {
   xhr.send();
   setTimeout(function(){
     document.getElementById("ntptime").innerHTML = xhr.responseText;
-   },5000);
+  },5000);
 }
 function displayConfig() {
   document.getElementById("configheader").innerHTML = "<h3>Configuration<h3>";
@@ -457,7 +467,21 @@ void setup() {
     Serial.println(logmessage);
     syslog.log(logmessage);
     request->send(200, "text/html", reboot_html);
+    rebootESP("Web Admin");
     shouldReboot = true;
+  });
+
+server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (!request->authenticate(http_username, http_password)) {
+      return request->requestAuthentication();
+    }
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + " /getuser";
+    Serial.println(logmessage);
+    syslog.log(logmessage);
+    char getUserURL[240];
+    sprintf(getUserURL, "%s%s%s%s%s%s%s", ADMIN_SERVER, "getuser.php?device=", EEH_DEVICE, "&rfid=", String(currentRFIDcard), "&api=", APITOKEN);
+    //Serial.print("GetUserURL: "); Serial.println(getUserURL);
+    request->send(200, "text/html", getUserDetails(getUserURL));
   });
 
   server.on("/grant", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -579,12 +603,13 @@ void setup() {
 }
 
 String grantAccess(const char *myurl) {
-  //Serial.println("starting grant access");
-  //char serverURL[240];
-  //sprintf(serverURL, "%s%s%s", serverURL1, foundrfid, serverURL2);
   String grantaccessresult = httpGETRequest(myurl);
-  //Serial.print("grant access result: "); Serial.println(grantaccessresult);
   return grantaccessresult;
+}
+
+String getUserDetails(const char *myurl) {
+  String result = httpGETRequest(myurl);
+  return result;
 }
 
 void dowebcall(const char *foundrfid) {
@@ -762,6 +787,9 @@ void loop() {
 
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Present Access Card");
   disableLed(String(iteration) + " " + "Access Revoked: Card Removed: Disable LED: " + String(newcard));
   disableRelay(String(iteration) + " " + "Access Revoked: Card Removed: Disable Relay: " + String(newcard));
   currentRFIDcard = "";
