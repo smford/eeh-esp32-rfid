@@ -122,7 +122,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 <body>
   <h2>%EEH_HOSTNAME%</h2>
   <p>Device Time: <span id="ntptime">%DEVICETIME%</span> | Firmware Version: %FIRMWARE%</p>
-  <button onclick="logoutButton()">Logout</button>
+  <button onclick="logoutButton()">Logout Web Admin</button>
   <button onclick="grantAccessButton()" %GRANTBUTTONENABLE%>Grant Access to Current Card</button>
   <button onclick="revokeAccessButton()" %GRANTBUTTONENABLE%>Revoke Access to Current Card</button>
   <button onclick="displayConfig()">Display Config</button>
@@ -130,7 +130,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   <button onclick="rebootButton()">Reboot</button>
   <p>Current RFID Card: %PRESENTRFID%</p>
   <p>Current RFID Access: <span id="currentaccess">%RFIDACCESS%</span></p>
-  <p id="grantaccess"></p>
+  <p id="statusdetails"></p>
   %LEDSLIDER%
   %RELAYSLIDER%
   <p id="configheader"></p>
@@ -148,21 +148,21 @@ function logoutButton() {
   setTimeout(function(){ window.open("/logged-out","_self"); }, 1000);
 }
 function grantAccessButton() {
-  document.getElementById("grantaccess").innerHTML = "Updating ...";
+  document.getElementById("statusdetails").innerHTML = "Updating ...";
   var xhr = new XMLHttpRequest();
   xhr.open("GET", "/grant?haveaccess=true", true);
   xhr.send();
   setTimeout(function(){
-    document.getElementById("grantaccess").innerHTML = xhr.responseText;
+    document.getElementById("statusdetails").innerHTML = xhr.responseText;
    },5000);
 }
 function revokeAccessButton() {
-  document.getElementById("grantaccess").innerHTML = "Updating ...";
+  document.getElementById("statusdetails").innerHTML = "Updating ...";
   var xhr = new XMLHttpRequest();
   xhr.open("GET", "/grant?haveaccess=false", true);
   xhr.send();
   setTimeout(function(){
-    document.getElementById("grantaccess").innerHTML = xhr.responseText;
+    document.getElementById("statusdetails").innerHTML = xhr.responseText;
    },5000);
 }
 function rebootButton() {
@@ -429,7 +429,7 @@ void setup() {
     }
     //String haveaccess = request->getParam("haveaccess")->value();
     const char* haveaccess = request->getParam("haveaccess")->value().c_str();
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + "/grant?haveaccess=" + haveaccess;
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + " /grant?haveaccess=" + haveaccess;
     Serial.println(logmessage);
     syslog.log(logmessage);
     //String grantAccess(String myurl)
@@ -437,15 +437,15 @@ void setup() {
     //String haveaccess;
     //haveaccess = request->getParam("haveaccess")->value();
     sprintf(grantURL, "%s%s%s%s%s%s%s%s", "http://192.168.10.21:8180/moduser.php?device=", EEH_DEVICE, "&modrfid=", String(currentRFIDcard), "&api=", APITOKEN, "&haveaccess=", haveaccess);
-    Serial.print("GrantURL: "); Serial.println(grantURL);
+    //Serial.print("GrantURL: "); Serial.println(grantURL);
     //request->send(200, "text/html", grantAccess("http://192.168.10.21:8180/moduser.php?device=" + EEH_DEVICE + "&modrfid=" + String(currentRFIDcard) + "&api=" + APITOKEN + "&haveaccess=true");
     //logmessage = 
     if (strcmp(haveaccess, "true") == 0) {
       // granting access
-      logmessage = "Web Admin: Granting access for" + String(currentRFIDcard);
+      logmessage = "Web Admin: Granting access for " + String(currentRFIDcard);
     } else {
       // revoking access
-      logmessage = "Web Admin: Revoking access for" + String(currentRFIDcard);
+      logmessage = "Web Admin: Revoking access for " + String(currentRFIDcard);
     }
     Serial.println(logmessage);
     syslog.log(logmessage);
@@ -542,11 +542,11 @@ void setup() {
 }
 
 String grantAccess(const char *myurl) {
-  Serial.println("starting grant access");
+  //Serial.println("starting grant access");
   //char serverURL[240];
   //sprintf(serverURL, "%s%s%s", serverURL1, foundrfid, serverURL2);
   String grantaccessresult = httpGETRequest(myurl);
-  Serial.print("grant access result: "); Serial.println(grantaccessresult);
+  //Serial.print("grant access result: "); Serial.println(grantaccessresult);
   return grantaccessresult;
 }
 
@@ -595,7 +595,7 @@ void dowebcall(const char *foundrfid) {
 
       Serial.print(iteration); Serial.println(" Checking access");
       if (strcmp(RFID, foundrfid) == 0) {
-        Serial.print(iteration); Serial.println(" RFID Matches");
+        //Serial.print(iteration); Serial.println(" RFID Matches");
         if (strcmp(Grant, "true") == 0) {
           if (strcmp(EEH_DEVICE, EEHDevice) == 0) {
             currentRFIDaccess = true;
