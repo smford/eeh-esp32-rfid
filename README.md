@@ -40,24 +40,32 @@ A simple ESP32 Based RFID Access Control System for tools
 - Enforce windows of operation
 - Figure out sizing for JSON doc
 - Figure out sizing of variable for url
+- Display username on main web page
 - Log off a user via the web admin
 - Ban a user via the web admin
 - Fix bootTime when ntp fails
+- Clean up logging and debug output around granting and revoking access via web admin
 - Convert to a function: Serial.print(iteration); Serial.println(" Checking access");
 - Lockdown mode / Device disabled except for admin users
 - Scheduled reboots
 - Add output to LCD
+- Change haveaccess to being: &access=grant or &access=revoke
 - Regularly pull down user last from server and store in spifs
 - Regularly send "in use data" back to somewhere
 - Add a sensor to detect whether the laser is actually firing and ship somewhere
 - Convert "if (!mfrc522.PICC_IsNewCardPresent()) {" to a function
-- API tokens
+- When revoking access, disable led and relay, access in web admin, and in full status
+- Change button and slider code generation to sit within processor function
+- API token implementation for accessing moduser.php
+- API token implementation for laptop to esp32
 - Standardise time format: https://github.com/ropg/ezTime#built-in-date-and-time-formats
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 - If bootTime = Thursday, 01-Jan-1970 00:00:16 UTC, refresh it for the most current time
 - Upon boot, pull time from server, then start using utp
 - If ntp sync fails 10 times, force a reboot
 - NTP sync sometimes doesnt change time to correct zone, likely problem querying eztime server
+- When a card is removed or presented, auto refresh the web admin page
+- Clean up moduser.php result when displayed on web admin after granting or revoking access
 
 ## Done
 - Add syslogs for web stuff
