@@ -30,21 +30,15 @@ A simple ESP32 Based RFID Access Control System for tools
 - add I2C LCD
 
 ## Things to do
-- Add unknown card found to logs
 - Add status light to signify when it is checking access, in trainer mode, locked, unlocked, etc
-- OTA updating of firmware
 - Make json output of boss's be a struct
-- Use wifimanager or IotWebConf to make configuration easier
 - Enable active checking of access, regularly poll and check whether card still has access
-- Make defining of serverURL and its handling less gross
-- Enforce windows of operation
+- Make defining of serverURL and its handling less gross, and add output to fullstatus
 - Figure out sizing for JSON doc
 - Figure out sizing of variable for url
-- Display username on main web page
+- Display username on main web admin
+- Dislplay full user details from button on web admin
 - Log off a user via the web admin
-- Ban a user via the web admin
-- Fix bootTime when ntp fails
-- Clean up logging and debug output around granting and revoking access via web admin
 - Convert to a function: Serial.print(iteration); Serial.println(" Checking access");
 - Lockdown mode / Device disabled except for admin users
 - Scheduled reboots
@@ -59,17 +53,33 @@ A simple ESP32 Based RFID Access Control System for tools
 - API token implementation for accessing moduser.php
 - API token implementation for laptop to esp32
 - Standardise time format: https://github.com/ropg/ezTime#built-in-date-and-time-formats
-- Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
-- If bootTime = Thursday, 01-Jan-1970 00:00:16 UTC, refresh it for the most current time
 - Upon boot, pull time from server, then start using utp
 - If ntp sync fails 10 times, force a reboot
-- NTP sync sometimes doesnt change time to correct zone, likely problem querying eztime server
 - When a card is removed or presented, auto refresh the web admin page
-- Clean up moduser.php result when displayed on web admin after granting or revoking access
+
+## Bugs
+- Bad/odd http response codes can cause a crash - often seen when having trouble doing web calls
+- NTP sync sometimes doesnt change time to correct zone, likely problem querying eztime server
+- If bootTime = Thursday, 01-Jan-1970 00:00:16 UTC, refresh it for the most current time
+
+## Nice to have
+- Allow settings to be updated via web admin
+- Allow flashing from default firmware, and then configuration via web admin
+- OTA updating of firmware
+- Use wifimanager or IotWebConf to make configuration easier
+- Enforce windows of operation
+
+## Abandoned
+- Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 
 ## Done
+- Clean up moduser.php result when displayed on web admin after granting or revoking access
 - Add syslogs for web stuff
 - Enable NTP
+- Ban/revoke a user via the web admin
+- Add ability to add users: trainer logs on to web interface and can then grant access to currently presented card
+- Clean up logging and debug output around granting and revoking access via web admin
+- Add unknown card found to logs
 - Force ntp sync via api and web admin
 - Fix reboot function
 - Enable remote firing of relay via a web interface or api call - a remote unlock-and-lock ability
