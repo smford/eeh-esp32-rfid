@@ -122,7 +122,8 @@ const char index_html[] PROGMEM = R"rawliteral(
 <body>
   <h2>%EEH_HOSTNAME%</h2>
   <button onclick="logoutButton()">Logout</button>
-  <button onclick="grantAccessButton()">Grant Access to Current Card</button>
+  <button onclick="grantAccessButton()" %GRANTBUTTONENABLE%>Grant Access to Current Card</button>
+  <button onclick="revokeAccessButton()" %GRANTBUTTONENABLE%>Revoke Access to Current Card</button>
   <button onclick="displayConfig()">Display Config</button>
   <button onclick="refreshNTP()">Refresh NTP</button>
   <button onclick="rebootButton()">Reboot</button>
@@ -150,7 +151,16 @@ function logoutButton() {
 function grantAccessButton() {
   document.getElementById("grantaccess").innerHTML = "Updating ...";
   var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/grant", true);
+  xhr.open("GET", "/grant?haveaccess=true", true);
+  xhr.send();
+  setTimeout(function(){
+    document.getElementById("grantaccess").innerHTML = xhr.responseText;
+   },5000);
+}
+function revokeAccessButton() {
+  document.getElementById("grantaccess").innerHTML = "Updating ...";
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "/grant?haveaccess=false", true);
   xhr.send();
   setTimeout(function(){
     document.getElementById("grantaccess").innerHTML = xhr.responseText;
@@ -262,6 +272,12 @@ String processor(const String& var) {
       return "NONE";
     } else {
       return currentRFIDcard;
+    }
+  }
+
+  if (var == "GRANTBUTTONENABLE") {
+    if (strcmp(currentRFIDcard, "") == 0) {
+      return "DISABLED";
     }
   }
 
@@ -412,11 +428,29 @@ void setup() {
     if (!request->authenticate(http_username, http_password)) {
       return request->requestAuthentication();
     }
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /grant";
+    //String haveaccess = request->getParam("haveaccess")->value();
+    const char* haveaccess = request->getParam("haveaccess")->value().c_str();
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + "/grant?haveaccess=" + haveaccess;
     Serial.println(logmessage);
     syslog.log(logmessage);
     //String grantAccess(String myurl)
-    request->send(200, "text/html", grantAccess("http://192.168.10.21:8180/adduser.php?device=laser&newrfid=bb&api=abcde"));
+    char grantURL[240];
+    //String haveaccess;
+    //haveaccess = request->getParam("haveaccess")->value();
+    sprintf(grantURL, "%s%s%s%s%s%s%s%s", "http://192.168.10.21:8180/moduser.php?device=", EEH_DEVICE, "&modrfid=", String(currentRFIDcard), "&api=", APITOKEN, "&haveaccess=", haveaccess);
+    Serial.print("GrantURL: "); Serial.println(grantURL);
+    //request->send(200, "text/html", grantAccess("http://192.168.10.21:8180/moduser.php?device=" + EEH_DEVICE + "&modrfid=" + String(currentRFIDcard) + "&api=" + APITOKEN + "&haveaccess=true");
+    //logmessage = 
+    if (strcmp(haveaccess, "true") == 0) {
+      // granting access
+      logmessage = "Web Admin: Granting access for" + String(currentRFIDcard);
+    } else {
+      // revoking access
+      logmessage = "Web Admin: Revoking access for" + String(currentRFIDcard);
+    }
+    Serial.println(logmessage);
+    syslog.log(logmessage);
+    request->send(200, "text/html", grantAccess(grantURL));
   });
 
   server.on("/ntprefresh", HTTP_GET, [](AsyncWebServerRequest *request){
