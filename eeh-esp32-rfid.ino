@@ -121,16 +121,15 @@ const char index_html[] PROGMEM = R"rawliteral(
 </head>
 <body>
   <h2>%EEH_HOSTNAME%</h2>
+  <p>Device Time: <span id="ntptime">%DEVICETIME%</span> | Firmware Version: %FIRMWARE%</p>
   <button onclick="logoutButton()">Logout</button>
   <button onclick="grantAccessButton()" %GRANTBUTTONENABLE%>Grant Access to Current Card</button>
   <button onclick="revokeAccessButton()" %GRANTBUTTONENABLE%>Revoke Access to Current Card</button>
   <button onclick="displayConfig()">Display Config</button>
   <button onclick="refreshNTP()">Refresh NTP</button>
   <button onclick="rebootButton()">Reboot</button>
-  <p>Device Time: <span id="ntptime">%DEVICETIME%</span></p>
-  <p>Firmware Version: %FIRMWARE%</p>
   <p>Current RFID Card: %PRESENTRFID%</p>
-  <p>Current RFID Access: %RFIDACCESS%</p>
+  <p>Current RFID Access: <span id="currentaccess">%RFIDACCESS%</span></p>
   <p id="grantaccess"></p>
   %LEDSLIDER%
   %RELAYSLIDER%
