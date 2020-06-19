@@ -432,6 +432,16 @@ void setup() {
     request->send(401);
   });
 
+  server.on("/backlighton", HTTP_GET, [](AsyncWebServerRequest *request){
+    lcd.backlight();
+    request->send(200, "text/html", "backlight on");
+  });
+
+  server.on("/backlightoff", HTTP_GET, [](AsyncWebServerRequest *request){
+    lcd.noBacklight();
+    request->send(200, "text/html", "backlight off");
+  });
+
   server.on("/logged-out", HTTP_GET, [](AsyncWebServerRequest *request){
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " /logged-out";
     Serial.println(logmessage);
@@ -796,8 +806,7 @@ void rebootESP(char* message) {
 }
 
 String getFullStatus() {
-  StaticJsonDocument<1500> fullStatusDoc;
-
+  StaticJsonDocument<1600> fullStatusDoc;
   fullStatusDoc["Timestamp"] = printTime();
   fullStatusDoc["Hostname"] = DEVICE_HOSTNAME;
   fullStatusDoc["BootTime"] = bootTime;
@@ -833,7 +842,7 @@ String getFullStatus() {
   fullStatusDoc["DNS2"] = WiFi.dnsIP(1).toString();
   fullStatusDoc["DNS3"] = WiFi.dnsIP(2).toString();
   fullStatusDoc["RelayPin"] = RELAY;
-  fullStatusDoc["LCDI2C"] = LCD_I2C;
+  fullStatusDoc["LCDI2C"] = "0x" + String(LCD_I2C, HEX);
   fullStatusDoc["LCDWidth"] = LCD_WIDTH;
   fullStatusDoc["LCDHeight"] = LCD_HEIGHT;
 
