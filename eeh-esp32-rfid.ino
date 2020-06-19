@@ -22,6 +22,7 @@
 #define EEH_DEVICE "laser"
 #define WEB_SERVER_PORT 80
 #define FIRMWARE_VERSION "v1.0"
+#define ADMIN_SERVER "http://192.168.10.21:8180/"
 
 // Provide official timezone names
 // https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
@@ -436,7 +437,7 @@ void setup() {
     char grantURL[240];
     //String haveaccess;
     //haveaccess = request->getParam("haveaccess")->value();
-    sprintf(grantURL, "%s%s%s%s%s%s%s%s", "http://192.168.10.21:8180/moduser.php?device=", EEH_DEVICE, "&modrfid=", String(currentRFIDcard), "&api=", APITOKEN, "&haveaccess=", haveaccess);
+    sprintf(grantURL, "%s%s%s%s%s%s%s%s%s", ADMIN_SERVER, "moduser.php?device=", EEH_DEVICE, "&modrfid=", String(currentRFIDcard), "&api=", APITOKEN, "&haveaccess=", haveaccess);
     //Serial.print("GrantURL: "); Serial.println(grantURL);
     //request->send(200, "text/html", grantAccess("http://192.168.10.21:8180/moduser.php?device=" + EEH_DEVICE + "&modrfid=" + String(currentRFIDcard) + "&api=" + APITOKEN + "&haveaccess=true");
     //logmessage = 
