@@ -28,6 +28,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - the relay fires when writing the firmware
 - power relay via 5v to optically isolate from the ESP32 - toggle jumper
 - add I2C LCD
+- add reboot and flash buttons
 
 ## Things to do
 - Add status light to signify when it is checking access, in trainer mode, locked, unlocked, etc
