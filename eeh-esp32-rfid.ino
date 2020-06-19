@@ -8,6 +8,8 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <ezTime.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
 // eztime library: https://github.com/ropg/ezTime v0.8.3
 // esp async webserver library: https://github.com/me-no-dev/ESPAsyncWebServer v1.2.3
@@ -31,6 +33,12 @@
 #define NTPWAITSYNCTIME 10
 #define NTPSERVER "192.168.10.21"
 //#define NTPSERVER "europe.pool.ntp.org"
+
+// lcd configuration
+const int LCD_I2C = 0x27;
+const int LCD_WIDTH = 20;
+const int LCD_HEIGHT = 4;
+//const uint8_t LCD_HEIGHT = 4;
 
 //const char* ssid = "ssid";
 //const char* password = "password";
@@ -85,6 +93,10 @@ Syslog syslog(udpClient, SYSLOG_SERVER, SYSLOG_PORT, DEVICE_HOSTNAME, APP_NAME, 
 Timezone myTZ;
 String bootTime;
 ezDebugLevel_t NTPDEBUG = INFO; // NONE, ERROR, INFO, DEBUG
+
+// Setup LCD
+//LiquidCrystal_I2C lcd(0x27,20,4);
+LiquidCrystal_I2C lcd(LCD_I2C,LCD_WIDTH,LCD_HEIGHT);
 
 // internal ESP32 temp sensor
 #ifdef __cplusplus
@@ -314,6 +326,12 @@ String outputState(int PINCHECK){
 void setup() {
   Serial.begin(115200);
 
+  lcd.init();
+  lcd.backlight();
+  lcd.noCursor();
+
+  lcd.print("Booting...");
+
   SPI.begin(); // Init SPI bus
   mfrc522.PCD_Init(); // Init MFRC522
   delay(4); // delay needed to allow mfrc522 to spin up properly
@@ -337,6 +355,9 @@ void setup() {
   Serial.print("      NTP Server: "); Serial.println(NTPSERVER);
   Serial.print("   NTP Time Sync: "); Serial.println(NTPSYNCTIME);
   Serial.print("   NTP Time Zone: "); Serial.println(NTPTIMEZONE);
+
+  lcd.clear();
+  lcd.print("Connecting to Wifi...");
 
   Serial.print("\nConnecting to Wifi: ");
   WiFi.begin(ssid, password);
@@ -367,6 +388,8 @@ void setup() {
 
   // configure time, wait 10 seconds then progress, otherwise it can stall
   Serial.print("Attempting to NTP Sync time for "); Serial.print(NTPWAITSYNCTIME); Serial.println(" seconds");
+  lcd.clear();
+  lcd.print("Syncing NTP...");
   waitForSync(NTPWAITSYNCTIME);
   setInterval(NTPSYNCTIME);
   setServer(NTPSERVER);
@@ -377,6 +400,9 @@ void setup() {
   bootTime = printTime();
   Serial.print("Booted at: "); Serial.println(bootTime);
   syslog.logf("Booted");
+  lcd.clear();
+  lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+  lcd.setCursor(0, 1); lcd.print("Present Access Card");
 
   // https://randomnerdtutorials.com/esp32-esp8266-web-server-http-authentication/
   // Route for root / web page
@@ -600,6 +626,12 @@ void dowebcall(const char *foundrfid) {
         if (strcmp(Grant, "true") == 0) {
           if (strcmp(EEH_DEVICE, EEHDevice) == 0) {
             currentRFIDaccess = true;
+            lcd.clear();
+            lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+            lcd.setCursor(0, 1); lcd.print("ACCESS GRANTED");
+            lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
+            lcd.setCursor(0, 3); lcd.print("Bob Marley");
+
             enableLed(String(iteration) + " Access Granted: Enable LED: " + String(currentRFIDcard));
             enableRelay(String(iteration) + " Access Granted: Enable Relay: " + String(currentRFIDcard));
           } else {
@@ -607,6 +639,12 @@ void dowebcall(const char *foundrfid) {
             disableRelay(String(iteration) + " Device Mismatch: Disable Relay: Expected:" + String(EEH_DEVICE) + " Got:" + EEHDevice);
           }
         } else {
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+          lcd.setCursor(0, 1); lcd.print("DENIED ACCESS");
+          lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
+          lcd.setCursor(0, 3); lcd.print("John Smith");
           disableLed(String(iteration) + " Access Denied: Disable LED: " + foundrfid);
           disableRelay(String(iteration) + " Access Denied: Disable Relay: " + foundrfid);
         }
@@ -694,6 +732,10 @@ void loop() {
           // access override detected
           enableLed(String(iteration) + " Access Override Detected: Enable LED: " + String(currentRFIDcard));
           enableRelay(String(iteration) + " Access Override Detected: Enable Relay: " + String(currentRFIDcard));
+          lcd.clear();
+          lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+          lcd.setCursor(0, 1); lcd.print("OVERRIDE MODE");
+          lcd.setCursor(0, 2); lcd.print(String(currentRFIDcard));
           currentRFIDaccess = true;
         } else {
           // normal user, do webcall
@@ -791,6 +833,9 @@ String getFullStatus() {
   fullStatusDoc["DNS2"] = WiFi.dnsIP(1).toString();
   fullStatusDoc["DNS3"] = WiFi.dnsIP(2).toString();
   fullStatusDoc["RelayPin"] = RELAY;
+  fullStatusDoc["LCDI2C"] = LCD_I2C;
+  fullStatusDoc["LCDWidth"] = LCD_WIDTH;
+  fullStatusDoc["LCDHeight"] = LCD_HEIGHT;
 
   // note this is the opposite of what is expected due to the way the relay works
   if (digitalRead(RELAY)) {
