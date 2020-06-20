@@ -27,8 +27,8 @@ A simple ESP32 Based RFID Access Control System for tools
 ## Electrical Stuff to do
 - the relay fires when writing the firmware
 - power relay via 5v to optically isolate from the ESP32 - toggle jumper
-- add I2C LCD
 - add reboot and flash buttons
+- add current transformer/detector device to monitor usage
 
 ## Things to do
 - Add status light to signify when it is checking access, in trainer mode, locked, unlocked, etc
@@ -77,6 +77,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 
 ## Done
+- Add I2C LCD
 - Display full user details from button on web admin
 - Clean up moduser.php result when displayed on web admin after granting or revoking access
 - Add syslogs for web stuff
