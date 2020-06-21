@@ -42,7 +42,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - Convert to a function: Serial.print(iteration); Serial.println(" Checking access");
 - Lockdown mode / Device disabled except for admin users
 - Scheduled reboots
-- Add output to LCD
 - Change haveaccess to being: &access=grant or &access=revoke
 - Regularly pull down user last from server and store in spifs
 - Regularly send "in use data" back to somewhere
@@ -58,6 +57,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - When a card is removed or presented, auto refresh the web admin page
 - Sort out logging levels info or info+error
 - change grantUser() and getUserDetails() in to a generic function
+- Implement lcdPrint(l1, l2, l3, l4) and make adaptable for varying sizes of display (autoscroll perhaps)
 
 ## Bugs
 - Bad/odd http response codes can cause a crash - often seen when having trouble doing web calls
@@ -77,6 +77,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 
 ## Done
+- Add output to LCD
 - Add I2C LCD
 - Display full user details from button on web admin
 - Clean up moduser.php result when displayed on web admin after granting or revoking access

@@ -16,6 +16,7 @@
 // syslog library: https://github.com/arcao/Syslog v2.0
 // mfrc522 library: https://github.com/miguelbalboa/rfid  v1.4.6
 // arduinojson library: https://github.com/bblanchon/ArduinoJson & https://arduinojson.org/ v6.15.2
+// liquidcrystal_i2c library: https://github.com/johnrickman/LiquidCrystal_I2C
 
 #define SYSLOG_SERVER "192.168.10.21"
 #define SYSLOG_PORT 514
@@ -45,7 +46,7 @@ const int LCD_HEIGHT = 4;
 //const char* serverURL1 = "https://mock-rfid-system.herokuapp.com/check?rfid=";
 //const char* serverURL1 = "http://192.168.10.21:56000/check?rfid=";
 const char* serverURL1 = "http://192.168.10.21:8180/check.php?rfid=";
-const char* serverURL2 = "&device=laser";
+const char* serverURL2 = "&device=laser&api=abcde";
 
 // mfrc522 is in spi mode
 const int RST_PIN = 33; // Reset pin
@@ -75,6 +76,9 @@ String returnedJSON;
 uint8_t control = 0x00;
 
 char* currentRFIDcard = "";
+String currentRFIDUserIDStr = "";
+String currentRFIDFirstNameStr = "";
+String currentRFIDSurnameStr = "";
 bool currentRFIDaccess = false;
 
 String APITOKEN = "abcde";
@@ -626,7 +630,7 @@ void dowebcall(const char *foundrfid) {
 
   if ((currentRunTime - sinceLastRunTime) > (waitTime * 1000)) {
     if (WiFi.status() == WL_CONNECTED) {
-      StaticJsonDocument<200> doc;
+      StaticJsonDocument<300> doc;
       char serverURL[240];
       sprintf(serverURL, "%s%s%s", serverURL1, foundrfid, serverURL2);
 
@@ -637,11 +641,11 @@ void dowebcall(const char *foundrfid) {
       returnedJSON = httpGETRequest(serverURL);
       Serial.print(iteration); Serial.print(" ReturnedJSON:"); Serial.println(returnedJSON);
 
-      Serial.print(iteration); Serial.println(" JSON Deserialization");
+      //Serial.print(iteration); Serial.println(" JSON Deserialization");
       DeserializationError error = deserializeJson(doc, returnedJSON);
       if (error) {
         Serial.print(iteration); Serial.print(F(" DeserializeJson() failed: ")); Serial.println(error.c_str());
-        syslog.logf(LOG_ERR,  "%d Error Decoding JSON: %s", iteration, error.c_str());
+        syslog.logf(LOG_ERR, "%d Error Decoding JSON: %s", iteration, error.c_str());
         //return false;
       }
 
@@ -649,41 +653,59 @@ void dowebcall(const char *foundrfid) {
       const char* Timestamp = doc["Timestamp"];
       const char* RFID = doc["RFID"];
       const char* EEHDevice = doc["EEHDevice"];
+      const char* UserID = doc["UserID"];
+      const char* FirstName = doc["FirstName"];
+      const char* Surname = doc["Surname"];
       const char* Grant = doc["Grant"];
       Serial.print(iteration); Serial.print(" Timestamp: "); Serial.println(Timestamp);
       Serial.print(iteration); Serial.print("      RFID: "); Serial.println(RFID);
       Serial.print(iteration); Serial.print(" EEHDevice: "); Serial.println(EEHDevice);
+      Serial.print(iteration); Serial.print("    UserID: "); Serial.println(UserID);
+      Serial.print(iteration); Serial.print("      Name: "); Serial.println(String(FirstName) + " " + String(Surname));
       Serial.print(iteration); Serial.print("     Grant: "); Serial.println(Grant);
 
       Serial.print(iteration); Serial.println(" Checking access");
       if (strcmp(RFID, foundrfid) == 0) {
-        //Serial.print(iteration); Serial.println(" RFID Matches");
+        // presented rfid matches api returned rfid
+        // Serial.print(iteration); Serial.println(" RFID Matches");
+
+        currentRFIDUserIDStr = doc["UserID"].as<String>();
+        currentRFIDFirstNameStr = doc["FirstName"].as<String>();
+        currentRFIDSurnameStr = doc["Surname"].as<String>();
+
         if (strcmp(Grant, "true") == 0) {
+          // api says user has access
+
           if (strcmp(EEH_DEVICE, EEHDevice) == 0) {
+            // device matches api returned device
+
+            // grant access because rfid, grant and device match
             currentRFIDaccess = true;
             lcd.clear();
             lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
             lcd.setCursor(0, 1); lcd.print("ACCESS GRANTED");
             lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
-            lcd.setCursor(0, 3); lcd.print("Bob Marley");
-
-            enableLed(String(iteration) + " Access Granted: Enable LED: " + String(currentRFIDcard));
-            enableRelay(String(iteration) + " Access Granted: Enable Relay: " + String(currentRFIDcard));
+            // WORKING: lcd.setCursor(0, 3); lcd.print(String(FirstName) + " " + String(Surname));
+            lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
+            enableLed(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
+            enableRelay(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
           } else {
+            // deny access, device does not match api returned device name
             disableLed(String(iteration) + " Device Mismatch: Disable LED: Expected:" + String(EEH_DEVICE) + " Got:" + EEHDevice);
             disableRelay(String(iteration) + " Device Mismatch: Disable Relay: Expected:" + String(EEH_DEVICE) + " Got:" + EEHDevice);
           }
         } else {
+          // deny access, api says user does not have access
           lcd.clear();
-          lcd.setCursor(0, 0);
           lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
-          lcd.setCursor(0, 1); lcd.print("DENIED ACCESS");
+          lcd.setCursor(0, 1); lcd.print("ACCESS DENIED");
           lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
-          lcd.setCursor(0, 3); lcd.print("John Smith");
+          lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
           disableLed(String(iteration) + " Access Denied: Disable LED: " + foundrfid);
           disableRelay(String(iteration) + " Access Denied: Disable Relay: " + foundrfid);
         }
       } else {
+        // deny access, rfid matches does not match api returned rfid
         disableLed(String(iteration) + " RFID Mismatch: Disable LED: Expected:" + foundrfid + " Got:" + RFID);
         disableRelay(String(iteration) + " RFID Mismatch: Disable Relay: Expected:" + foundrfid + " Got:" + RFID);
       }
@@ -755,6 +777,9 @@ void loop() {
         syslog.logf("%d New Card Found: %s", iteration, newcard);
         currentRFIDcard = newcard;
 
+        lcd.clear();
+        lcd.setCursor(0, 0); lcd.print("Checking Access...");
+
         // check accessOverrideCodes
         bool overRideActive = false;
         for (byte i = 0; i < (sizeof(accessOverrideCodes) / sizeof(accessOverrideCodes[0])); i++) {
@@ -794,6 +819,9 @@ void loop() {
   disableRelay(String(iteration) + " " + "Access Revoked: Card Removed: Disable Relay: " + String(newcard));
   currentRFIDcard = "";
   currentRFIDaccess = false;
+  currentRFIDUserIDStr = "";
+  currentRFIDFirstNameStr = "";
+  currentRFIDSurnameStr = "";
   delay((checkCardTime * 1000));
 
   // Dump debug info about the card; PICC_HaltA() is automatically called
@@ -889,11 +917,30 @@ String getFullStatus() {
   }
 
   if (strcmp(currentRFIDcard, "") == 0) {
-    fullStatusDoc["RFID"] = "NONE";
+    fullStatusDoc["CurrentRFID"] = "NONE";
   } else {
-    fullStatusDoc["RFID"] = currentRFIDcard;
+    fullStatusDoc["CurrentRFID"] = currentRFIDcard;
   }
-  fullStatusDoc["Grant"] = currentRFIDaccess;
+
+  if (currentRFIDUserIDStr == "") {
+    fullStatusDoc["CurrentRFIDUserID"] = "NONE";
+  } else {
+    fullStatusDoc["CurrentRFIDUserID"] = currentRFIDUserIDStr;
+  }
+
+  if (currentRFIDFirstNameStr == "") {
+    fullStatusDoc["CurrentRFIDFirstName"] = "NONE";
+  } else {
+    fullStatusDoc["CurrentRFIDFirstName"] = currentRFIDFirstNameStr;
+  }
+
+  if (currentRFIDSurnameStr == "") {
+    fullStatusDoc["CurrentRFIDSurname"] = "NONE";
+  } else {
+    fullStatusDoc["CurrentRFIDSurname"] = currentRFIDSurnameStr;
+  }
+
+  fullStatusDoc["CurrentRFIDAccess"] = currentRFIDaccess;
 
   String fullStatus = "";
   serializeJson(fullStatusDoc, fullStatus);
@@ -1005,4 +1052,12 @@ String getTimeStatus() {
       myTimeStatus = "Unknown";
   }
   return myTimeStatus;
+}
+
+void lcdPrint(String line1, String line2, String line3, String line4) {
+  lcd.clear();
+  lcd.setCursor(0, 0); lcd.print(line1);
+  lcd.setCursor(0, 1); lcd.print(line2);
+  lcd.setCursor(0, 2); lcd.print(line3);
+  lcd.setCursor(0, 3); lcd.print(line4);
 }
