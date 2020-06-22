@@ -407,7 +407,11 @@ void setup() {
   Serial.print("        Hostname: "); Serial.println(DEVICE_HOSTNAME);
   Serial.print("        App Name: "); Serial.println(APP_NAME);
   Serial.print("      EEH Device: "); Serial.println(EEH_DEVICE);
-  Serial.print("Maintenance Mode: "); Serial.println(inMaintenanceMode);
+  if (inMaintenanceMode) {
+    Serial.println("Maintenance Mode: true");
+  } else {
+    Serial.println("Maintenance Mode: false");
+  }
   Serial.print("   Syslog Server: "); Serial.print(SYSLOG_SERVER); Serial.print(":"); Serial.println(SYSLOG_PORT);
   Serial.print("   API Wait Time: "); Serial.print(waitTime); Serial.println(" seconds");
   Serial.print(" RFID Card Delay: "); Serial.print(checkCardTime); Serial.println(" seconds");
@@ -1047,8 +1051,18 @@ String getFullStatus() {
   }
 
   fullStatusDoc["CurrentRFIDAccess"] = currentRFIDaccess;
-  fullStatusDoc["inMaintenanceMode"] = inMaintenanceMode;
-  fullStatusDoc["inOverrideMode"] = inOverrideMode;
+
+  if (inMaintenanceMode) {
+    fullStatusDoc["inMaintenanceMode"] = "true";
+  } else {
+    fullStatusDoc["inMaintenanceMode"] = "false";
+  }
+
+  if (inOverrideMode) {
+    fullStatusDoc["inOverrideMode"] = "true";
+  } else {
+    fullStatusDoc["inOverrideMode"] = "false";
+  }
 
   String fullStatus = "";
   serializeJson(fullStatusDoc, fullStatus);
