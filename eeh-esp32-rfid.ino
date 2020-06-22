@@ -826,11 +826,15 @@ void loop() {
           // access override detected
           enableLed(String(iteration) + " Access Override Detected: Enable LED: " + String(currentRFIDcard));
           enableRelay(String(iteration) + " Access Override Detected: Enable Relay: " + String(currentRFIDcard));
+          currentRFIDFirstNameStr = "Override";
+          currentRFIDSurnameStr = "Mode";
+          currentRFIDUserIDStr = "0";
+          currentRFIDaccess = true;
           lcd.clear();
           lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
-          lcd.setCursor(0, 1); lcd.print("OVERRIDE MODE");
+          lcd.setCursor(0, 1); lcd.print("ACCESS GRANTED");
           lcd.setCursor(0, 2); lcd.print(String(currentRFIDcard));
-          currentRFIDaccess = true;
+          lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
         } else {
           // normal user, do webcall
           dowebcall(newcard);
