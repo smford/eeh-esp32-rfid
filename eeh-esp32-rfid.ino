@@ -31,7 +31,7 @@
 // https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 #define NTPTIMEZONE "Europe/London"
 #define NTPSYNCTIME 60
-#define NTPWAITSYNCTIME 10
+#define NTPWAITSYNCTIME 5
 #define NTPSERVER "192.168.10.21"
 //#define NTPSERVER "europe.pool.ntp.org"
 
@@ -86,6 +86,11 @@ String APITOKEN = "abcde";
 // should we reboot the server?
 bool shouldReboot = false;
 
+// maintenance and override modes
+bool gotoMaintenanceMode = false;
+bool inMaintenanceMode = false;
+bool inOverrideMode = false;
+
 // MFRC522
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance
 
@@ -100,7 +105,7 @@ ezDebugLevel_t NTPDEBUG = INFO; // NONE, ERROR, INFO, DEBUG
 
 // Setup LCD
 //LiquidCrystal_I2C lcd(0x27,20,4);
-LiquidCrystal_I2C lcd(LCD_I2C,LCD_WIDTH,LCD_HEIGHT);
+LiquidCrystal_I2C lcd(LCD_I2C, LCD_WIDTH, LCD_HEIGHT);
 
 // internal ESP32 temp sensor
 #ifdef __cplusplus
@@ -145,6 +150,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   <button onclick="revokeAccessButton()" %GRANTBUTTONENABLE%>Revoke Access to Current Card</button>
   <button onclick="displayConfig()">Display Config</button>
   <button onclick="refreshNTP()">Refresh NTP</button>
+  <button onclick="maintenanceButton()">Maintenance Mode</button>
   <button onclick="rebootButton()">Reboot</button>
   <p>Status: <span id="statusdetails"></span></p>
   <p>System State:   <span id="currentaccess">%CURRENTSYSTEMSTATE%</span></p>
@@ -168,17 +174,28 @@ function logoutButton() {
   setTimeout(function(){ window.open("/logged-out","_self"); }, 1000);
 }
 function grantAccessButton() {
-  document.getElementById("statusdetails").innerHTML = "Updating ...";
+  document.getElementById("statusdetails").innerHTML = "Granting Access ...";
   var xhr = new XMLHttpRequest();
   xhr.open("GET", "/grant?haveaccess=true", true);
   xhr.send();
   setTimeout(function(){
-    document.getElementById("statusdetails").innerHTML = "Granted Access";
+    document.getElementById("statusdetails").innerHTML = "Access Granted";
     document.getElementById("userdetails").innerHTML = xhr.responseText;
   },5000);
 }
+//======
+function maintenanceButton() {
+  document.getElementById("statusdetails").innerHTML = "Entering Maintenance Mode";
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "/maintenance?haveaccess=true", true);
+  xhr.send();
+  setTimeout(function(){
+    document.getElementById("statusdetails").innerHTML = "Maintenance Mode Entered: " + xhr.responseText;
+  },5000);
+}
+//======
 function getUserDetailsButton() {
-  document.getElementById("statusdetails").innerHTML = "Updating ...";
+  document.getElementById("statusdetails").innerHTML = "Getting User Details ...";
   var xhr = new XMLHttpRequest();
   xhr.open("GET", "/getuser", true);
   xhr.send();
@@ -188,21 +205,22 @@ function getUserDetailsButton() {
   },5000);
 }
 function revokeAccessButton() {
-  document.getElementById("statusdetails").innerHTML = "Updating ...";
+  document.getElementById("statusdetails").innerHTML = "Revoking access ...";
   var xhr = new XMLHttpRequest();
   xhr.open("GET", "/grant?haveaccess=false", true);
   xhr.send();
   setTimeout(function(){
-    document.getElementById("statusdetails").innerHTML = "Revoked Access";
+    document.getElementById("statusdetails").innerHTML = "Access Revoked";
     document.getElementById("userdetails").innerHTML = xhr.responseText;
   },5000);
 }
 function rebootButton() {
-  document.getElementById("statusdetails").innerHTML = "Initialising Reboot ...";
+  document.getElementById("statusdetails").innerHTML = "Invoking Reboot ...";
   var xhr = new XMLHttpRequest();
   xhr.open("GET", "/reboot", true);
   xhr.send();
-  setTimeout(function(){ window.open("/reboot","_self"); }, 0);
+  window.open("/reboot","_self");
+  // setTimeout(function(){ window.open("/reboot","_self"); }, 5);
 }
 function refreshNTP() {
   document.getElementById("statusdetails").innerHTML = "Refreshing NTP ...";
@@ -389,6 +407,7 @@ void setup() {
   Serial.print("        Hostname: "); Serial.println(DEVICE_HOSTNAME);
   Serial.print("        App Name: "); Serial.println(APP_NAME);
   Serial.print("      EEH Device: "); Serial.println(EEH_DEVICE);
+  Serial.print("Maintenance Mode: "); Serial.println(inMaintenanceMode);
   Serial.print("   Syslog Server: "); Serial.print(SYSLOG_SERVER); Serial.print(":"); Serial.println(SYSLOG_PORT);
   Serial.print("   API Wait Time: "); Serial.print(waitTime); Serial.println(" seconds");
   Serial.print(" RFID Card Delay: "); Serial.print(checkCardTime); Serial.println(" seconds");
@@ -405,7 +424,7 @@ void setup() {
   Serial.print("   NTP Time Zone: "); Serial.println(NTPTIMEZONE);
 
   lcd.clear();
-  lcd.print("Connecting to Wifi...");
+  lcd.print("Connecting to Wifi..");
 
   Serial.print("\nConnecting to Wifi: ");
   WiFi.begin(ssid, password);
@@ -480,6 +499,18 @@ void setup() {
     request->send(401);
   });
 
+  server.on("/maintenance", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (!request->authenticate(http_username, http_password)) {
+      return request->requestAuthentication();
+    }
+    //String haveaccess = request->getParam("haveaccess")->value();
+    const char* haveaccess = request->getParam("mode")->value().c_str();
+    Serial.println("Entering maintenance mode");
+    //enterMaintenance();
+    gotoMaintenanceMode = true;
+    request->send(200, "text/plain", "maintenance mode");
+  });
+
   server.on("/backlighton", HTTP_GET, [](AsyncWebServerRequest *request){
     lcd.backlight();
     request->send(200, "text/html", "backlight on");
@@ -505,7 +536,6 @@ void setup() {
     Serial.println(logmessage);
     syslog.log(logmessage);
     request->send(200, "text/html", reboot_html);
-    rebootESP("Web Admin");
     shouldReboot = true;
   });
 
@@ -713,16 +743,24 @@ void dowebcall(const char *foundrfid) {
           if (strcmp(EEH_DEVICE, EEHDevice) == 0) {
             // device matches api returned device
 
-            // grant access because rfid, grant and device match
-            currentRFIDaccess = true;
-            lcd.clear();
-            lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
-            lcd.setCursor(0, 1); lcd.print("ACCESS GRANTED");
-            lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
-            // WORKING: lcd.setCursor(0, 3); lcd.print(String(FirstName) + " " + String(Surname));
-            lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
-            enableLed(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
-            enableRelay(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
+            if (!inMaintenanceMode) {
+              // grant access because not in maintenance mode; and rfid, grant and device match
+              currentRFIDaccess = true;
+              lcd.clear();
+              lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+              lcd.setCursor(0, 1); lcd.print("ACCESS GRANTED");
+              lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
+              lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
+              enableLed(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
+              enableRelay(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
+            } else {
+              // in maintenance mode, show message, deny access
+              Serial.println(String(iteration) + "In maintenance mode, ignoring non-Override access");
+              syslog.log(String(iteration) + "In maintenance mode, ignoring non-Override access");
+              lcdPrint("ACCESS DENIED", "IN MAINTENANCE MODE", "Only Override User", "Allowed");
+              delay(10000);
+            }
+
           } else {
             // deny access, device does not match api returned device name
             disableLed(String(iteration) + " Device Mismatch: Disable LED: Expected:" + String(EEH_DEVICE) + " Got:" + EEHDevice);
@@ -757,21 +795,28 @@ void dowebcall(const char *foundrfid) {
 }
 
 void loop() {
-  // display ntp sync events on serial
+  // when no card present, display ntp sync events on serial
   events();
 
-  // reboot if we've told it to reboot
+  // when no card present, reboot if we've told it to reboot
   if (shouldReboot) {
-    rebootESP("Web Admin");
+    rebootESP("Web Admin - Card Absent");
+  }
+
+  if (gotoMaintenanceMode) {
+    Serial.println("Card Absent - Enable Maintenance");
+    enterMaintenance();
   }
 
   if (!mfrc522.PICC_IsNewCardPresent()) {
     // no new card found, re-loop
+    //Serial.println("x");
     return;
   }
 
   if (!mfrc522.PICC_ReadCardSerial()) {
     // no serial means no real card found, re-loop
+    //Serial.println("y");
     return;
   }
 
@@ -819,6 +864,7 @@ void loop() {
         for (byte i = 0; i < (sizeof(accessOverrideCodes) / sizeof(accessOverrideCodes[0])); i++) {
           if (strcmp(currentRFIDcard, accessOverrideCodes[i]) == 0) {
             overRideActive = true;
+            inOverrideMode = true;
           }
         }
 
@@ -833,7 +879,7 @@ void loop() {
           lcd.clear();
           lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
           lcd.setCursor(0, 1); lcd.print("ACCESS GRANTED");
-          lcd.setCursor(0, 2); lcd.print(String(currentRFIDcard));
+          lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
           lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
         } else {
           // normal user, do webcall
@@ -841,7 +887,22 @@ void loop() {
         }
 
       } else {
+        // this "else" runs as regularly as a loop when a card is present
         //Serial.println("same card, not checking again");
+
+        //===
+        // if card present, reboot if we've told it to reboot
+        if (shouldReboot) {
+          rebootESP("Web Admin - Card Present");
+        }
+
+        if (gotoMaintenanceMode) {
+          Serial.println("Card Absent - Enable Maintenance");
+          enterMaintenance();
+        }
+
+        // when card present, display ntp sync events on serial
+        events();
       }
     } else {
       break;
@@ -850,9 +911,15 @@ void loop() {
 
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Present Access Card");
+  if (!inMaintenanceMode) {
+    // not in maintenance mode, update LCD
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Present Access Card");
+  } else {
+    // should be in maintenance mode, update LCD
+    enterMaintenance();
+  }
   disableLed(String(iteration) + " " + "Access Revoked: Card Removed: Disable LED: " + String(newcard));
   disableRelay(String(iteration) + " " + "Access Revoked: Card Removed: Disable Relay: " + String(newcard));
   currentRFIDcard = "";
@@ -860,6 +927,7 @@ void loop() {
   currentRFIDUserIDStr = "";
   currentRFIDFirstNameStr = "";
   currentRFIDSurnameStr = "";
+  inOverrideMode = false;
   delay((checkCardTime * 1000));
 
   // Dump debug info about the card; PICC_HaltA() is automatically called
@@ -895,7 +963,7 @@ void rebootESP(char* message) {
   Serial.print(iteration); Serial.print(" Rebooting ESP32: "); Serial.println(message);
   syslog.logf("%d Rebooting ESP32:%s", iteration, message);
   // wait 5 seconds to allow syslog to be sent
-  delay(5000);
+  delay(10000);
   ESP.restart();
 }
 
@@ -979,6 +1047,8 @@ String getFullStatus() {
   }
 
   fullStatusDoc["CurrentRFIDAccess"] = currentRFIDaccess;
+  fullStatusDoc["inMaintenanceMode"] = inMaintenanceMode;
+  fullStatusDoc["inOverrideMode"] = inOverrideMode;
 
   String fullStatus = "";
   serializeJson(fullStatusDoc, fullStatus);
@@ -1098,4 +1168,18 @@ void lcdPrint(String line1, String line2, String line3, String line4) {
   lcd.setCursor(0, 1); lcd.print(line2);
   lcd.setCursor(0, 2); lcd.print(line3);
   lcd.setCursor(0, 3); lcd.print(line4);
+}
+
+void enterMaintenance() {
+  // only run maintance mode once
+  gotoMaintenanceMode = false;
+
+  // flag that we are in maintenance mode
+  inMaintenanceMode = true;
+
+  lcd.clear();
+  lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+  lcd.setCursor(0, 1); lcd.print("MAINTENANCE MODE");
+  lcd.setCursor(0, 2); lcd.print("ALL ACCESS DENIED");
+  lcd.setCursor(0, 3); lcd.print("");
 }
