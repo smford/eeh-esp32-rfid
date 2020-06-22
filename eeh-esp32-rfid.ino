@@ -140,15 +140,17 @@ const char index_html[] PROGMEM = R"rawliteral(
   <h2>%EEH_HOSTNAME%</h2>
   <p>Device Time: <span id="ntptime">%DEVICETIME%</span> | Firmware Version: %FIRMWARE%</p>
   <button onclick="logoutButton()">Logout Web Admin</button>
-  <button onclick="getUserDetailsButton()" %GRANTBUTTONENABLE%>See Current Card User Details</button>
+  <button onclick="getUserDetailsButton()">Refresh Current Card User Details</button>
   <button onclick="grantAccessButton()" %GRANTBUTTONENABLE%>Grant Access to Current Card</button>
   <button onclick="revokeAccessButton()" %GRANTBUTTONENABLE%>Revoke Access to Current Card</button>
   <button onclick="displayConfig()">Display Config</button>
   <button onclick="refreshNTP()">Refresh NTP</button>
   <button onclick="rebootButton()">Reboot</button>
-  <p>Current RFID Card: %PRESENTRFID%</p>
-  <p>Current RFID Access: <span id="currentaccess">%RFIDACCESS%</span></p>
-  <p id="statusdetails"></p>
+  <p>Status: <span id="statusdetails"></span></p>
+  <p>System State:   <span id="currentaccess">%CURRENTSYSTEMSTATE%</span></p>
+  <p><hr></p>
+  <div id="userdetails">%USERDETAILS%</div>
+  <p><hr></p>
   %LEDSLIDER%
   %RELAYSLIDER%
   <p id="configheader"></p>
@@ -171,7 +173,8 @@ function grantAccessButton() {
   xhr.open("GET", "/grant?haveaccess=true", true);
   xhr.send();
   setTimeout(function(){
-    document.getElementById("statusdetails").innerHTML = xhr.responseText;
+    document.getElementById("statusdetails").innerHTML = "Granted Access";
+    document.getElementById("userdetails").innerHTML = xhr.responseText;
   },5000);
 }
 function getUserDetailsButton() {
@@ -180,7 +183,8 @@ function getUserDetailsButton() {
   xhr.open("GET", "/getuser", true);
   xhr.send();
   setTimeout(function(){
-    document.getElementById("statusdetails").innerHTML = xhr.responseText;
+    document.getElementById("statusdetails").innerHTML = "Refreshed User Details";
+    document.getElementById("userdetails").innerHTML = xhr.responseText;
   },5000);
 }
 function revokeAccessButton() {
@@ -189,25 +193,29 @@ function revokeAccessButton() {
   xhr.open("GET", "/grant?haveaccess=false", true);
   xhr.send();
   setTimeout(function(){
-    document.getElementById("statusdetails").innerHTML = xhr.responseText;
+    document.getElementById("statusdetails").innerHTML = "Revoked Access";
+    document.getElementById("userdetails").innerHTML = xhr.responseText;
   },5000);
 }
 function rebootButton() {
+  document.getElementById("statusdetails").innerHTML = "Initialising Reboot ...";
   var xhr = new XMLHttpRequest();
   xhr.open("GET", "/reboot", true);
   xhr.send();
   setTimeout(function(){ window.open("/reboot","_self"); }, 0);
 }
 function refreshNTP() {
-  document.getElementById("ntptime").innerHTML = "Updating ...";
+  document.getElementById("statusdetails").innerHTML = "Refreshing NTP ...";
   var xhr = new XMLHttpRequest();
   xhr.open("GET", "/ntprefresh", true);
   xhr.send();
   setTimeout(function(){
+    document.getElementById("statusdetails").innerHTML = "Refreshed NTP";
     document.getElementById("ntptime").innerHTML = xhr.responseText;
   },5000);
 }
 function displayConfig() {
+  document.getElementById("statusdetails").innerHTML = "Loading Configuration ...";
   document.getElementById("configheader").innerHTML = "<h3>Configuration<h3>";
   xmlhttp=new XMLHttpRequest();
   xmlhttp.open("GET", "/fullstatus", false);
@@ -218,6 +226,7 @@ function displayConfig() {
     displaydata = displaydata + "<tr><td align='left'>" + key + "</td><td align='left'>" + mydata[key] + "</td></tr>";
   }
   displaydata = displaydata + "</table>";
+  document.getElementById("statusdetails").innerHTML = "Configuration Loaded";
   document.getElementById("configdetails").innerHTML = displaydata;
 }
 </script>
@@ -285,7 +294,7 @@ String processor(const String& var) {
       outputStateValue = "checked";
     }
 
-    buttons+= "<p>RELAY</p><p><label class='switch'><input type='checkbox' onchange='toggleCheckbox(this, \"relay\")' id='output' " + outputStateValue + "><span class='slider'></span></label></p>";
+    buttons += "<p>RELAY</p><p><label class='switch'><input type='checkbox' onchange='toggleCheckbox(this, \"relay\")' id='output' " + outputStateValue + "><span class='slider'></span></label></p>";
     return buttons;
   }
 
@@ -293,11 +302,36 @@ String processor(const String& var) {
     return DEVICE_HOSTNAME;
   }
 
-  if (var == "PRESENTRFID") {
+  if (var == "USERDETAILS") {
     if (strcmp(currentRFIDcard, "") == 0) {
-      return "NONE";
+      return "NO CARD PRESENT";
     } else {
-      return currentRFIDcard;
+      String returnText = "";
+      String currentFullName = currentRFIDFirstNameStr + " " + currentRFIDSurnameStr;
+      String currentUserID = currentRFIDUserIDStr;
+      String currentAccess = "";
+
+      if (currentFullName == "") currentFullName = "ERROR: User Not Found";
+      if (currentUserID == "") currentUserID = "NONE";
+
+      if (currentRFIDaccess) {
+        currentAccess = "Allow";
+      } else {
+        currentAccess = "Deny";
+      }
+
+      returnText = "<table>";
+      returnText += "<tr><td align='left'><b>Name:</b></td><td align='left'>" + currentFullName + "</td></tr>";
+      returnText += "<tr><td align='left'><b>User ID:</b></td><td align='left'>" + currentUserID + "</td></tr>";
+      returnText += "<tr><td align='left'><b>RFID:</b></td><td align='left'>" + String(currentRFIDcard) + "</td></tr>";
+      returnText += "<tr><td align='left'><b>Device:</b></td><td align='left'>" + String(EEH_DEVICE) + "</td></tr>";
+      returnText += "<tr><td align='left'><b>Access:</b></td><td align='left'>" + currentAccess + "</td></tr>";
+      returnText += "</table>";
+
+      // working but ugly
+      //returnText = "<table><tr><td align='left'><b>RFID</b></td><td align='left'>" + String(currentRFIDcard) + "</td></tr>" + "<tr><td align='left'><b>UserID</b></td><td align='left'>" + currentRFIDUserIDStr + "<tr><td align='left'><b>Name</b></td><td align='left'>" + currentRFIDFirstNameStr + " " + currentRFIDSurnameStr + "</td></tr>" + "<tr><td align='left'><b>Device</b></td><td align='left'>" + String(EEH_DEVICE) + "</td></tr>" + "<tr><td align='left'><b>Grant</b></td><td align='left'>" + currentAccess + "</td></tr></table>";
+
+      return returnText;
     }
   }
 
@@ -307,7 +341,7 @@ String processor(const String& var) {
     }
   }
 
-  if (var == "RFIDACCESS") {
+  if (var == "CURRENTSYSTEMSTATE") {
     if (currentRFIDaccess) {
       return "Granted";
     } else {

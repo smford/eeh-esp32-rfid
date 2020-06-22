@@ -31,13 +31,13 @@ A simple ESP32 Based RFID Access Control System for tools
 - add current transformer/detector device to monitor usage
 
 ## Things to do
+- Update current? details when in Override Mode to allow correct display of information on web admin
 - Add status light to signify when it is checking access, in trainer mode, locked, unlocked, etc
 - Make json output of boss's be a struct
 - Enable active checking of access, regularly poll and check whether card still has access
 - Make defining of serverURL and its handling less gross, and add output to fullstatus
 - Figure out sizing for JSON doc
 - Figure out sizing of variable for url
-- Display username on main web admin
 - Log off a user via the web admin
 - Convert to a function: Serial.print(iteration); Serial.println(" Checking access");
 - Lockdown mode / Device disabled except for admin users
@@ -49,7 +49,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - Convert "if (!mfrc522.PICC_IsNewCardPresent()) {" to a function
 - When revoking access, disable led and relay, access in web admin, and in full status
 - Change button and slider code generation to sit within processor function
-- API token implementation for accessing moduser.php
 - API token implementation for laptop to esp32
 - Standardise time format: https://github.com/ropg/ezTime#built-in-date-and-time-formats
 - Upon boot, pull time from server, then start using utp
@@ -77,6 +76,8 @@ A simple ESP32 Based RFID Access Control System for tools
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 
 ## Done
+- API token implementation for accessing moduser.php
+- Display username on main web admin
 - Add output to LCD
 - Add I2C LCD
 - Display full user details from button on web admin
