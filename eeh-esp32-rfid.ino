@@ -133,6 +133,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   <style>
     html {font-family: Arial; display: inline-block; text-align: center;}
     h2 {font-size: 2.6rem;}
+    h3 {color: white; font-weight: normal; background-color: red;}
     body {max-width: 600px; margin:0px auto; padding-bottom: 10px;}
     .switch {position: relative; display: inline-block; width: 120px; height: 68px} 
     .switch input {display: none}
@@ -144,7 +145,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 </head>
 <body>
   <h2>%EEH_HOSTNAME%</h2>
-  <div id="maintenancemode">%MAINTENANCEMODE%</div>
+  <h3 id="maintenancemode">%MAINTENANCEMODE%</h3>
   <p>Device Time: <span id="ntptime">%DEVICETIME%</span> | Firmware Version: %FIRMWARE%</p>
   <button onclick="logoutButton()">Logout Web Admin</button>
   <button onclick="getUserDetailsButton()">Refresh Current Card User Details</button>
@@ -156,19 +157,49 @@ const char index_html[] PROGMEM = R"rawliteral(
   <button onclick="disableMaintenanceButton()">Disable Maintenance Mode</button>
   <button onclick="rebootButton()">Reboot</button>
   <p>Status: <span id="statusdetails"></span></p>
-  <p>System State:   <span id="currentaccess">%CURRENTSYSTEMSTATE%</span></p>
-  <p><hr></p>
+  <p>System State: <span id="currentaccess">%CURRENTSYSTEMSTATE%</span></p>
+  <hr>
   <div id="userdetails">%USERDETAILS%</div>
-  <p><hr></p>
+  <hr>
   %LEDSLIDER%
   %RELAYSLIDER%
+  %MAINTENANCEMODESLIDER%
   <p id="configheader"></p>
   <p id="configdetails"></p>
-<script>function toggleCheckbox(element, pin) {
+<script>
+function toggleCheckbox(element, pin) {
   var xhr = new XMLHttpRequest();
   if(element.checked){ xhr.open("GET", "/update?state=1&pin="+pin, true); }
   else { xhr.open("GET", "/update?state=0&pin="+pin, true); }
   xhr.send();
+}
+function toggleMaintenanceWorking(element) {
+  var xhr = new XMLHttpRequest();
+  if (element.checked) {
+    xhr.open("GET", "/maintenance?state=enable", true);
+  } else {
+    xhr.open("GET", "/maintenance?state=disable", true);
+  }
+  xhr.send();
+}
+function toggleMaintenance(element) {
+  var xhr = new XMLHttpRequest();
+  var newState = "";
+  if (element.checked) {
+    document.getElementById("statusdetails").innerHTML = "Enabling Maintenance Mode";
+    newState = "enable";
+  } else {
+    document.getElementById("statusdetails").innerHTML = "Disabling Maintenance Mode";
+    newState = "disable";
+  }
+  xhr.open("GET", "/maintenance?state="+newState, true);
+  xhr.send();
+  setTimeout(function(){
+    //document.getElementById("maintenancemode").innerHTML = "junk";
+    console.log(xhr.responseText);
+    document.getElementById("maintenancemode").innerHTML = xhr.responseText;
+    document.getElementById("statusdetails").innerHTML = "Toggled Maintenance Mode";
+  },5000);
 }
 function logoutButton() {
   var xhr = new XMLHttpRequest();
@@ -195,7 +226,7 @@ function enableMaintenanceButton() {
   setTimeout(function(){
     document.getElementById("statusdetails").innerHTML = "Maintenance Mode Enabled";
   },5000);
-  document.getElementById("maintenancemode").innerHTML = "<h3>xxMAINTENANCE MODE</h3>";
+  document.getElementById("maintenancemode").innerHTML = "xxMAINTENANCE MODE";
 }
 function disableMaintenanceButton() {
   document.getElementById("statusdetails").innerHTML = "Disabling Maintenance Mode";
@@ -308,6 +339,14 @@ const char reboot_html[] PROGMEM = R"rawliteral(
 
 // parses and processes index.html
 String processor(const String& var) {
+
+  if (var == "MAINTENANCEMODESLIDER") {
+    String buttons = "";
+    String outputStateValue = isInMaintenance();
+    buttons+= "<p>MAINTENANCE MODE</p><p><label class='switch'><input type='checkbox' onchange='toggleMaintenance(this)' id='output' " + outputStateValue + "><span class='slider'></span></label></p>";
+    return buttons;
+  }
+
   if (var == "LEDSLIDER") {
     String buttons = "";
     String outputStateValue = outputState(ONBOARD_LED);
@@ -336,9 +375,9 @@ String processor(const String& var) {
 
   if (var == "MAINTENANCEMODE") {
     if (inMaintenanceMode) {
-      return "<h3>MAINTENANCE MODE</h3>";
+      return "processorh3MAINTENANCE MODE";
     } else {
-      return "<h3>NORMAL MODE</h3>";
+      return "processorh3NORMAL MODE";
     }
   }
 
@@ -406,6 +445,15 @@ String outputState(int PINCHECK){
     return "checked";
   }
   else {
+    return "";
+  }
+  return "";
+}
+
+String isInMaintenance() {
+  if (inMaintenanceMode) {
+    return "checked";
+  } else {
     return "";
   }
   return "";
@@ -530,23 +578,26 @@ void setup() {
       return request->requestAuthentication();
     }
 
-    String returnText = "";
+    String returnText = "nnnn";
 
     const char* selectState = request->getParam("state")->value().c_str();
 
     if (strcmp(selectState, "enable") == 0) {
-      Serial.println("Entering maintenance mode");
+      Serial.println("/main Entering maintenance mode");
       gotoEnableMaintenanceMode = true;
-      if (inMaintenanceMode) {
-        returnText = "<h3>MAINTENANCE MODE</h3>";
-      }
-    }
-    if (strcmp(selectState, "disable") == 0) {
-      Serial.println("Disabling maintenance mode");
+      //if (inMaintenanceMode) {
+        returnText = "main yyMAINTENANCE MODE";
+      //}
+    } else if (strcmp(selectState, "disable") == 0) {
+      Serial.println("/main Disabling maintenance mode");
       gotoDisableMaintenanceMode = true;
-      returnText = "<h3>NORMAL MODE</h3>";
+      //returnText = "main yyNORMAL MODE";
+      returnText = "";
+    } else {
+      returnText = "ERROR: invalid state sent to maintenance mode, ignoring: " + String(selectState);
+      Serial.println(returnText);
     }
-    request->send(200, "text/plain", returnText);
+    request->send(200, "text/html", returnText);
   });
 
   server.on("/backlighton", HTTP_GET, [](AsyncWebServerRequest *request){
