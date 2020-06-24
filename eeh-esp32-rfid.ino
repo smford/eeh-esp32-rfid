@@ -89,6 +89,7 @@ bool shouldReboot = false;
 // maintenance and override modes
 bool gotoEnableMaintenanceMode = false;
 bool gotoDisableMaintenanceMode = false;
+bool gotoToggleSteve = false;
 bool inMaintenanceMode = false;
 bool inOverrideMode = false;
 
@@ -582,16 +583,15 @@ void setup() {
 
     const char* selectState = request->getParam("state")->value().c_str();
 
+    gotoToggleSteve = true;
+
     if (strcmp(selectState, "enable") == 0) {
       Serial.println("/main Entering maintenance mode");
-      gotoEnableMaintenanceMode = true;
-      //if (inMaintenanceMode) {
-        returnText = "main yyMAINTENANCE MODE";
-      //}
+      //gotoEnableMaintenanceMode = true;
+      returnText = "main yyMAINTENANCE MODE";
     } else if (strcmp(selectState, "disable") == 0) {
       Serial.println("/main Disabling maintenance mode");
-      gotoDisableMaintenanceMode = true;
-      //returnText = "main yyNORMAL MODE";
+      //gotoDisableMaintenanceMode = true;
       returnText = "";
     } else {
       returnText = "ERROR: invalid state sent to maintenance mode, ignoring: " + String(selectState);
@@ -902,6 +902,11 @@ void loop() {
     disableMaintenance();
   }
 
+  if (gotoToggleSteve) {
+    Serial.println("toggling steve 1");
+    stevetoggleMaintenance();
+  }
+
   if (!mfrc522.PICC_IsNewCardPresent()) {
     // no new card found, re-loop
     //Serial.println("x");
@@ -998,6 +1003,11 @@ void loop() {
         if (gotoDisableMaintenanceMode) {
           Serial.println("Card Present - Disable Maintenance");
           disableMaintenance();
+        }
+
+        if (gotoToggleSteve) {
+          Serial.println("2 toggling steve");
+          stevetoggleMaintenance();
         }
 
         // when card present, display ntp sync events on serial
@@ -1304,4 +1314,26 @@ void disableMaintenance() {
   lcd.clear();
   lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
   lcd.setCursor(0, 1); lcd.print("Present Access Card");
+}
+
+void stevetoggleMaintenance() {
+  // only run toggle once
+  gotoToggleSteve = false;
+
+  // toggle maintenance mode
+  inMaintenanceMode = !inMaintenanceMode;
+
+  if (inMaintenanceMode) {
+    syslog.logf("stevetoggle Enable Maintenance Mode");
+    lcd.clear();
+    lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+    lcd.setCursor(0, 1); lcd.print("MAINTENANCE MODE");
+    lcd.setCursor(0, 2); lcd.print("ALL ACCESS DENIED");
+    lcd.setCursor(0, 3); lcd.print("");
+  } else {
+    syslog.logf("Disable Maintenance Mode");
+    lcd.clear();
+    lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+    lcd.setCursor(0, 1); lcd.print("Present Access Card");
+  }
 }
