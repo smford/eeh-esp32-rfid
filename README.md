@@ -40,7 +40,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Figure out sizing of variable for url
 - Log off a user via the web admin
 - Convert to a function: Serial.print(iteration); Serial.println(" Checking access");
-- Scheduled reboots
+- Store configuration to spiffs
 - Change haveaccess to being: &access=grant or &access=revoke
 - Regularly pull down user last from server and store in spifs
 - Regularly send "in use data" back to somewhere
@@ -49,11 +49,10 @@ A simple ESP32 Based RFID Access Control System for tools
 - When revoking access, disable led and relay, access in web admin, and in full status
 - Change button and slider code generation to sit within processor function
 - API token implementation for laptop to esp32
+- If no card present, grant and revoke access buttons are disabled, but when a card is presented and card details are refreshed, if a card is found the buttons should be enabled
 - Standardise time format: https://github.com/ropg/ezTime#built-in-date-and-time-formats
 - Upon boot, pull time from server, then start using utp
 - If ntp sync fails 10 times, force a reboot
-- When a card is removed or presented, auto refresh the web admin page
-- Sort out logging levels info or info+error
 - change grantUser() and getUserDetails() in to a generic function
 - Implement lcdPrint(l1, l2, l3, l4) and make adaptable for varying sizes of display (autoscroll perhaps)
 - Figure out a way to nicely handle to the two loops - loop1=card present  loop2=no card present
@@ -64,12 +63,16 @@ A simple ESP32 Based RFID Access Control System for tools
 - If bootTime = Thursday, 01-Jan-1970 00:00:16 UTC, refresh it for the most current time
 
 ## Nice to have
-- Allow settings to be updated via web admin
+- Send stats back to influxdb
+- Allow all settings to be updated via web admin
 - Allow flashing from default firmware, and then configuration via web admin
 - OTA updating of firmware
 - Use wifimanager or IotWebConf to make configuration easier
 - Enforce windows of operation
 - Add a debugging mode
+- Scheduled reboots
+- When a card is removed or presented, auto refresh the web admin page
+- Sort out logging levels info or info+error
 
 ## Abandoned
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
