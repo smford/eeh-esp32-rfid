@@ -31,6 +31,8 @@ A simple ESP32 Based RFID Access Control System for tools
 - add current transformer/detector device to monitor usage
 
 ## Things to do
+- Convert URL logs to:  String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+- Make maintenance mode persist between reboots
 - Add status light to signify when it is checking access, in trainer mode, locked, unlocked, etc
 - Make json output of boss's be a struct
 - Enable active checking of access, regularly poll and check whether card still has access
@@ -55,6 +57,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Sort out logging levels info or info+error
 - change grantUser() and getUserDetails() in to a generic function
 - Implement lcdPrint(l1, l2, l3, l4) and make adaptable for varying sizes of display (autoscroll perhaps)
+- Figure out a way to nicely handle to the two loops - loop1=card present  loop2=no card present
 
 ## Bugs
 - Bad/odd http response codes can cause a crash - often seen when having trouble doing web calls
