@@ -39,7 +39,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - Figure out sizing of variable for url
 - Log off a user via the web admin
 - Convert to a function: Serial.print(iteration); Serial.println(" Checking access");
-- Lockdown mode / Device disabled except for admin users
 - Scheduled reboots
 - Change haveaccess to being: &access=grant or &access=revoke
 - Regularly pull down user last from server and store in spifs
@@ -75,6 +74,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 
 ## Done
+- Maintenance mode = Device disabled except for admin users
 - Update current? details when in Override Mode to allow correct display of information on web admin
 - API token implementation for accessing moduser.php
 - Display username on main web admin

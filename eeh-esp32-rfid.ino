@@ -87,9 +87,7 @@ String APITOKEN = "abcde";
 bool shouldReboot = false;
 
 // maintenance and override modes
-bool gotoEnableMaintenanceMode = false;
-bool gotoDisableMaintenanceMode = false;
-bool gotoToggleSteve = false;
+bool gotoToggleMaintenance = false;
 bool inMaintenanceMode = false;
 bool inOverrideMode = false;
 
@@ -154,8 +152,6 @@ const char index_html[] PROGMEM = R"rawliteral(
   <button onclick="revokeAccessButton()" %GRANTBUTTONENABLE%>Revoke Access to Current Card</button>
   <button onclick="displayConfig()">Display Config</button>
   <button onclick="refreshNTP()">Refresh NTP</button>
-  <button onclick="enableMaintenanceButton()">Enable Maintenance Mode</button>
-  <button onclick="disableMaintenanceButton()">Disable Maintenance Mode</button>
   <button onclick="rebootButton()">Reboot</button>
   <p>Status: <span id="statusdetails"></span></p>
   <p>System State: <span id="currentaccess">%CURRENTSYSTEMSTATE%</span></p>
@@ -174,15 +170,6 @@ function toggleCheckbox(element, pin) {
   else { xhr.open("GET", "/update?state=0&pin="+pin, true); }
   xhr.send();
 }
-function toggleMaintenanceWorking(element) {
-  var xhr = new XMLHttpRequest();
-  if (element.checked) {
-    xhr.open("GET", "/maintenance?state=enable", true);
-  } else {
-    xhr.open("GET", "/maintenance?state=disable", true);
-  }
-  xhr.send();
-}
 function toggleMaintenance(element) {
   var xhr = new XMLHttpRequest();
   var newState = "";
@@ -196,8 +183,6 @@ function toggleMaintenance(element) {
   xhr.open("GET", "/maintenance?state="+newState, true);
   xhr.send();
   setTimeout(function(){
-    //document.getElementById("maintenancemode").innerHTML = "junk";
-    console.log(xhr.responseText);
     document.getElementById("maintenancemode").innerHTML = xhr.responseText;
     document.getElementById("statusdetails").innerHTML = "Toggled Maintenance Mode";
   },5000);
@@ -218,28 +203,6 @@ function grantAccessButton() {
     document.getElementById("userdetails").innerHTML = xhr.responseText;
   },5000);
 }
-//======
-function enableMaintenanceButton() {
-  document.getElementById("statusdetails").innerHTML = "Enabling Maintenance Mode";
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/maintenance?state=enable", true);
-  xhr.send();
-  setTimeout(function(){
-    document.getElementById("statusdetails").innerHTML = "Maintenance Mode Enabled";
-  },5000);
-  document.getElementById("maintenancemode").innerHTML = "xxMAINTENANCE MODE";
-}
-function disableMaintenanceButton() {
-  document.getElementById("statusdetails").innerHTML = "Disabling Maintenance Mode";
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/maintenance?state=disable", true);
-  xhr.send();
-  setTimeout(function(){
-    document.getElementById("statusdetails").innerHTML = "Maintenance Mode Disabled";
-  },5000);
-  document.getElementById("maintenancemode").innerHTML = "<h3>xxNORMAL MODE</h3>";
-}
-//======
 function getUserDetailsButton() {
   document.getElementById("statusdetails").innerHTML = "Getting User Details ...";
   var xhr = new XMLHttpRequest();
@@ -376,9 +339,9 @@ String processor(const String& var) {
 
   if (var == "MAINTENANCEMODE") {
     if (inMaintenanceMode) {
-      return "processorh3MAINTENANCE MODE";
+      return "MAINTENANCE MODE";
     } else {
-      return "processorh3NORMAL MODE";
+      return "";
     }
   }
 
@@ -579,25 +542,27 @@ void setup() {
       return request->requestAuthentication();
     }
 
-    String returnText = "nnnn";
+    String returnText = "";
+    String logmessage = "";
 
     const char* selectState = request->getParam("state")->value().c_str();
 
-    gotoToggleSteve = true;
-
     if (strcmp(selectState, "enable") == 0) {
-      Serial.println("/main Entering maintenance mode");
-      //gotoEnableMaintenanceMode = true;
-      returnText = "main yyMAINTENANCE MODE";
+      logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url() + " Enabling maintenance mode";
+      returnText = "MAINTENANCE MODE";
+      gotoToggleMaintenance = true;
     } else if (strcmp(selectState, "disable") == 0) {
-      Serial.println("/main Disabling maintenance mode");
-      //gotoDisableMaintenanceMode = true;
+      logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url() + " Disabling maintenance mode";
       returnText = "";
+      gotoToggleMaintenance = true;
     } else {
+      logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url() + " ERROR: invalid state sent to maintenance mode, ignoring: " + String(selectState);
       returnText = "ERROR: invalid state sent to maintenance mode, ignoring: " + String(selectState);
-      Serial.println(returnText);
+      gotoToggleMaintenance = false;
     }
     request->send(200, "text/html", returnText);
+    Serial.println(logmessage);
+    syslog.log(logmessage);
   });
 
   server.on("/backlighton", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -892,19 +857,8 @@ void loop() {
     rebootESP("Web Admin - Card Absent");
   }
 
-  if (gotoEnableMaintenanceMode) {
-    Serial.println("Card Absent - Enable Maintenance");
-    enableMaintenance();
-  }
-
-  if (gotoDisableMaintenanceMode) {
-    Serial.println("Card Absent - Disable Maintenance");
-    disableMaintenance();
-  }
-
-  if (gotoToggleSteve) {
-    Serial.println("toggling steve 1");
-    stevetoggleMaintenance();
+  if (gotoToggleMaintenance) {
+    toggleMaintenance();
   }
 
   if (!mfrc522.PICC_IsNewCardPresent()) {
@@ -995,19 +949,8 @@ void loop() {
           rebootESP("Web Admin - Card Present");
         }
 
-        if (gotoEnableMaintenanceMode) {
-          Serial.println("Card Present - Enable Maintenance");
-          enableMaintenance();
-        }
-
-        if (gotoDisableMaintenanceMode) {
-          Serial.println("Card Present - Disable Maintenance");
-          disableMaintenance();
-        }
-
-        if (gotoToggleSteve) {
-          Serial.println("2 toggling steve");
-          stevetoggleMaintenance();
+        if (gotoToggleMaintenance) {
+          toggleMaintenance();
         }
 
         // when card present, display ntp sync events on serial
@@ -1027,7 +970,11 @@ void loop() {
     lcd.setCursor(0, 1); lcd.print("Present Access Card");
   } else {
     // should be in maintenance mode, update LCD
-    enableMaintenance();
+    lcd.clear();
+    lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+    lcd.setCursor(0, 1); lcd.print("MAINTENANCE MODE");
+    lcd.setCursor(0, 2); lcd.print("ALL ACCESS DENIED");
+    lcd.setCursor(0, 3); lcd.print("");
   }
   disableLed(String(iteration) + " " + "Access Revoked: Card Removed: Disable LED: " + String(newcard));
   disableRelay(String(iteration) + " " + "Access Revoked: Card Removed: Disable Relay: " + String(newcard));
@@ -1289,49 +1236,22 @@ void lcdPrint(String line1, String line2, String line3, String line4) {
   lcd.setCursor(0, 3); lcd.print(line4);
 }
 
-void enableMaintenance() {
-  // only run maintance mode once
-  gotoEnableMaintenanceMode = false;
-
-  // flag that we are in maintenance mode
-  inMaintenanceMode = true;
-  syslog.logf("Enable Maintenance Mode");
-
-  lcd.clear();
-  lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
-  lcd.setCursor(0, 1); lcd.print("MAINTENANCE MODE");
-  lcd.setCursor(0, 2); lcd.print("ALL ACCESS DENIED");
-  lcd.setCursor(0, 3); lcd.print("");
-}
-
-void disableMaintenance() {
-  // only run maintance mode once
-  gotoDisableMaintenanceMode = false;
-
-  // flag that we are not in maintenance mode
-  inMaintenanceMode = false;
-  syslog.logf("Disable Maintenance Mode");
-  lcd.clear();
-  lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
-  lcd.setCursor(0, 1); lcd.print("Present Access Card");
-}
-
-void stevetoggleMaintenance() {
+void toggleMaintenance() {
   // only run toggle once
-  gotoToggleSteve = false;
+  gotoToggleMaintenance = false;
 
   // toggle maintenance mode
   inMaintenanceMode = !inMaintenanceMode;
 
   if (inMaintenanceMode) {
-    syslog.logf("stevetoggle Enable Maintenance Mode");
+    syslog.logf("Enabling Maintenance Mode");
     lcd.clear();
     lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
     lcd.setCursor(0, 1); lcd.print("MAINTENANCE MODE");
     lcd.setCursor(0, 2); lcd.print("ALL ACCESS DENIED");
     lcd.setCursor(0, 3); lcd.print("");
   } else {
-    syslog.logf("Disable Maintenance Mode");
+    syslog.logf("Disabling Maintenance Mode");
     lcd.clear();
     lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
     lcd.setCursor(0, 1); lcd.print("Present Access Card");
