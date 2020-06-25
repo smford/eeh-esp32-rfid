@@ -125,10 +125,12 @@ AsyncWebServer server(WEB_SERVER_PORT);
 
 // index.html
 const char index_html[] PROGMEM = R"rawliteral(
-<!DOCTYPE HTML><html>
+<!DOCTYPE HTML>
+<html lang="en">
 <head>
   <title>%EEH_HOSTNAME%</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
   <style>
     html {font-family: Arial; display: inline-block; text-align: center;}
     h2 {font-size: 2.6rem;}
@@ -263,9 +265,11 @@ function displayConfig() {
 
 // logout.html
 const char logout_html[] PROGMEM = R"rawliteral(
-<!DOCTYPE HTML><html>
+<!DOCTYPE HTML>
+<html lang="en">
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
 </head>
 <body>
   <p>Logged out or <a href="/">return to homepage</a>.</p>
@@ -276,7 +280,12 @@ const char logout_html[] PROGMEM = R"rawliteral(
 
 // reboot.html base upon https://gist.github.com/Joel-James/62d98e8cb3a1b6b05102
 const char reboot_html[] PROGMEM = R"rawliteral(
-<!DOCTYPE HTML><html>
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+</head>
+<body>
 <h3>
   Rebooting, returning to main page in <span id="countdown">30</span> seconds
 </h3>
@@ -297,6 +306,7 @@ const char reboot_html[] PROGMEM = R"rawliteral(
   // Run countdown function
   countdown();
 </script>
+</body>
 </html>
 )rawliteral";
 
@@ -307,14 +317,14 @@ String processor(const String& var) {
   if (var == "MAINTENANCEMODESLIDER") {
     String buttons = "";
     String outputStateValue = isInMaintenance();
-    buttons+= "<p>MAINTENANCE MODE</p><p><label class='switch'><input type='checkbox' onchange='toggleMaintenance(this)' id='output' " + outputStateValue + "><span class='slider'></span></label></p>";
+    buttons+= "<p>MAINTENANCE MODE</p><p><label class='switch'><input type='checkbox' onchange='toggleMaintenance(this)' id='mmslider' " + outputStateValue + "><span class='slider'></span></label></p>";
     return buttons;
   }
 
   if (var == "LEDSLIDER") {
     String buttons = "";
     String outputStateValue = outputState(ONBOARD_LED);
-    buttons+= "<p>LED</p><p><label class='switch'><input type='checkbox' onchange='toggleCheckbox(this, \"led\")' id='output' " + outputStateValue + "><span class='slider'></span></label></p>";
+    buttons+= "<p>LED</p><p><label class='switch'><input type='checkbox' onchange='toggleCheckbox(this, \"led\")' id='ledslider' " + outputStateValue + "><span class='slider'></span></label></p>";
     return buttons;
   }
 
@@ -329,7 +339,7 @@ String processor(const String& var) {
       outputStateValue = "checked";
     }
 
-    buttons += "<p>RELAY</p><p><label class='switch'><input type='checkbox' onchange='toggleCheckbox(this, \"relay\")' id='output' " + outputStateValue + "><span class='slider'></span></label></p>";
+    buttons += "<p>RELAY</p><p><label class='switch'><input type='checkbox' onchange='toggleCheckbox(this, \"relay\")' id='relayslider' " + outputStateValue + "><span class='slider'></span></label></p>";
     return buttons;
   }
 
