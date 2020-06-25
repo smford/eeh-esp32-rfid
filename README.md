@@ -74,6 +74,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 
 ## Done
+- Return 404 on bad urls
 - Maintenance mode = Device disabled except for admin users
 - Update current? details when in Override Mode to allow correct display of information on web admin
 - API token implementation for accessing moduser.php

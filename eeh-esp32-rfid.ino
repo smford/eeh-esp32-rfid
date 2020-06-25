@@ -721,6 +721,7 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", "OK");
   });
 
+  server.onNotFound(notFound);
   server.begin();
 }
 
@@ -1204,6 +1205,13 @@ String getAccessOverrideCodes() {
     nicelist += tempcomma + String(accessOverrideCodes[i]);
   }
   return nicelist;
+}
+
+void notFound(AsyncWebServerRequest *request) {
+  String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+  Serial.println(logmessage);
+  syslog.log(logmessage);
+  request->send(404, "text/plain", "Not found");
 }
 
 String printTime() {
