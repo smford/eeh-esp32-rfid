@@ -537,7 +537,7 @@ void setup() {
     //----------
     */
 
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /";
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
     request->send_P(200, "text/html", index_html, processor);
@@ -586,7 +586,7 @@ void setup() {
   });
 
   server.on("/logged-out", HTTP_GET, [](AsyncWebServerRequest *request){
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /logged-out";
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
     request->send_P(200, "text/html", logout_html, processor);
@@ -596,7 +596,7 @@ void setup() {
     if (!request->authenticate(http_username, http_password)) {
       return request->requestAuthentication();
     }
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /reboot";
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
     request->send(200, "text/html", reboot_html);
@@ -607,7 +607,7 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
     if (!request->authenticate(http_username, http_password)) {
       return request->requestAuthentication();
     }
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + " /getuser";
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
     char getUserURL[240];
@@ -622,7 +622,7 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
     }
     //String haveaccess = request->getParam("haveaccess")->value();
     const char* haveaccess = request->getParam("haveaccess")->value().c_str();
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + " /grant?haveaccess=" + haveaccess;
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + " " + request->url() + "?haveaccess=" + haveaccess;
     Serial.println(logmessage);
     syslog.log(logmessage);
     //String grantAccess(String myurl)
@@ -650,7 +650,7 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
       return request->requestAuthentication();
     }
     //request->send(200, "text/html", "ok");
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /ntprefresh";
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
     updateNTP();
@@ -658,14 +658,14 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
   });
 
   server.on("/health", HTTP_GET, [](AsyncWebServerRequest *request){
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /health";
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
     request->send(200, "text/plain", "OK");
   });
 
   server.on("/fullstatus", HTTP_GET, [](AsyncWebServerRequest *request){
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /fullstatus";
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
     if (!request->authenticate(http_username, http_password)) {
@@ -675,7 +675,7 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
   });
 
   server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request){
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /status";
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
     request->send(200, "application/json", getStatus());
@@ -683,7 +683,7 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
 
   // used for checking whether time is sync
   server.on("/time", HTTP_GET, [](AsyncWebServerRequest *request){
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " /time";
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
     request->send(200, "text/plain", printTime());
@@ -700,27 +700,27 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
       inputMessage = request->getParam(PARAM_INPUT_1)->value();
       inputPin = request->getParam(PARAM_INPUT_2)->value();
 
-      String logmessage = "Client:" + request->client()->remoteIP().toString() + " Toggle Slider" + inputMessage + ":" + inputPin;
+      String logmessage = "Client:" + request->client()->remoteIP().toString() + " Toggle Slider" + inputMessage + ":" + inputPin + " " + request->url();
       Serial.println(logmessage);
       syslog.log(logmessage);
       logmessage = "";
 
       if (inputPin == "relay") {
         if (inputMessage.toInt() == 1) {
-          logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable Relay";
+          logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable Relay" + " " + request->url();
           enableRelay(logmessage);
         } else {
-          logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable Relay";
+          logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable Relay" + " " + request->url();
           disableRelay(logmessage);
         }
       }
 
       if (inputPin == "led") {
         if (inputMessage.toInt() == 1) {
-          logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable LED";
+          logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable LED" + " " + request->url();
           enableLed(logmessage);
         } else {
-          logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable LED";
+          logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable LED" + " " + request->url();
           disableLed(logmessage);
         }
       }
