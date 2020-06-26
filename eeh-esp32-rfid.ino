@@ -668,12 +668,12 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
   });
 
   server.on("/fullstatus", HTTP_GET, [](AsyncWebServerRequest *request){
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
     if (!request->authenticate(http_username, http_password)) {
       return request->requestAuthentication();
     }
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    Serial.println(logmessage);
+    syslog.log(logmessage);
     request->send(200, "application/json", getFullStatus());
   });
 
