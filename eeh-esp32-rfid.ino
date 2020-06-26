@@ -1085,7 +1085,7 @@ void rebootESP(char* message) {
 }
 
 String getFullStatus() {
-  StaticJsonDocument<1600> fullStatusDoc;
+  StaticJsonDocument<2000> fullStatusDoc;
   fullStatusDoc["Timestamp"] = printTime();
   fullStatusDoc["Hostname"] = DEVICE_HOSTNAME;
   fullStatusDoc["BootTime"] = bootTime;

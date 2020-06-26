@@ -46,7 +46,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - Regularly send "in use data" back to somewhere
 - Add a sensor to detect whether the laser is actually firing and ship somewhere
 - Convert "if (!mfrc522.PICC_IsNewCardPresent()) {" to a function
-- When revoking access, disable led and relay, access in web admin, and in full status
 - Change button and slider code generation to sit within processor function
 - API token implementation for laptop to esp32
 - If no card present, grant and revoke access buttons are disabled, but when a card is presented and card details are refreshed, if a card is found the buttons should be enabled
@@ -75,6 +74,7 @@ A simple ESP32 Based RFID Access Control System for tools
 
 ## Abandoned
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
+- When revoking access, disable led and relay, access in web admin, and in full status.  To do the same effect, revoke access then log out user.
 
 ## Done
 - Log off a user via the web admin
