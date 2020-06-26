@@ -87,8 +87,13 @@ String APITOKEN = "abcde";
 // should we reboot the server?
 bool shouldReboot = false;
 
-// maintenance and override modes
+// flags used within main loop to allow functions to be run
+// these are sometimes neccessary to allow the lcd to update, as the asyncwebserver does
+// not allow yeild or delay to be run within a sub function which the lcd library used
 bool gotoToggleMaintenance = false;
+bool gotoLogoutCurrentUser = false;
+
+// maintenance and override modes
 bool inMaintenanceMode = false;
 bool inOverrideMode = false;
 
@@ -677,24 +682,10 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
     if (!request->authenticate(http_username, http_password)) {
       return request->requestAuthentication();
     }
-    //request->send(200, "text/html", "ok");
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
-
-    logmessage = String(iteration) + " " + "Web Admin User Logout Initiated: RFID:" + String(currentRFIDcard) + " UserID:" + currentRFIDUserIDStr;
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-
-    currentRFIDaccess = false;
-    disableLed(String(iteration) + " " + "Web Admin User Logout Initiated: Disable LED: RFID:" + String(currentRFIDcard) + " UserID:" + currentRFIDUserIDStr);
-    disableRelay(String(iteration) + " " + "Web Admin User Logout Initiated: Disable Relay: RFID:" + String(currentRFIDcard) + " UserID:" + currentRFIDUserIDStr);
-
-    lcd.clear();
-    lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
-    lcd.setCursor(0, 1); lcd.print("LOGGED OUT");
-    lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
-    lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
+    gotoLogoutCurrentUser = true;
 
     String returnText = "<table>";
     returnText += "<tr><td align='left'><b>Name:</b></td><td align='left'>" + currentRFIDFirstNameStr + " " + currentRFIDSurnameStr + "</td></tr>";
@@ -923,6 +914,10 @@ void loop() {
     toggleMaintenance();
   }
 
+  if (gotoLogoutCurrentUser) {
+    logoutCurrentUser();
+  }
+
   if (!mfrc522.PICC_IsNewCardPresent()) {
     // no new card found, re-loop
     //Serial.println("x");
@@ -1013,6 +1008,10 @@ void loop() {
 
         if (gotoToggleMaintenance) {
           toggleMaintenance();
+        }
+
+        if (gotoLogoutCurrentUser) {
+          logoutCurrentUser();
         }
 
         // when card present, display ntp sync events on serial
@@ -1326,4 +1325,21 @@ void toggleMaintenance() {
     lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
     lcd.setCursor(0, 1); lcd.print("Present Access Card");
   }
+}
+
+void logoutCurrentUser() {
+  gotoLogoutCurrentUser = false;
+  String logmessage = String(iteration) + " " + "Web Admin User Logout Initiated: RFID:" + String(currentRFIDcard) + " UserID:" + currentRFIDUserIDStr;
+  Serial.println(logmessage);
+  syslog.log(logmessage);
+
+  currentRFIDaccess = false;
+  disableLed(String(iteration) + " " + "Web Admin User Logout Initiated: Disable LED: RFID:" + String(currentRFIDcard) + " UserID:" + currentRFIDUserIDStr);
+  disableRelay(String(iteration) + " " + "Web Admin User Logout Initiated: Disable Relay: RFID:" + String(currentRFIDcard) + " UserID:" + currentRFIDUserIDStr);
+
+  lcd.clear();
+  lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+  lcd.setCursor(0, 1); lcd.print("LOGGED OUT");
+  lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
+  lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
 }
