@@ -487,6 +487,7 @@ void setup() {
   Serial.println("----------------------");
   Serial.print("         SSID: "); Serial.println(WiFi.SSID());
   Serial.print("  Wifi Status: "); Serial.println(WiFi.status());
+  Serial.print("Wifi Strength: "); Serial.print(WiFi.RSSI()); Serial.println(" dBm");
   Serial.print("          MAC: "); Serial.println(WiFi.macAddress());
   Serial.print("           IP: "); Serial.println(WiFi.localIP());
   Serial.print("       Subnet: "); Serial.println(WiFi.subnetMask());
@@ -1066,6 +1067,7 @@ String getFullStatus() {
   fullStatusDoc["WebServerPort"] = WEB_SERVER_PORT;
   fullStatusDoc["SSID"] = WiFi.SSID();
   fullStatusDoc["WifiStatus"] = WiFi.status();
+  fullStatusDoc["WifiSignalStrength"] = WiFi.RSSI();
   fullStatusDoc["MacAddress"] = WiFi.macAddress();
   fullStatusDoc["IPAddress"] = WiFi.localIP().toString();
   fullStatusDoc["Subnet"] = WiFi.subnetMask().toString();

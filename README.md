@@ -78,6 +78,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 
 ## Done
+- Added wifi signal strength to full status
 - OTA updating of firmware
 - Convert URL logs to:  String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
 - Reboot button doesnt always work
