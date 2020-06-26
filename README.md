@@ -31,6 +31,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - add current transformer/detector device to monitor usage
 
 ## Things to do
+- Cleanup the OTA webpage
 - Make maintenance mode persist between reboots
 - Add status light to signify when it is checking access, in trainer mode, locked, unlocked, etc
 - Make json output of boss's be a struct
@@ -66,7 +67,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - Send stats back to influxdb
 - Allow all settings to be updated via web admin
 - Allow flashing from default firmware, and then configuration via web admin
-- OTA updating of firmware
 - Use wifimanager or IotWebConf to make configuration easier
 - Enforce windows of operation
 - Add a debugging mode
@@ -78,6 +78,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 
 ## Done
+- OTA updating of firmware
 - Convert URL logs to:  String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
 - Reboot button doesnt always work
 - Clean up html

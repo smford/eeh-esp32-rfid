@@ -10,6 +10,7 @@
 #include <ezTime.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include <AsyncElegantOTA.h>
 
 // eztime library: https://github.com/ropg/ezTime v0.8.3
 // esp async webserver library: https://github.com/me-no-dev/ESPAsyncWebServer v1.2.3
@@ -24,7 +25,7 @@
 #define APP_NAME "eeh-esp32-rfid-laser"
 #define EEH_DEVICE "laser"
 #define WEB_SERVER_PORT 80
-#define FIRMWARE_VERSION "v1.0"
+#define FIRMWARE_VERSION "v1.0-ota"
 #define ADMIN_SERVER "http://192.168.10.21:8180/"
 
 // Provide official timezone names
@@ -155,6 +156,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   <button onclick="displayConfig()">Display Config</button>
   <button onclick="refreshNTP()">Refresh NTP</button>
   <button onclick="rebootButton()">Reboot</button>
+  <input type="button" onclick="location.href='/update';" value="OTA Update" />
   <p>Status: <span id="statusdetails"></span></p>
   <p>System State: <span id="currentaccess">%CURRENTSYSTEMSTATE%</span></p>
   <hr>
@@ -168,8 +170,8 @@ const char index_html[] PROGMEM = R"rawliteral(
 <script>
 function toggleCheckbox(element, pin) {
   var xhr = new XMLHttpRequest();
-  if(element.checked){ xhr.open("GET", "/update?state=1&pin="+pin, true); }
-  else { xhr.open("GET", "/update?state=0&pin="+pin, true); }
+  if(element.checked){ xhr.open("GET", "/toggle?state=1&pin="+pin, true); }
+  else { xhr.open("GET", "/toggle?state=0&pin="+pin, true); }
   xhr.send();
 }
 function toggleMaintenance(element) {
@@ -690,7 +692,7 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
   });
 
   // called when slider has been toggled
-  server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server.on("/toggle", HTTP_GET, [] (AsyncWebServerRequest *request) {
     if (!request->authenticate(http_username, http_password)) {
       return request->requestAuthentication();
     }
@@ -732,6 +734,7 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
   });
 
   server.onNotFound(notFound);
+  AsyncElegantOTA.begin(&server, http_username, http_password);
   server.begin();
 }
 
