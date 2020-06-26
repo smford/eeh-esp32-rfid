@@ -39,7 +39,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - Make defining of serverURL and its handling less gross, and add output to fullstatus
 - Figure out sizing for JSON doc
 - Figure out sizing of variable for url
-- Log off a user via the web admin
 - Convert to a function: Serial.print(iteration); Serial.println(" Checking access");
 - Store configuration to spiffs
 - Change haveaccess to being: &access=grant or &access=revoke
@@ -78,6 +77,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 
 ## Done
+- Log off a user via the web admin
 - Added wifi signal strength to full status
 - OTA updating of firmware
 - Convert URL logs to:  String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();

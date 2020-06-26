@@ -155,6 +155,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   <button onclick="revokeAccessButton()" %GRANTBUTTONENABLE%>Revoke Access to Current Card</button>
   <button onclick="displayConfig()">Display Config</button>
   <button onclick="refreshNTP()">Refresh NTP</button>
+  <button onclick="logoutCurrentUserButton()">Logout Current User</button>
   <button onclick="rebootButton()">Reboot</button>
   <input type="button" onclick="location.href='/update';" value="OTA Update" />
   <p>Status: <span id="statusdetails"></span></p>
@@ -196,6 +197,18 @@ function logoutButton() {
   xhr.open("GET", "/logout", true);
   xhr.send();
   setTimeout(function(){ window.open("/logged-out","_self"); }, 1000);
+}
+function logoutCurrentUserButton() {
+  document.getElementById("statusdetails").innerHTML = "Logging Out Current User ...";
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "/logout-current-user", true);
+  xhr.send();
+  setTimeout(function(){
+    document.getElementById("relayslider").checked = false;
+    document.getElementById("ledslider").checked = false;
+    document.getElementById("statusdetails").innerHTML = "Logged Out User";
+    document.getElementById("userdetails").innerHTML = xhr.responseText;
+  },5000);
 }
 function grantAccessButton() {
   document.getElementById("statusdetails").innerHTML = "Granting Access ...";
@@ -658,6 +671,40 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
     syslog.log(logmessage);
     updateNTP();
     request->send(200, "text/html", printTime());
+  });
+
+  server.on("/logout-current-user", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (!request->authenticate(http_username, http_password)) {
+      return request->requestAuthentication();
+    }
+    //request->send(200, "text/html", "ok");
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    Serial.println(logmessage);
+    syslog.log(logmessage);
+
+    logmessage = String(iteration) + " " + "Web Admin User Logout Initiated: RFID:" + String(currentRFIDcard) + " UserID:" + currentRFIDUserIDStr;
+    Serial.println(logmessage);
+    syslog.log(logmessage);
+
+    currentRFIDaccess = false;
+    disableLed(String(iteration) + " " + "Web Admin User Logout Initiated: Disable LED: RFID:" + String(currentRFIDcard) + " UserID:" + currentRFIDUserIDStr);
+    disableRelay(String(iteration) + " " + "Web Admin User Logout Initiated: Disable Relay: RFID:" + String(currentRFIDcard) + " UserID:" + currentRFIDUserIDStr);
+
+    lcd.clear();
+    lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+    lcd.setCursor(0, 1); lcd.print("LOGGED OUT");
+    lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
+    lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
+
+    String returnText = "<table>";
+    returnText += "<tr><td align='left'><b>Name:</b></td><td align='left'>" + currentRFIDFirstNameStr + " " + currentRFIDSurnameStr + "</td></tr>";
+    returnText += "<tr><td align='left'><b>User ID:</b></td><td align='left'>" + currentRFIDUserIDStr + "</td></tr>";
+    returnText += "<tr><td align='left'><b>RFID:</b></td><td align='left'>" + String(currentRFIDcard) + "</td></tr>";
+    returnText += "<tr><td align='left'><b>Device:</b></td><td align='left'>" + String(EEH_DEVICE) + "</td></tr>";
+    returnText += "<tr><td align='left'><b>Access:</b></td><td align='left'>Web Admin Logged Out</td></tr>";
+    returnText += "</table>";
+    
+    request->send(200, "text/html", returnText);
   });
 
   server.on("/health", HTTP_GET, [](AsyncWebServerRequest *request){
