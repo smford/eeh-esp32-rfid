@@ -11,6 +11,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <AsyncElegantOTA.h>
+#include <SPIFFS.h>
 
 // eztime library: https://github.com/ropg/ezTime v0.8.3
 // esp async webserver library: https://github.com/me-no-dev/ESPAsyncWebServer v1.2.3
@@ -48,6 +49,26 @@ const int LCD_HEIGHT = 4;
 //const char* serverURL1 = "http://192.168.10.21:56000/check?rfid=";
 const char* serverURL1 = "http://192.168.10.21:8180/check.php?rfid=";
 const char* serverURL2 = "&device=laser&api=abcde";
+
+// configuration structure
+struct Config {
+  String hostname;
+  String ssid;
+  String wifipassword;
+  int relaypin;
+  int ledpin;
+  String httpuser;
+  String httppassword;
+  String overridecodes;
+  String apitoken;
+  String syslogserver;
+  int syslogport;
+  bool inmaintenance;
+};
+
+// use for loading and saving configuration data
+const char *filename = "/config.txt";
+Config config;
 
 // mfrc522 is in spi mode
 const int RST_PIN = 33; // Reset pin
@@ -491,6 +512,46 @@ void setup() {
   Serial.print("   NTP Time Sync: "); Serial.println(NTPSYNCTIME);
   Serial.print("   NTP Time Zone: "); Serial.println(NTPTIMEZONE);
 
+  if (!SPIFFS.begin(true)) {
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    return;
+  }
+//===========
+  File root = SPIFFS.open("/");
+ 
+  File file3 = root.openNextFile();
+ 
+  while(file3){
+ 
+      Serial.print("FILE: ");
+      Serial.println(file3.name());
+ 
+      file3 = root.openNextFile();
+  }
+//===========
+  Serial.print("checking nonexistent file: "); Serial.println(SPIFFS.exists("/nonexisting.txt"));
+
+  if (SPIFFS.exists("/test.txt")) {
+    Serial.println("test.txt exists");
+    readafile();
+  } else {
+    Serial.println("test.txt does not exist, creating");
+    writeafile();
+  }
+
+  SPIFFS.remove("/test.txt");
+//===============
+  Serial.println("=============");
+  Serial.println(F("Print config file before..."));
+  printFile(filename);
+  Serial.println(F("Loading configuration..."));
+  loadConfiguration(filename, config);
+  Serial.println(F("Saving configuration..."));
+  saveConfiguration(filename, config);
+  Serial.println(F("Print config file after..."));
+  printFile(filename);
+  Serial.println("=============");
+  
   lcd.clear();
   lcd.print("Connecting to Wifi..");
 
@@ -1099,6 +1160,7 @@ String getFullStatus() {
   fullStatusDoc["Firmware"] = FIRMWARE_VERSION;
   fullStatusDoc["Temp"] = String((temprature_sens_read() - 32) / 1.8) + "C";
   fullStatusDoc["CompileTime"] = String(__DATE__) + " " + String(__TIME__);
+  fullStatusDoc["ConfigFile"] = String(filename);
   fullStatusDoc["MFRC522SlaveSelect"] = SS_PIN;
   fullStatusDoc["MFRC522ResetPin"] = RST_PIN;
   fullStatusDoc["MFRC522Firmware"] = getmfrcversion();
@@ -1342,4 +1404,187 @@ void logoutCurrentUser() {
   lcd.setCursor(0, 1); lcd.print("LOGGED OUT");
   lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
   lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
+}
+
+void writeafile() {
+  if (!SPIFFS.begin(true)) {
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    return;
+  }
+  File file = SPIFFS.open("/test.txt", FILE_WRITE);
+  if(!file){
+     Serial.println("There was an error opening the file for writing");
+     return;
+   }
+
+  if (file.print("TEST steve")) {
+    Serial.println("File was written");
+  } else {
+    Serial.println("File write failed");
+  }
+ 
+  file.close();
+}
+
+void readafile() {
+  File file2 = SPIFFS.open("/test.txt");
+  if (!file2){
+    Serial.println("Failed to open file for reading");
+    return;
+  }
+
+  Serial.println("File Content:");
+  while(file2.available()){
+    Serial.write(file2.read());
+  }
+  file2.close();
+}
+
+// base upon https://arduinojson.org/v6/example/config/
+void loadConfiguration(const char *filename, Config &config) {
+  // Open file for reading
+  File file = SPIFFS.open(filename);
+
+  if (!file){
+    Serial.println("Failed to open file for reading");
+    //return false;
+    return;
+  }
+
+  //if (!SPIFFS.exists(filename)) {
+    Serial.println(String(filename) + " does not exist");
+    //return false;
+    
+    Serial.println(String(filename) + " exists");
+    StaticJsonDocument<1000> doc;
+
+    // Deserialize the JSON document
+    DeserializationError error = deserializeJson(doc, file);
+    if (error) {
+      Serial.println(F("Failed to read file, using default configuration"));
+    }
+
+    // Copy values from the JsonDocument to the Config
+    //config.port = doc["port"] | 2731;
+    //strlcpy(config.hostname,                  // <- destination
+    //        doc["hostname"] | "example.com",  // <- source
+    //        sizeof(config.hostname));         // <- destination's capacity
+    //config.hostname = doc["hostname"].as<String>() | "defaulthostname";
+    config.hostname = doc["hostname"].as<String>();
+    if (config.hostname == "null") {
+      Serial.println("config.hostname is blank");
+      config.hostname = "defaulthostname";
+      Serial.print("new config.hostname="); Serial.println(config.hostname);
+    } else {
+      Serial.print("config.hostname="); Serial.println(config.hostname);
+    }
+            
+    //strlcpy(config.ssid, doc["ssid"] | "defaultssid", sizeof(config.ssid));
+    //config.ssid = doc["ssid"].as<String>() | "defaultssid";
+    config.ssid = doc["ssid"].as<String>();
+    if (config.ssid == "null") { config.ssid = "defaultssid"; }
+    
+    //strlcpy(config.wifipassword, doc["wifipassword"] | "defaultwifipassword", sizeof(config.wifipassword));
+    //config.wifipassword = doc["wifipassword"].as<String>() | "defaultwifipassword";
+    config.wifipassword = doc["wifipassword"].as<String>();
+    if (config.wifipassword == "null") { config.wifipassword = "defaultwifipassword"; }
+    
+    //strlcpy(config.relaypin, doc["relaypin"] | 26, sizeof(config.relaypin));
+    config.relaypin = doc["relaypin"] | 26;
+    
+    //strlcpy(config.ledpin, doc["ledpin"] | 2, sizeof(config.ledpin));
+    config.ledpin = doc["ledpin"] | 2;
+
+    //strlcpy(config.httpuser, doc["httpuser"] | "defaulthttpuser", sizeof(config.httpuser));
+    //config.httpuser = doc["httpuser"].as<String>() | "defaulthttpuser";
+    config.httpuser = doc["httpuser"].as<String>();
+    if (config.httpuser == "null") { config.httpuser = "defaulthttpuser"; }
+    
+    //strlcpy(config.httppassword, doc["httppassword"] | "defaulthttppassword", sizeof(config.httppassword));
+    //config.httppassword = doc["httppassword"].as<String>() | "defaulthttppassword";
+    config.httppassword = doc["httppassword"].as<String>();
+    if (config.httppassword == "null") { config.httppassword = "defaulthttppassword"; }
+    
+    //strlcpy(config.overridecodes, doc["overridecodes"] | "defaultoverridecodes", sizeof(config.overridecodes));
+    //config.overridecodes = doc["overridecodes"].as<String>() | "defaultoverridecodes";
+    config.overridecodes = doc["overridecodes"].as<String>();
+    if (config.overridecodes == "null") { config.overridecodes = "defaultoverridecodes"; }
+    
+    //strlcpy(config.apitoken, doc["apitoken"] | "defaultapitoken", sizeof(config.apitoken));
+    //config.apitoken = doc["apitoken"].as<String>() | "defaultapitoken";
+    config.apitoken = doc["apitoken"].as<String>();
+    if (config.apitoken == "null") { config.apitoken = "defaultapitoken"; }
+    
+    //strlcpy(config.syslogserver, doc["syslogserver"] | "defaultsyslogserver", sizeof(config.syslogserver));
+    //config.syslogserver = doc["syslogserver"].as<String>() | "defaultsyslogserver";
+    config.syslogserver = doc["syslogserver"].as<String>();
+    if (config.syslogserver == "null") { config.syslogserver = "defaultsyslogserver"; }
+    
+    //strlcpy(config.syslogport, doc["syslogport"] | 514, sizeof(config.syslogport));
+    config.syslogport = doc["syslogport"] | 514;
+
+    //strlcpy(config.inmaintenance, doc["inmaintenance"] | false, sizeof(config.inmaintenance));
+    config.inmaintenance = doc["inmaintenance"] | false;
+    
+    // Close the file (Curiously, File's destructor doesn't close the file)
+    file.close();
+  //}
+
+}
+
+void saveConfiguration(const char *filename, const Config &config) {
+  // Delete existing file, otherwise the configuration is appended to the file
+  SPIFFS.remove(filename);
+
+  // Open file for writing
+  File file = SPIFFS.open(filename, FILE_WRITE);
+  if (!file) {
+    Serial.println(F("Failed to create file"));
+    return;
+  }
+
+  // Allocate a temporary JsonDocument
+  // Don't forget to change the capacity to match your requirements.
+  // Use arduinojson.org/assistant to compute the capacity.
+  StaticJsonDocument<1000> doc;
+
+  // Set the values in the document
+  doc["hostname"] = config.hostname;
+  doc["ssid"] = config.ssid;
+  doc["wifipassword"] = config.wifipassword;
+  doc["relaypin"] = config.relaypin;
+  doc["ledpin"] = config.ledpin;
+  doc["httpuser"] = config.httpuser;
+  doc["httppassword"] = config.httppassword;
+  doc["overridecodes"] = config.overridecodes;
+  doc["apitoken"] = config.apitoken;
+  doc["syslogserver"] = config.syslogserver;
+  doc["syslogport"] = config.syslogport;
+  doc["inmaintenance"] = config.inmaintenance;
+
+  // Serialize JSON to file
+  if (serializeJson(doc, file) == 0) {
+    Serial.println(F("Failed to write to file"));
+  }
+
+  // Close the file
+  file.close();
+}
+
+
+// Prints the content of a file to the Serial
+void printFile(const char *filename) {
+  // Open file for reading
+  File file = SPIFFS.open(filename);
+  if (!file) {
+    Serial.println(F("Failed to read file"));
+    return;
+  }
+  // Extract each characters by one by one
+  while (file.available()) {
+    Serial.print((char)file.read());
+  }
+  Serial.println();
+  // Close the file
+  file.close();
 }
