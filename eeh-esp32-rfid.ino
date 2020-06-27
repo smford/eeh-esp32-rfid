@@ -12,6 +12,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <AsyncElegantOTA.h>
 #include <SPIFFS.h>
+#include "secrets.h"
 
 // eztime library: https://github.com/ropg/ezTime v0.8.3
 // esp async webserver library: https://github.com/me-no-dev/ESPAsyncWebServer v1.2.3
@@ -20,13 +21,8 @@
 // arduinojson library: https://github.com/bblanchon/ArduinoJson & https://arduinojson.org/ v6.15.2
 // liquidcrystal_i2c library: https://github.com/johnrickman/LiquidCrystal_I2C
 
-#define SYSLOG_SERVER "192.168.10.21"
-#define SYSLOG_PORT 514
-#define DEVICE_HOSTNAME "esp32-1.home.narco.tk"
-#define APP_NAME "eeh-esp32-rfid-laser"
-#define EEH_DEVICE "laser"
 #define WEB_SERVER_PORT 80
-#define FIRMWARE_VERSION "v1.0-ota"
+#define FIRMWARE_VERSION "v1.1-ota"
 #define ADMIN_SERVER "http://192.168.10.21:8180/"
 
 // Provide official timezone names
@@ -41,10 +37,7 @@
 const int LCD_I2C = 0x27;
 const int LCD_WIDTH = 20;
 const int LCD_HEIGHT = 4;
-//const uint8_t LCD_HEIGHT = 4;
 
-//const char* ssid = "ssid";
-//const char* password = "password";
 //const char* serverURL1 = "https://mock-rfid-system.herokuapp.com/check?rfid=";
 //const char* serverURL1 = "http://192.168.10.21:56000/check?rfid=";
 const char* serverURL1 = "http://192.168.10.21:8180/check.php?rfid=";
@@ -53,6 +46,8 @@ const char* serverURL2 = "&device=laser&api=abcde";
 // configuration structure
 struct Config {
   String hostname;
+  String device;
+  String appname;
   String ssid;
   String wifipassword;
   int relaypin;
@@ -67,26 +62,15 @@ struct Config {
 };
 
 // use for loading and saving configuration data
-const char *filename = "/config.txt";
+const char *filename = "/config5.txt";
 Config config;
 
 // mfrc522 is in spi mode
 const int RST_PIN = 33; // Reset pin
 const int SS_PIN = 32; // Slave select pin
 
-const int RELAY = 26;
-const int ONBOARD_LED = 2;
-
-//=======
-const char* http_username = "admin";
-const char* http_password = "admin";
-
 const char* PARAM_INPUT_1 = "state";
 const char* PARAM_INPUT_2 = "pin";
-
-// possibly delete
-//const int output = 2;
-//=======
 
 char *accessOverrideCodes[] = {"90379632", "boss2aaa", "boss3bbb"};
 
@@ -102,8 +86,6 @@ String currentRFIDUserIDStr = "";
 String currentRFIDFirstNameStr = "";
 String currentRFIDSurnameStr = "";
 bool currentRFIDaccess = false;
-
-String APITOKEN = "abcde";
 
 // should we reboot the server?
 bool shouldReboot = false;
@@ -121,9 +103,11 @@ bool inOverrideMode = false;
 // MFRC522
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance
 
-// Syslog
+// setup udp connection
 WiFiUDP udpClient;
-Syslog syslog(udpClient, SYSLOG_SERVER, SYSLOG_PORT, DEVICE_HOSTNAME, APP_NAME, LOG_INFO);
+
+// Syslog
+Syslog syslog(udpClient, SYSLOG_PROTO_IETF);
 
 // NTP
 Timezone myTZ;
@@ -131,7 +115,6 @@ String bootTime;
 ezDebugLevel_t NTPDEBUG = INFO; // NONE, ERROR, INFO, DEBUG
 
 // Setup LCD
-//LiquidCrystal_I2C lcd(0x27,20,4);
 LiquidCrystal_I2C lcd(LCD_I2C, LCD_WIDTH, LCD_HEIGHT);
 
 // internal ESP32 temp sensor
@@ -335,16 +318,12 @@ const char reboot_html[] PROGMEM = R"rawliteral(
   function countdown() {
     seconds = seconds - 1;
     if (seconds < 0) {
-      // Chnage your redirection link here
       window.location = "/";
     } else {
-      // Update remaining seconds
       document.getElementById("countdown").innerHTML = seconds;
-      // Count down using javascript
       window.setTimeout("countdown()", 1000);
     }
   }
-  // Run countdown function
   countdown();
 </script>
 </body>
@@ -364,14 +343,14 @@ String processor(const String& var) {
 
   if (var == "LEDSLIDER") {
     String buttons = "";
-    String outputStateValue = outputState(ONBOARD_LED);
+    String outputStateValue = outputState(config.ledpin);
     buttons+= "<p>LED</p><p><label class='switch'><input type='checkbox' onchange='toggleCheckbox(this, \"led\")' id='ledslider' " + outputStateValue + "><span class='slider'></span></label></p>";
     return buttons;
   }
 
   if (var == "RELAYSLIDER") {
     String buttons = "";
-    String outputStateValue = outputState(RELAY);
+    String outputStateValue = outputState(config.relaypin);
     
     // because HIGH = off for the relay, this needs to be reversed to make web button work
     if (outputStateValue == "checked") {
@@ -385,11 +364,11 @@ String processor(const String& var) {
   }
 
   if (var == "EEH_HOSTNAME") {
-    return DEVICE_HOSTNAME;
+    return config.hostname;
   }
 
   if (var == "MAINTENANCEMODE") {
-    if (inMaintenanceMode) {
+    if (config.inmaintenance) {
       return "MAINTENANCE MODE";
     } else {
       return "";
@@ -418,12 +397,9 @@ String processor(const String& var) {
       returnText += "<tr><td align='left'><b>Name:</b></td><td align='left'>" + currentFullName + "</td></tr>";
       returnText += "<tr><td align='left'><b>User ID:</b></td><td align='left'>" + currentUserID + "</td></tr>";
       returnText += "<tr><td align='left'><b>RFID:</b></td><td align='left'>" + String(currentRFIDcard) + "</td></tr>";
-      returnText += "<tr><td align='left'><b>Device:</b></td><td align='left'>" + String(EEH_DEVICE) + "</td></tr>";
+      returnText += "<tr><td align='left'><b>Device:</b></td><td align='left'>" + config.device + "</td></tr>";
       returnText += "<tr><td align='left'><b>Access:</b></td><td align='left'>" + currentAccess + "</td></tr>";
       returnText += "</table>";
-
-      // working but ugly
-      //returnText = "<table><tr><td align='left'><b>RFID</b></td><td align='left'>" + String(currentRFIDcard) + "</td></tr>" + "<tr><td align='left'><b>UserID</b></td><td align='left'>" + currentRFIDUserIDStr + "<tr><td align='left'><b>Name</b></td><td align='left'>" + currentRFIDFirstNameStr + " " + currentRFIDSurnameStr + "</td></tr>" + "<tr><td align='left'><b>Device</b></td><td align='left'>" + String(EEH_DEVICE) + "</td></tr>" + "<tr><td align='left'><b>Grant</b></td><td align='left'>" + currentAccess + "</td></tr></table>";
 
       return returnText;
     }
@@ -466,7 +442,7 @@ String outputState(int PINCHECK){
 }
 
 String isInMaintenance() {
-  if (inMaintenanceMode) {
+  if (config.inmaintenance) {
     return "checked";
   } else {
     return "";
@@ -483,25 +459,62 @@ void setup() {
 
   lcd.print("Booting...");
 
+  // loading configuration
+  if (!SPIFFS.begin(true)) {
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    return;
+  }
+
+  Serial.println("Removing old config files");
+  SPIFFS.remove("/config.txt");
+  SPIFFS.remove("/config2.txt");
+  SPIFFS.remove("/config3.txt");
+  SPIFFS.remove("/config4.txt");
+
+  Serial.println("=============");
+  Serial.println(F("Print config file before..."));
+  printFile(filename);
+  Serial.println(F("Loading configuration..."));
+  loadConfiguration(filename, config);
+  Serial.println(F("Saving configuration..."));
+  saveConfiguration(filename, config);
+  Serial.println(F("Print config file after..."));
+  printFile(filename);
+  Serial.println("=============");
+  printConfig();
+  Serial.println("=============");
+
+  // configure syslog server using loaded configuration
+  syslog.server(config.syslogserver.c_str(), config.syslogport);
+  syslog.deviceHostname(config.hostname.c_str());
+  syslog.appName(config.appname.c_str());
+  syslog.defaultPriority(LOG_INFO);
+
+  // if no ssid set, change to AP mode and allow it to be configured
+  if (config.ssid == "") {
+    Serial.println("No Wifi Details Set, entering AP MODE");
+    // need to implement this
+  }
+
   SPI.begin(); // Init SPI bus
   mfrc522.PCD_Init(); // Init MFRC522
   delay(4); // delay needed to allow mfrc522 to spin up properly
 
   Serial.println("\nSystem Configuration:");
   Serial.println("---------------------");
-  Serial.print("        Hostname: "); Serial.println(DEVICE_HOSTNAME);
-  Serial.print("        App Name: "); Serial.println(APP_NAME);
-  Serial.print("      EEH Device: "); Serial.println(EEH_DEVICE);
-  if (inMaintenanceMode) {
+  Serial.print("        Hostname: "); Serial.println(config.hostname);
+  Serial.print("        App Name: "); Serial.println(config.appname);
+  Serial.print("      EEH Device: "); Serial.println(config.device);
+  if (config.inmaintenance) {
     Serial.println("Maintenance Mode: true");
   } else {
     Serial.println("Maintenance Mode: false");
   }
-  Serial.print("   Syslog Server: "); Serial.print(SYSLOG_SERVER); Serial.print(":"); Serial.println(SYSLOG_PORT);
+  Serial.print("   Syslog Server: "); Serial.print(config.syslogserver); Serial.print(":"); Serial.println(config.syslogport);
   Serial.print("   API Wait Time: "); Serial.print(waitTime); Serial.println(" seconds");
   Serial.print(" RFID Card Delay: "); Serial.print(checkCardTime); Serial.println(" seconds");
-  Serial.print("       Relay Pin: "); Serial.println(RELAY);
-  Serial.print("         LED Pin: "); Serial.println(ONBOARD_LED);
+  Serial.print("       Relay Pin: "); Serial.println(config.relaypin);
+  Serial.print("         LED Pin: "); Serial.println(config.ledpin);
   Serial.print(" Web Server Port: "); Serial.println(WEB_SERVER_PORT);
   Serial.print("     ESP32 Flash: "); Serial.println(FIRMWARE_VERSION);
   Serial.print("  Flash Compiled: "); Serial.println(String(__DATE__) + " " + String(__TIME__));
@@ -512,10 +525,6 @@ void setup() {
   Serial.print("   NTP Time Sync: "); Serial.println(NTPSYNCTIME);
   Serial.print("   NTP Time Zone: "); Serial.println(NTPTIMEZONE);
 
-  if (!SPIFFS.begin(true)) {
-    Serial.println("An Error has occurred while mounting SPIFFS");
-    return;
-  }
 //===========
   File root = SPIFFS.open("/");
  
@@ -541,22 +550,12 @@ void setup() {
 
   SPIFFS.remove("/test.txt");
 //===============
-  Serial.println("=============");
-  Serial.println(F("Print config file before..."));
-  printFile(filename);
-  Serial.println(F("Loading configuration..."));
-  loadConfiguration(filename, config);
-  Serial.println(F("Saving configuration..."));
-  saveConfiguration(filename, config);
-  Serial.println(F("Print config file after..."));
-  printFile(filename);
-  Serial.println("=============");
   
   lcd.clear();
   lcd.print("Connecting to Wifi..");
 
   Serial.print("\nConnecting to Wifi: ");
-  WiFi.begin(ssid, password);
+  WiFi.begin(config.ssid.c_str(), config.wifipassword.c_str());
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
@@ -576,14 +575,14 @@ void setup() {
   Serial.print("        DNS 3: "); Serial.println(WiFi.dnsIP(2));
   Serial.println();
 
-  pinMode(ONBOARD_LED, OUTPUT);
-  pinMode(RELAY, OUTPUT);
+  pinMode(config.ledpin, OUTPUT);
+  pinMode(config.relaypin, OUTPUT);
   disableLed("Automatically Disable LED upon boot");
   disableRelay("Automatically Disable Relay upon boot");
 
   Serial.println();
 
-  // configure time, wait 10 seconds then progress, otherwise it can stall
+  // configure time, wait NTPWAITSYNCTIME seconds then progress, otherwise it can stall
   Serial.print("Attempting to NTP Sync time for "); Serial.print(NTPWAITSYNCTIME); Serial.println(" seconds");
   lcd.clear();
   lcd.print("Syncing NTP...");
@@ -597,26 +596,22 @@ void setup() {
   bootTime = printTime();
   Serial.print("Booted at: "); Serial.println(bootTime);
   syslog.logf("Booted");
-  lcd.clear();
-  lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
-  lcd.setCursor(0, 1); lcd.print("Present Access Card");
 
+  // Break all of these server.on in to a seperate file
   // https://randomnerdtutorials.com/esp32-esp8266-web-server-http-authentication/
   // Route for root / web page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (!request->authenticate(http_username, http_password)) {
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
 
     /*
-    //----------
     int headers = request->headers();
     int i;
     for(i=0;i<headers;i++){
       AsyncWebHeader* h = request->getHeader(i);
       Serial.printf("HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str());
     }
-    //----------
     */
 
     String logmessage = "Client:" + request->client()->remoteIP().toString() + + " " + request->url();
@@ -630,7 +625,7 @@ void setup() {
   });
 
   server.on("/maintenance", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (!request->authenticate(http_username, http_password)) {
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
 
@@ -675,7 +670,7 @@ void setup() {
   });
 
   server.on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (!request->authenticate(http_username, http_password)) {
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
@@ -685,36 +680,30 @@ void setup() {
     shouldReboot = true;
   });
 
-server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (!request->authenticate(http_username, http_password)) {
+  server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
     char getUserURL[240];
-    sprintf(getUserURL, "%s%s%s%s%s%s%s", ADMIN_SERVER, "getuser.php?device=", EEH_DEVICE, "&rfid=", String(currentRFIDcard), "&api=", APITOKEN);
+    sprintf(getUserURL, "%s%s%s%s%s%s%s", ADMIN_SERVER, "getuser.php?device=", config.device, "&rfid=", String(currentRFIDcard), "&api=", config.apitoken);
+
     //Serial.print("GetUserURL: "); Serial.println(getUserURL);
     request->send(200, "text/html", getUserDetails(getUserURL));
   });
 
   server.on("/grant", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (!request->authenticate(http_username, http_password)) {
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
-    //String haveaccess = request->getParam("haveaccess")->value();
     const char* haveaccess = request->getParam("haveaccess")->value().c_str();
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + " " + request->url() + "?haveaccess=" + haveaccess;
     Serial.println(logmessage);
     syslog.log(logmessage);
-    //String grantAccess(String myurl)
     char grantURL[240];
-    //String haveaccess;
-    //haveaccess = request->getParam("haveaccess")->value();
-    sprintf(grantURL, "%s%s%s%s%s%s%s%s%s", ADMIN_SERVER, "moduser.php?device=", EEH_DEVICE, "&modrfid=", String(currentRFIDcard), "&api=", APITOKEN, "&haveaccess=", haveaccess);
-    //Serial.print("GrantURL: "); Serial.println(grantURL);
-    //request->send(200, "text/html", grantAccess("http://192.168.10.21:8180/moduser.php?device=" + EEH_DEVICE + "&modrfid=" + String(currentRFIDcard) + "&api=" + APITOKEN + "&haveaccess=true");
-    //logmessage = 
+    sprintf(grantURL, "%s%s%s%s%s%s%s%s%s", ADMIN_SERVER, "moduser.php?device=", config.device, "&modrfid=", String(currentRFIDcard), "&api=", config.apitoken, "&haveaccess=", haveaccess);
     if (strcmp(haveaccess, "true") == 0) {
       // granting access
       logmessage = "Web Admin: Granting access for " + String(currentRFIDcard);
@@ -728,7 +717,7 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
   });
 
   server.on("/ntprefresh", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (!request->authenticate(http_username, http_password)) {
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
     //request->send(200, "text/html", "ok");
@@ -740,7 +729,7 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
   });
 
   server.on("/logout-current-user", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (!request->authenticate(http_username, http_password)) {
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
@@ -752,7 +741,7 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
     returnText += "<tr><td align='left'><b>Name:</b></td><td align='left'>" + currentRFIDFirstNameStr + " " + currentRFIDSurnameStr + "</td></tr>";
     returnText += "<tr><td align='left'><b>User ID:</b></td><td align='left'>" + currentRFIDUserIDStr + "</td></tr>";
     returnText += "<tr><td align='left'><b>RFID:</b></td><td align='left'>" + String(currentRFIDcard) + "</td></tr>";
-    returnText += "<tr><td align='left'><b>Device:</b></td><td align='left'>" + String(EEH_DEVICE) + "</td></tr>";
+    returnText += "<tr><td align='left'><b>Device:</b></td><td align='left'>" + config.device + "</td></tr>";
     returnText += "<tr><td align='left'><b>Access:</b></td><td align='left'>Web Admin Logged Out</td></tr>";
     returnText += "</table>";
     
@@ -767,7 +756,7 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
   });
 
   server.on("/fullstatus", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (!request->authenticate(http_username, http_password)) {
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
@@ -793,7 +782,7 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
 
   // called when slider has been toggled
   server.on("/toggle", HTTP_GET, [] (AsyncWebServerRequest *request) {
-    if (!request->authenticate(http_username, http_password)) {
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
     String inputMessage;
@@ -833,8 +822,26 @@ server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", "OK");
   });
 
+  if (config.inmaintenance) {
+    syslog.logf("Booting in to Maintenance Mode");
+    lcd.clear();
+    lcd.setCursor(0, 0); lcd.print(config.device);
+    lcd.setCursor(0, 1); lcd.print("MAINTENANCE MODE");
+    lcd.setCursor(0, 2); lcd.print("ALL ACCESS DENIED");
+    lcd.setCursor(0, 3); lcd.print("");
+  } else {
+    lcd.clear();
+    lcd.setCursor(0, 0); lcd.print(config.device);
+    lcd.setCursor(0, 1); lcd.print("Present Access Card");
+  }
+
+  // if url isn't found
   server.onNotFound(notFound);
-  AsyncElegantOTA.begin(&server, http_username, http_password);
+
+  // configure ota webserver
+  AsyncElegantOTA.begin(&server, config.httpuser.c_str(), config.httppassword.c_str());
+
+  // startup webserver
   server.begin();
 }
 
@@ -873,12 +880,10 @@ void dowebcall(const char *foundrfid) {
       returnedJSON = httpGETRequest(serverURL);
       Serial.print(iteration); Serial.print(" ReturnedJSON:"); Serial.println(returnedJSON);
 
-      //Serial.print(iteration); Serial.println(" JSON Deserialization");
       DeserializationError error = deserializeJson(doc, returnedJSON);
       if (error) {
         Serial.print(iteration); Serial.print(F(" DeserializeJson() failed: ")); Serial.println(error.c_str());
         syslog.logf(LOG_ERR, "%d Error Decoding JSON: %s", iteration, error.c_str());
-        //return false;
       }
 
       Serial.print(iteration); Serial.println(" Assigning Variables");
@@ -899,8 +904,6 @@ void dowebcall(const char *foundrfid) {
       Serial.print(iteration); Serial.println(" Checking access");
       if (strcmp(RFID, foundrfid) == 0) {
         // presented rfid matches api returned rfid
-        // Serial.print(iteration); Serial.println(" RFID Matches");
-
         currentRFIDUserIDStr = doc["UserID"].as<String>();
         currentRFIDFirstNameStr = doc["FirstName"].as<String>();
         currentRFIDSurnameStr = doc["Surname"].as<String>();
@@ -908,14 +911,14 @@ void dowebcall(const char *foundrfid) {
         if (strcmp(Grant, "true") == 0) {
           // api says user has access
 
-          if (strcmp(EEH_DEVICE, EEHDevice) == 0) {
+          if (strcmp(config.device.c_str(), EEHDevice) == 0) {
             // device matches api returned device
 
-            if (!inMaintenanceMode) {
+            if (!config.inmaintenance) {
               // grant access because not in maintenance mode; and rfid, grant and device match
               currentRFIDaccess = true;
               lcd.clear();
-              lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+              lcd.setCursor(0, 0); lcd.print(config.device);
               lcd.setCursor(0, 1); lcd.print("ACCESS GRANTED");
               lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
               lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
@@ -926,18 +929,17 @@ void dowebcall(const char *foundrfid) {
               Serial.println(String(iteration) + " In maintenance mode, ignoring non-Override access");
               syslog.log(String(iteration) + "In maintenance mode, ignoring non-Override access");
               lcdPrint("ACCESS DENIED", "IN MAINTENANCE MODE", "Only Override User", "Allowed");
-              //delay(10000);
             }
 
           } else {
             // deny access, device does not match api returned device name
-            disableLed(String(iteration) + " Device Mismatch: Disable LED: Expected:" + String(EEH_DEVICE) + " Got:" + EEHDevice);
-            disableRelay(String(iteration) + " Device Mismatch: Disable Relay: Expected:" + String(EEH_DEVICE) + " Got:" + EEHDevice);
+            disableLed(String(iteration) + " Device Mismatch: Disable LED: Expected:" + config.device + " Got:" + EEHDevice);
+            disableRelay(String(iteration) + " Device Mismatch: Disable Relay: Expected:" + config.device + " Got:" + EEHDevice);
           }
         } else {
           // deny access, api says user does not have access
           lcd.clear();
-          lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+          lcd.setCursor(0, 0); lcd.print(config.device);
           lcd.setCursor(0, 1); lcd.print("ACCESS DENIED");
           lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
           lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
@@ -951,15 +953,12 @@ void dowebcall(const char *foundrfid) {
       }
 
       sinceLastRunTime = millis();
-      //return true;
     } else {
       Serial.println("WiFi Disconnected");
-      //return false;
     }
   } else {
     Serial.print(iteration); Serial.println(" Not doing webcall, firing too fast");
   }
-  //return false;
 }
 
 void loop() {
@@ -1048,7 +1047,7 @@ void loop() {
           currentRFIDUserIDStr = "0";
           currentRFIDaccess = true;
           lcd.clear();
-          lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+          lcd.setCursor(0, 0); lcd.print(config.device);
           lcd.setCursor(0, 1); lcd.print("ACCESS GRANTED");
           lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
           lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
@@ -1085,15 +1084,15 @@ void loop() {
 
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
-  if (!inMaintenanceMode) {
+  if (!config.inmaintenance) {
     // not in maintenance mode, update LCD
     lcd.clear();
-    lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+    lcd.setCursor(0, 0); lcd.print(config.device);
     lcd.setCursor(0, 1); lcd.print("Present Access Card");
   } else {
     // should be in maintenance mode, update LCD
     lcd.clear();
-    lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+    lcd.setCursor(0, 0); lcd.print(config.device);
     lcd.setCursor(0, 1); lcd.print("MAINTENANCE MODE");
     lcd.setCursor(0, 2); lcd.print("ALL ACCESS DENIED");
     lcd.setCursor(0, 3); lcd.print("");
@@ -1114,25 +1113,25 @@ void loop() {
 }
 
 void enableRelay(String message) {
-  digitalWrite(RELAY, LOW);
+  digitalWrite(config.relaypin, LOW);
   Serial.println(message);
   syslog.log(message);
 }
 
 void disableRelay(String message) {
-  digitalWrite(RELAY, HIGH);
+  digitalWrite(config.relaypin, HIGH);
   Serial.println(message);
   syslog.log(message);
 }
 
 void disableLed(String message) {
-  digitalWrite(ONBOARD_LED, LOW);
+  digitalWrite(config.ledpin, LOW);
   Serial.println(message);
   syslog.log(message);
 }
 
 void enableLed(String message) {
-  digitalWrite(ONBOARD_LED, HIGH);
+  digitalWrite(config.ledpin, HIGH);
   Serial.println(message);
   syslog.log(message);
 }
@@ -1140,7 +1139,7 @@ void enableLed(String message) {
 void rebootESP(char* message) {
   Serial.print(iteration); Serial.print(" Rebooting ESP32: "); Serial.println(message);
   syslog.logf("%d Rebooting ESP32:%s", iteration, message);
-  // wait 5 seconds to allow syslog to be sent
+  // wait 10 seconds to allow syslog to be sent
   delay(10000);
   ESP.restart();
 }
@@ -1148,13 +1147,13 @@ void rebootESP(char* message) {
 String getFullStatus() {
   StaticJsonDocument<2000> fullStatusDoc;
   fullStatusDoc["Timestamp"] = printTime();
-  fullStatusDoc["Hostname"] = DEVICE_HOSTNAME;
+  fullStatusDoc["Hostname"] = config.hostname;
   fullStatusDoc["BootTime"] = bootTime;
-  fullStatusDoc["AppName"] = APP_NAME;
-  fullStatusDoc["EEHDevice"] = EEH_DEVICE;
+  fullStatusDoc["AppName"] = config.appname;
+  fullStatusDoc["EEHDevice"] = config.device;
   fullStatusDoc["OverrideUsers"] = getAccessOverrideCodes();
-  fullStatusDoc["SyslogServer"] = SYSLOG_SERVER;
-  fullStatusDoc["SyslogPort"] = SYSLOG_PORT;
+  fullStatusDoc["SyslogServer"] = config.syslogserver;
+  fullStatusDoc["SyslogPort"] = config.syslogport;
   fullStatusDoc["ServerURL1"] = serverURL1;
   fullStatusDoc["ServerURL2"] = serverURL2;
   fullStatusDoc["Firmware"] = FIRMWARE_VERSION;
@@ -1183,20 +1182,20 @@ String getFullStatus() {
   fullStatusDoc["DNS1"] = WiFi.dnsIP(0).toString();
   fullStatusDoc["DNS2"] = WiFi.dnsIP(1).toString();
   fullStatusDoc["DNS3"] = WiFi.dnsIP(2).toString();
-  fullStatusDoc["RelayPin"] = RELAY;
+  fullStatusDoc["RelayPin"] = config.relaypin;
   fullStatusDoc["LCDI2C"] = "0x" + String(LCD_I2C, HEX);
   fullStatusDoc["LCDWidth"] = LCD_WIDTH;
   fullStatusDoc["LCDHeight"] = LCD_HEIGHT;
 
   // note this is the opposite of what is expected due to the way the relay works
-  if (digitalRead(RELAY)) {
+  if (digitalRead(config.relaypin)) {
     fullStatusDoc["RelayPinStatus"] = "off";
   } else {
     fullStatusDoc["RelayPinStatus"] = "on";
   }
 
-  fullStatusDoc["LEDPin"] = ONBOARD_LED;
-  if (digitalRead(ONBOARD_LED)) {
+  fullStatusDoc["LEDPin"] = config.ledpin;
+  if (digitalRead(config.ledpin)) {
     fullStatusDoc["LEDPinStatus"] = "on";
   } else {
     fullStatusDoc["LEDPinStatus"] = "off";
@@ -1228,7 +1227,7 @@ String getFullStatus() {
 
   fullStatusDoc["CurrentRFIDAccess"] = currentRFIDaccess;
 
-  if (inMaintenanceMode) {
+  if (config.inmaintenance) {
     fullStatusDoc["inMaintenanceMode"] = "true";
   } else {
     fullStatusDoc["inMaintenanceMode"] = "false";
@@ -1250,13 +1249,13 @@ String getStatus() {
   Serial.println("getting un-authed status");
   StaticJsonDocument<200> shortStatusDoc;
   shortStatusDoc["Timestamp"] = printTime();
-  shortStatusDoc["Hostname"] = DEVICE_HOSTNAME;
+  shortStatusDoc["Hostname"] = config.hostname;
 
   // note this is the opposite of what is expected due to the way the relay works
-  if (digitalRead(RELAY)) {
-    shortStatusDoc[EEH_DEVICE] = "off";
+  if (digitalRead(config.relaypin)) {
+    shortStatusDoc[config.device] = "off";
   } else {
-    shortStatusDoc[EEH_DEVICE] = "on";
+    shortStatusDoc[config.device] = "on";
   }
 
   String shortStatus = "";
@@ -1372,19 +1371,22 @@ void toggleMaintenance() {
   gotoToggleMaintenance = false;
 
   // toggle maintenance mode
-  inMaintenanceMode = !inMaintenanceMode;
+  config.inmaintenance = !config.inmaintenance;
 
-  if (inMaintenanceMode) {
+  Serial.println(F("Storing inMaintenance configuration..."));
+  saveConfiguration(filename, config);
+
+  if (config.inmaintenance) {
     syslog.logf("Enabling Maintenance Mode");
     lcd.clear();
-    lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+    lcd.setCursor(0, 0); lcd.print(config.device);
     lcd.setCursor(0, 1); lcd.print("MAINTENANCE MODE");
     lcd.setCursor(0, 2); lcd.print("ALL ACCESS DENIED");
     lcd.setCursor(0, 3); lcd.print("");
   } else {
     syslog.logf("Disabling Maintenance Mode");
     lcd.clear();
-    lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+    lcd.setCursor(0, 0); lcd.print(config.device);
     lcd.setCursor(0, 1); lcd.print("Present Access Card");
   }
 }
@@ -1400,7 +1402,7 @@ void logoutCurrentUser() {
   disableRelay(String(iteration) + " " + "Web Admin User Logout Initiated: Disable Relay: RFID:" + String(currentRFIDcard) + " UserID:" + currentRFIDUserIDStr);
 
   lcd.clear();
-  lcd.setCursor(0, 0); lcd.print(String(EEH_DEVICE));
+  lcd.setCursor(0, 0); lcd.print(config.device);
   lcd.setCursor(0, 1); lcd.print("LOGGED OUT");
   lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
   lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
@@ -1440,96 +1442,70 @@ void readafile() {
   file2.close();
 }
 
-// base upon https://arduinojson.org/v6/example/config/
+// based upon https://arduinojson.org/v6/example/config/
 void loadConfiguration(const char *filename, Config &config) {
   // Open file for reading
   File file = SPIFFS.open(filename);
 
   if (!file){
     Serial.println("Failed to open file for reading");
-    //return false;
     return;
   }
 
-  //if (!SPIFFS.exists(filename)) {
+  if (!SPIFFS.exists(filename)) {
     Serial.println(String(filename) + " does not exist");
-    //return false;
-    
+  } else {
     Serial.println(String(filename) + " exists");
-    StaticJsonDocument<1000> doc;
+  }
 
-    // Deserialize the JSON document
-    DeserializationError error = deserializeJson(doc, file);
-    if (error) {
-      Serial.println(F("Failed to read file, using default configuration"));
-    }
+  StaticJsonDocument<1000> doc;
 
-    // Copy values from the JsonDocument to the Config
-    //config.port = doc["port"] | 2731;
-    //strlcpy(config.hostname,                  // <- destination
-    //        doc["hostname"] | "example.com",  // <- source
-    //        sizeof(config.hostname));         // <- destination's capacity
-    //config.hostname = doc["hostname"].as<String>() | "defaulthostname";
-    config.hostname = doc["hostname"].as<String>();
-    if (config.hostname == "null") {
-      Serial.println("config.hostname is blank");
-      config.hostname = "defaulthostname";
-      Serial.print("new config.hostname="); Serial.println(config.hostname);
-    } else {
-      Serial.print("config.hostname="); Serial.println(config.hostname);
-    }
-            
-    //strlcpy(config.ssid, doc["ssid"] | "defaultssid", sizeof(config.ssid));
-    //config.ssid = doc["ssid"].as<String>() | "defaultssid";
-    config.ssid = doc["ssid"].as<String>();
-    if (config.ssid == "null") { config.ssid = "defaultssid"; }
-    
-    //strlcpy(config.wifipassword, doc["wifipassword"] | "defaultwifipassword", sizeof(config.wifipassword));
-    //config.wifipassword = doc["wifipassword"].as<String>() | "defaultwifipassword";
-    config.wifipassword = doc["wifipassword"].as<String>();
-    if (config.wifipassword == "null") { config.wifipassword = "defaultwifipassword"; }
-    
-    //strlcpy(config.relaypin, doc["relaypin"] | 26, sizeof(config.relaypin));
-    config.relaypin = doc["relaypin"] | 26;
-    
-    //strlcpy(config.ledpin, doc["ledpin"] | 2, sizeof(config.ledpin));
-    config.ledpin = doc["ledpin"] | 2;
+  // Deserialize the JSON document
+  DeserializationError error = deserializeJson(doc, file);
+  if (error) {
+    Serial.println(F("Failed to read file, using default configuration"));
+  }
 
-    //strlcpy(config.httpuser, doc["httpuser"] | "defaulthttpuser", sizeof(config.httpuser));
-    //config.httpuser = doc["httpuser"].as<String>() | "defaulthttpuser";
-    config.httpuser = doc["httpuser"].as<String>();
-    if (config.httpuser == "null") { config.httpuser = "defaulthttpuser"; }
-    
-    //strlcpy(config.httppassword, doc["httppassword"] | "defaulthttppassword", sizeof(config.httppassword));
-    //config.httppassword = doc["httppassword"].as<String>() | "defaulthttppassword";
-    config.httppassword = doc["httppassword"].as<String>();
-    if (config.httppassword == "null") { config.httppassword = "defaulthttppassword"; }
-    
-    //strlcpy(config.overridecodes, doc["overridecodes"] | "defaultoverridecodes", sizeof(config.overridecodes));
-    //config.overridecodes = doc["overridecodes"].as<String>() | "defaultoverridecodes";
-    config.overridecodes = doc["overridecodes"].as<String>();
-    if (config.overridecodes == "null") { config.overridecodes = "defaultoverridecodes"; }
-    
-    //strlcpy(config.apitoken, doc["apitoken"] | "defaultapitoken", sizeof(config.apitoken));
-    //config.apitoken = doc["apitoken"].as<String>() | "defaultapitoken";
-    config.apitoken = doc["apitoken"].as<String>();
-    if (config.apitoken == "null") { config.apitoken = "defaultapitoken"; }
-    
-    //strlcpy(config.syslogserver, doc["syslogserver"] | "defaultsyslogserver", sizeof(config.syslogserver));
-    //config.syslogserver = doc["syslogserver"].as<String>() | "defaultsyslogserver";
-    config.syslogserver = doc["syslogserver"].as<String>();
-    if (config.syslogserver == "null") { config.syslogserver = "defaultsyslogserver"; }
-    
-    //strlcpy(config.syslogport, doc["syslogport"] | 514, sizeof(config.syslogport));
-    config.syslogport = doc["syslogport"] | 514;
+  // Copy values from the JsonDocument to the Config
+  config.hostname = doc["hostname"].as<String>();
+  if (config.hostname == "null") { config.hostname = "esp32-1.home.narco.tk"; }
 
-    //strlcpy(config.inmaintenance, doc["inmaintenance"] | false, sizeof(config.inmaintenance));
-    config.inmaintenance = doc["inmaintenance"] | false;
-    
-    // Close the file (Curiously, File's destructor doesn't close the file)
-    file.close();
-  //}
+  config.device = doc["device"].as<String>();
+  if (config.device == "null") { config.device = "laser"; }
 
+  config.appname = doc["appname"].as<String>();
+  if (config.appname == "null") { config.appname = "eeh-esp32-rfid-laser"; }
+
+  config.ssid = doc["ssid"].as<String>();
+  if (config.ssid == "null") { config.ssid = "narcotkshedtp"; }
+
+  config.wifipassword = doc["wifipassword"].as<String>();
+  //if (config.wifipassword == "null") { config.wifipassword = "junk"; }
+  if (config.wifipassword == "null") { config.wifipassword = String(password); }
+
+  config.relaypin = doc["relaypin"] | 26;
+  config.ledpin = doc["ledpin"] | 2;
+
+  config.httpuser = doc["httpuser"].as<String>();
+  if (config.httpuser == "null") { config.httpuser = "admin"; }
+
+  config.httppassword = doc["httppassword"].as<String>();
+  if (config.httppassword == "null") { config.httppassword = "admin"; }
+
+  config.overridecodes = doc["overridecodes"].as<String>();
+  if (config.overridecodes == "null") { config.overridecodes = "defaultoverridecodes"; }
+
+  config.apitoken = doc["apitoken"].as<String>();
+  if (config.apitoken == "null") { config.apitoken = "abcde"; }
+
+  config.syslogserver = doc["syslogserver"].as<String>();
+  if (config.syslogserver == "null") { config.syslogserver = "192.168.10.21"; }
+
+  config.syslogport = doc["syslogport"] | 514;
+
+  config.inmaintenance = doc["inmaintenance"] | false;
+
+  file.close();
 }
 
 void saveConfiguration(const char *filename, const Config &config) {
@@ -1543,9 +1519,6 @@ void saveConfiguration(const char *filename, const Config &config) {
     return;
   }
 
-  // Allocate a temporary JsonDocument
-  // Don't forget to change the capacity to match your requirements.
-  // Use arduinojson.org/assistant to compute the capacity.
   StaticJsonDocument<1000> doc;
 
   // Set the values in the document
@@ -1587,4 +1560,19 @@ void printFile(const char *filename) {
   Serial.println();
   // Close the file
   file.close();
+}
+
+void printConfig() {
+  Serial.print("     hostname: "); Serial.println(config.hostname);
+  Serial.print("         ssid: "); Serial.println(config.ssid);
+  Serial.print(" wifipassword: "); Serial.println(config.wifipassword);
+  Serial.print("     relaypin: "); Serial.println(config.relaypin);
+  Serial.print("       ledpin: "); Serial.println(config.ledpin);
+  Serial.print("     httpuser: "); Serial.println(config.httpuser);
+  Serial.print(" httppassword: "); Serial.println(config.httppassword);
+  Serial.print("overridecodes: "); Serial.println(config.overridecodes);
+  Serial.print("     apitoken: "); Serial.println(config.apitoken);
+  Serial.print(" syslogserver: "); Serial.println(config.syslogserver);
+  Serial.print("   syslogport: "); Serial.println(config.syslogport);
+  Serial.print("inmaintenance: "); Serial.println(config.inmaintenance);
 }
