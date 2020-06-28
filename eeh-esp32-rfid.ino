@@ -53,6 +53,7 @@ struct Config {
   String ntpserver;        // hostname or ip of the ntpserver
   int mfrcslaveselectpin;  // mfrc slave select pin number
   int mfrcresetpin;        // mfrc reset pin number
+  int mfrccardwaittime;    // time to wait between checking whether a new card is present or not, some mfrcs balk at to high a check
   int lcdi2caddress;       // integer of the i2c address for the lcd screen, hex can be converted here: https://www.rapidtables.com/convert/number/hex-to-decimal.html
   int lcdwidth;            // width in characters for the lcd display
   int lcdheight;           // numler of lines for the lcd display
@@ -76,9 +77,6 @@ char* serverURL;
 
 // keeps track of when the last webapicall was made to prevent hammering
 unsigned long sinceLastRunTime = 0;
-
-// forced delay checking new cards incase the mfrc device doesn't like super regular checks
-unsigned long checkCardTime = 2; // in secondsE
 
 // used to track the status of card presented on the mfrc reader
 uint8_t control = 0x00;
@@ -201,7 +199,7 @@ void setup() {
   }
   Serial.print("    Syslog Server: "); Serial.print(config.syslogserver); Serial.print(":"); Serial.println(config.syslogport);
   Serial.print("Web API Wait Time: "); Serial.print(config.webapiwaittime); Serial.println(" seconds");
-  Serial.print("  RFID Card Delay: "); Serial.print(checkCardTime); Serial.println(" seconds");
+  Serial.print("  RFID Card Delay: "); Serial.print(config.mfrccardwaittime); Serial.println(" seconds");
   Serial.print("        Relay Pin: "); Serial.println(config.relaypin);
   Serial.print("          LED Pin: "); Serial.println(config.ledpin);
   Serial.print("    Web HTTP Port: "); Serial.println(config.webserverporthttp);
@@ -545,7 +543,7 @@ void loop() {
   currentRFIDFirstNameStr = "";
   currentRFIDSurnameStr = "";
   inOverrideMode = false;
-  delay((checkCardTime * 1000));
+  delay((config.mfrccardwaittime * 1000));
 
   // Dump debug info about the card; PICC_HaltA() is automatically called
   //Serial.println("Starting picc_dumptoserial");
@@ -603,13 +601,13 @@ String getFullStatus() {
   fullStatusDoc["MFRC522SlaveSelect"] = config.mfrcslaveselectpin;
   fullStatusDoc["MFRC522ResetPin"] = config.mfrcresetpin;
   fullStatusDoc["MFRC522Firmware"] = getmfrcversion();
+  fullStatusDoc["MFRC522CardWaitTime"] = config.mfrccardwaittime;
   fullStatusDoc["NTPServer"] = config.ntpserver;
   fullStatusDoc["NTPSyncTime"] = config.ntpsynctime;
   fullStatusDoc["NTPTimeZone"] = config.ntptimezone;
   fullStatusDoc["NTPWaitSynctime"] = config.ntpwaitsynctime;
   fullStatusDoc["NTPSyncStatus"] = getTimeStatus();
   fullStatusDoc["WebAPIWaitTime"] = config.webapiwaittime;
-  fullStatusDoc["RFIDDelay"] = checkCardTime;
   fullStatusDoc["ShouldReboot"] = shouldReboot;
   fullStatusDoc["WebServerPortHTTP"] = config.webserverporthttp;
   fullStatusDoc["WebServerPortHTTPS"] = config.webserverporthttps;
@@ -623,13 +621,12 @@ String getFullStatus() {
   fullStatusDoc["DNS1"] = WiFi.dnsIP(0).toString();
   fullStatusDoc["DNS2"] = WiFi.dnsIP(1).toString();
   fullStatusDoc["DNS3"] = WiFi.dnsIP(2).toString();
-  fullStatusDoc["RelayPin"] = config.relaypin;
   fullStatusDoc["LCDI2CAddress"] = "0x" + String(config.lcdi2caddress, HEX);
   fullStatusDoc["LCDWidth"] = config.lcdwidth;
   fullStatusDoc["LCDHeight"] = config.lcdheight;
 
-  // note this is the opposite of what is expected due to the way the relay works
-  if (digitalRead(config.relaypin)) {
+  fullStatusDoc["RelayPin"] = config.relaypin;
+  if (digitalRead(config.relaypin)) {    // note this is the opposite of what is expected due to the way the relay works
     fullStatusDoc["RelayPinStatus"] = "off";
   } else {
     fullStatusDoc["RelayPinStatus"] = "on";

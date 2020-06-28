@@ -119,19 +119,16 @@ void loadConfiguration(const char *filename, Config &config) {
   if (config.ntptimezone == "null") {
     config.ntptimezone = "Europe/London";
   }
-
   config.ntpsynctime = doc["ntpsynctime"] | 60;
-
   config.ntpwaitsynctime = doc["ntpwaitsynctime"] | 5;
-
   config.ntpserver = doc["ntpserver"].as<String>();
   if (config.ntpserver == "null") {
     config.ntpserver = "192.168.10.21";
   }
 
   config.mfrcslaveselectpin = doc["mfrcslaveselectpin"] | 32;
-
   config.mfrcresetpin = doc["mfrcresetpin"] | 33;
+  config.mfrccardwaittime = doc["mfrccardwaittime"] | 1;
 
   //0x27 = int 39
   config.lcdi2caddress = doc["lcdi2caddress"] | 39;
@@ -178,6 +175,7 @@ void saveConfiguration(const char *filename, const Config &config) {
   doc["ntpserver"] = config.ntpserver;
   doc["mfrcslaveselectpin"] = config.mfrcslaveselectpin;
   doc["mfrcresetpin"] = config.mfrcresetpin;
+  doc["mfrccardwaittime"] = config.mfrccardwaittime;
   doc["lcdi2caddress"] = config.lcdi2caddress;
   doc["lcdwidth"] = config.lcdwidth;
   doc["lcdheight"] = config.lcdheight;
@@ -231,6 +229,7 @@ void printConfig() {
   Serial.print("         ntpserver: "); Serial.println(config.ntpserver);
   Serial.print("mfrcslaveselectpin: "); Serial.println(config.mfrcslaveselectpin);
   Serial.print("      mfrcresetpin: "); Serial.println(config.mfrcresetpin);
+  Serial.print("  mfrccardwaittime: "); Serial.println(config.mfrccardwaittime);
   Serial.print("     lcdi2caddress: "); Serial.println(config.lcdi2caddress);
   Serial.print("          lcdwidth: "); Serial.println(config.lcdwidth);
   Serial.print("         lcdheight: "); Serial.println(config.lcdheight);
