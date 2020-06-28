@@ -141,6 +141,8 @@ void loadConfiguration(const char *filename, Config &config) {
   config.webserverporthttp = doc["webserverporthttp"] | 80;
   config.webserverporthttps = doc["webserverporthttps"] | 443;
 
+  config.webapiwaittime = doc["webapiwaittime"] | 2;
+
   file.close();
 }
 
@@ -181,6 +183,7 @@ void saveConfiguration(const char *filename, const Config &config) {
   doc["lcdheight"] = config.lcdheight;
   doc["webserverporthttp"] = config.webserverporthttp;
   doc["webserverporthttps"] = config.webserverporthttps;
+  doc["webapiwaittime"] = config.webapiwaittime;
 
   // Serialize JSON to file
   if (serializeJson(doc, file) == 0) {
@@ -226,11 +229,12 @@ void printConfig() {
   Serial.print("       ntpsynctime: "); Serial.println(config.ntpsynctime);
   Serial.print("   ntpwaitsynctime: "); Serial.println(config.ntpwaitsynctime);
   Serial.print("         ntpserver: "); Serial.println(config.ntpserver);
-  Serial.print("mfrcslaceselectpin: "); Serial.println(config.mfrcslaveselectpin);
+  Serial.print("mfrcslaveselectpin: "); Serial.println(config.mfrcslaveselectpin);
   Serial.print("      mfrcresetpin: "); Serial.println(config.mfrcresetpin);
   Serial.print("     lcdi2caddress: "); Serial.println(config.lcdi2caddress);
   Serial.print("          lcdwidth: "); Serial.println(config.lcdwidth);
   Serial.print("         lcdheight: "); Serial.println(config.lcdheight);
   Serial.print(" webserverporthttp: "); Serial.println(config.webserverporthttp);
   Serial.print("webserverporthttps: "); Serial.println(config.webserverporthttps);
+  Serial.print("    webapiwaittime: "); Serial.println(config.webapiwaittime);
 }

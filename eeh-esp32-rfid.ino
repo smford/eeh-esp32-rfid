@@ -58,6 +58,7 @@ struct Config {
   int lcdheight;
   int webserverporthttp;
   int webserverporthttps;
+  int webapiwaittime;      // forced delay in seconds between web api calls
 };
 
 // used for loading and saving configuration data
@@ -75,9 +76,6 @@ char* serverURL;
 
 // keeps track of when the last webapicall was made to prevent hammering
 unsigned long sinceLastRunTime = 0;
-
-// forced delay in seconds between web api calls
-unsigned long waitTime = 2; // in seconds
 
 // forced delay checking new cards incase the mfrc device doesn't like super regular checks
 unsigned long checkCardTime = 2; // in secondsE
@@ -193,29 +191,29 @@ void setup() {
 
   Serial.println("\nSystem Configuration:");
   Serial.println("---------------------");
-  Serial.print("        Hostname: "); Serial.println(config.hostname);
-  Serial.print("        App Name: "); Serial.println(config.appname);
-  Serial.print("      EEH Device: "); Serial.println(config.device);
+  Serial.print("         Hostname: "); Serial.println(config.hostname);
+  Serial.print("         App Name: "); Serial.println(config.appname);
+  Serial.print("       EEH Device: "); Serial.println(config.device);
   if (config.inmaintenance) {
-    Serial.println("Maintenance Mode: true");
+    Serial.println(" Maintenance Mode: true");
   } else {
-    Serial.println("Maintenance Mode: false");
+    Serial.println(" Maintenance Mode: false");
   }
-  Serial.print("   Syslog Server: "); Serial.print(config.syslogserver); Serial.print(":"); Serial.println(config.syslogport);
-  Serial.print("   API Wait Time: "); Serial.print(waitTime); Serial.println(" seconds");
-  Serial.print(" RFID Card Delay: "); Serial.print(checkCardTime); Serial.println(" seconds");
-  Serial.print("       Relay Pin: "); Serial.println(config.relaypin);
-  Serial.print("         LED Pin: "); Serial.println(config.ledpin);
-  Serial.print("   Web HTTP Port: "); Serial.println(config.webserverporthttp);
-  Serial.print("  Web HTTPS Port: "); Serial.println(config.webserverporthttps);
-  Serial.print("     ESP32 Flash: "); Serial.println(FIRMWARE_VERSION);
-  Serial.print("  Flash Compiled: "); Serial.println(String(__DATE__) + " " + String(__TIME__));
-  Serial.print("      ESP32 Temp: "); Serial.print((temprature_sens_read() - 32) / 1.8); Serial.println("C");
+  Serial.print("    Syslog Server: "); Serial.print(config.syslogserver); Serial.print(":"); Serial.println(config.syslogport);
+  Serial.print("Web API Wait Time: "); Serial.print(config.webapiwaittime); Serial.println(" seconds");
+  Serial.print("  RFID Card Delay: "); Serial.print(checkCardTime); Serial.println(" seconds");
+  Serial.print("        Relay Pin: "); Serial.println(config.relaypin);
+  Serial.print("          LED Pin: "); Serial.println(config.ledpin);
+  Serial.print("    Web HTTP Port: "); Serial.println(config.webserverporthttp);
+  Serial.print("   Web HTTPS Port: "); Serial.println(config.webserverporthttps);
+  Serial.print("      ESP32 Flash: "); Serial.println(FIRMWARE_VERSION);
+  Serial.print("   Flash Compiled: "); Serial.println(String(__DATE__) + " " + String(__TIME__));
+  Serial.print("       ESP32 Temp: "); Serial.print((temprature_sens_read() - 32) / 1.8); Serial.println("C");
 
-  Serial.print(" MFRC522 Version: "); Serial.println(getmfrcversion());
-  Serial.print("      NTP Server: "); Serial.println(config.ntpserver);
-  Serial.print("   NTP Time Sync: "); Serial.println(config.ntpsynctime);
-  Serial.print("   NTP Time Zone: "); Serial.println(config.ntptimezone);
+  Serial.print("  MFRC522 Version: "); Serial.println(getmfrcversion());
+  Serial.print("       NTP Server: "); Serial.println(config.ntpserver);
+  Serial.print("    NTP Time Sync: "); Serial.println(config.ntpsynctime);
+  Serial.print("    NTP Time Zone: "); Serial.println(config.ntptimezone);
 
   //===========
   File root = SPIFFS.open("/");
@@ -329,15 +327,15 @@ void dowebcall(const char *foundrfid) {
   Serial.print(iteration); Serial.println(" Starting dowebcall");
   unsigned long currentRunTime = millis();
 
-  if ((currentRunTime - sinceLastRunTime) < (waitTime * 1000)) {
+  if ((currentRunTime - sinceLastRunTime) < (config.webapiwaittime * 1000)) {
     Serial.print(iteration); Serial.println(" Firing webcall too fast, ignoring");
 
     // probably need this
-    delay((waitTime * 1000) - (currentRunTime - sinceLastRunTime));
+    delay((config.webapiwaittime * 1000) - (currentRunTime - sinceLastRunTime));
     //return;
   }
 
-  if ((currentRunTime - sinceLastRunTime) > (waitTime * 1000)) {
+  if ((currentRunTime - sinceLastRunTime) > (config.webapiwaittime * 1000)) {
     if (WiFi.status() == WL_CONNECTED) {
       StaticJsonDocument<300> doc;
       char serverURL[240];
@@ -610,7 +608,7 @@ String getFullStatus() {
   fullStatusDoc["NTPTimeZone"] = config.ntptimezone;
   fullStatusDoc["NTPWaitSynctime"] = config.ntpwaitsynctime;
   fullStatusDoc["NTPSyncStatus"] = getTimeStatus();
-  fullStatusDoc["APIWait"] = waitTime;
+  fullStatusDoc["WebAPIWaitTime"] = config.webapiwaittime;
   fullStatusDoc["RFIDDelay"] = checkCardTime;
   fullStatusDoc["ShouldReboot"] = shouldReboot;
   fullStatusDoc["WebServerPortHTTP"] = config.webserverporthttp;
