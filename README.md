@@ -32,37 +32,38 @@ A simple ESP32 Based RFID Access Control System for tools
 - figure out how to get the 3v from the esp32 working safely with the 5v on the lcd
 
 ## Coding Cleanup
-- change from LiquidCrystal_I2C.h to LiquidCrystalIO.h
+- Change from LiquidCrystal_I2C.h to LiquidCrystalIO.h
+- Make json output of boss's be a struct
+- Rather than lcdi2cadderss being an int, convert to a string ("0x27" for example) to allow easier configuration
+- Figure out a way to nicely handle to the two loops - loop1=card present  loop2=no card present
+- Move server.on to seperate file
+- Make defining of serverURL and its handling less gross, and add output to fullstatus
+- Convert to a function: Serial.print(iteration); Serial.println(" Checking access");
+- Convert "if (!mfrc522.PICC_IsNewCardPresent()) {" to a function
+- Change button and slider code generation to sit within processor function
+- change grantUser() and getUserDetails() in to a generic function
+- Implement lcdPrint(l1, l2, l3, l4) and make adaptable for varying sizes of display (autoscroll perhaps)
+- Change haveaccess to being: &access=grant or &access=revoke
 
 ## Things to do
+- Convert Web Admin to using websockets
 - Fix the default settings
 - Upload settings file
 - Download settings file
 - If no settings file, set default, and go in to programming mode
-- Cleanup the OTA webpage
-- Make maintenance mode persist between reboots
 - Add status light to signify when it is checking access, in trainer mode, locked, unlocked, etc
-- Make json output of boss's be a struct
 - Enable active checking of access, regularly poll and check whether card still has access
-- Make defining of serverURL and its handling less gross, and add output to fullstatus
 - Figure out sizing for JSON doc
 - Figure out sizing of variable for url
-- Convert to a function: Serial.print(iteration); Serial.println(" Checking access");
 - Store configuration to spiffs
-- Change haveaccess to being: &access=grant or &access=revoke
-- Regularly pull down user last from server and store in spifs
+- Regularly pull down user list from server and store in spiffs
 - Regularly send "in use data" back to somewhere
 - Add a sensor to detect whether the laser is actually firing and ship somewhere
-- Convert "if (!mfrc522.PICC_IsNewCardPresent()) {" to a function
-- Change button and slider code generation to sit within processor function
 - API token implementation for laptop to esp32
 - If no card present, grant and revoke access buttons are disabled, but when a card is presented and card details are refreshed, if a card is found the buttons should be enabled
 - Standardise time format: https://github.com/ropg/ezTime#built-in-date-and-time-formats
 - Upon boot, pull time from server, then start using utp
 - If ntp sync fails 10 times, force a reboot
-- change grantUser() and getUserDetails() in to a generic function
-- Implement lcdPrint(l1, l2, l3, l4) and make adaptable for varying sizes of display (autoscroll perhaps)
-- Figure out a way to nicely handle to the two loops - loop1=card present  loop2=no card present
 
 ## Bugs
 - Bad/odd http response codes can cause a crash - often seen when having trouble doing web calls
@@ -70,6 +71,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - If bootTime = Thursday, 01-Jan-1970 00:00:16 UTC, refresh it for the most current time
 
 ## Nice to have
+- Cleanup the OTA webpage
 - Send stats back to influxdb
 - Allow all settings to be updated via web admin
 - Allow flashing from default firmware, and then configuration via web admin
@@ -80,12 +82,14 @@ A simple ESP32 Based RFID Access Control System for tools
 - Scheduled reboots
 - When a card is removed or presented, auto refresh the web admin page
 - Sort out logging levels info or info+error
+- Enable https on device
 
 ## Abandoned
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 - When revoking access, disable led and relay, access in web admin, and in full status.  To do the same effect, revoke access then log out user.
 
 ## Done
+- Make maintenance mode persist between reboots
 - Log off a user via the web admin
 - Added wifi signal strength to full status
 - OTA updating of firmware
