@@ -26,11 +26,6 @@
 #define FIRMWARE_VERSION "v1.1-ota"
 #define ADMIN_SERVER "http://192.168.10.21:8180/"
 
-// lcd configuration
-const int LCD_I2C = 0x27;
-const int LCD_WIDTH = 20;
-const int LCD_HEIGHT = 4;
-
 //const char* serverURL1 = "https://mock-rfid-system.herokuapp.com/check?rfid=";
 //const char* serverURL1 = "http://192.168.10.21:56000/check?rfid=";
 const char* serverURL1 = "http://192.168.10.21:8180/check.php?rfid=";
@@ -58,6 +53,9 @@ struct Config {
   String ntpserver;
   int mfrcslaveselectpin;
   int mfrcresetpin;
+  int lcdi2caddress;
+  int lcdwidth;
+  int lcdheight;
 };
 
 // use for loading and saving configuration data
@@ -110,7 +108,7 @@ String bootTime;
 ezDebugLevel_t NTPDEBUG = INFO; // NONE, ERROR, INFO, DEBUG
 
 // Setup LCD
-LiquidCrystal_I2C lcd(LCD_I2C, LCD_WIDTH, LCD_HEIGHT);
+LiquidCrystal_I2C *lcd;
 
 // internal ESP32 temp sensor
 #ifdef __cplusplus
@@ -448,12 +446,6 @@ String isInMaintenance() {
 void setup() {
   Serial.begin(115200);
 
-  lcd.init();
-  lcd.backlight();
-  lcd.noCursor();
-
-  lcd.print("Booting...");
-
   // loading configuration
   if (!SPIFFS.begin(true)) {
     Serial.println("An Error has occurred while mounting SPIFFS");
@@ -478,6 +470,13 @@ void setup() {
   Serial.println("=============");
   printConfig();
   Serial.println("=============");
+
+  // configure lcd using loaded configuration
+  lcd = new LiquidCrystal_I2C(config.lcdi2caddress, config.lcdwidth, config.lcdheight);
+  lcd->init();
+  lcd->backlight();
+  lcd->noCursor();
+  lcd->print("Booting...");
 
   // configure syslog server using loaded configuration
   syslog.server(config.syslogserver.c_str(), config.syslogport);
@@ -547,8 +546,8 @@ void setup() {
   SPIFFS.remove("/test.txt");
 //===============
   
-  lcd.clear();
-  lcd.print("Connecting to Wifi..");
+  lcd->clear();
+  lcd->print("Connecting to Wifi..");
 
   Serial.print("\nConnecting to Wifi: ");
   WiFi.begin(config.ssid.c_str(), config.wifipassword.c_str());
@@ -580,8 +579,8 @@ void setup() {
 
   // configure time, wait config.ntpwaitsynctime seconds then progress, otherwise it can stall
   Serial.print("Attempting to NTP Sync time for "); Serial.print(config.ntpwaitsynctime); Serial.println(" seconds");
-  lcd.clear();
-  lcd.print("Syncing NTP...");
+  lcd->clear();
+  lcd->print("Syncing NTP...");
   waitForSync(config.ntpwaitsynctime);
   setInterval(config.ntpsynctime);
   setServer(config.ntpserver);
@@ -649,12 +648,12 @@ void setup() {
   });
 
   server.on("/backlighton", HTTP_GET, [](AsyncWebServerRequest *request){
-    lcd.backlight();
+    lcd->backlight();
     request->send(200, "text/html", "backlight on");
   });
 
   server.on("/backlightoff", HTTP_GET, [](AsyncWebServerRequest *request){
-    lcd.noBacklight();
+    lcd->noBacklight();
     request->send(200, "text/html", "backlight off");
   });
 
@@ -820,15 +819,15 @@ void setup() {
 
   if (config.inmaintenance) {
     syslog.logf("Booting in to Maintenance Mode");
-    lcd.clear();
-    lcd.setCursor(0, 0); lcd.print(config.device);
-    lcd.setCursor(0, 1); lcd.print("MAINTENANCE MODE");
-    lcd.setCursor(0, 2); lcd.print("ALL ACCESS DENIED");
-    lcd.setCursor(0, 3); lcd.print("");
+    lcd->clear();
+    lcd->setCursor(0, 0); lcd->print(config.device);
+    lcd->setCursor(0, 1); lcd->print("MAINTENANCE MODE");
+    lcd->setCursor(0, 2); lcd->print("ALL ACCESS DENIED");
+    lcd->setCursor(0, 3); lcd->print("");
   } else {
-    lcd.clear();
-    lcd.setCursor(0, 0); lcd.print(config.device);
-    lcd.setCursor(0, 1); lcd.print("Present Access Card");
+    lcd->clear();
+    lcd->setCursor(0, 0); lcd->print(config.device);
+    lcd->setCursor(0, 1); lcd->print("Present Access Card");
   }
 
   // if url isn't found
@@ -913,11 +912,11 @@ void dowebcall(const char *foundrfid) {
             if (!config.inmaintenance) {
               // grant access because not in maintenance mode; and rfid, grant and device match
               currentRFIDaccess = true;
-              lcd.clear();
-              lcd.setCursor(0, 0); lcd.print(config.device);
-              lcd.setCursor(0, 1); lcd.print("ACCESS GRANTED");
-              lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
-              lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
+              lcd->clear();
+              lcd->setCursor(0, 0); lcd->print(config.device);
+              lcd->setCursor(0, 1); lcd->print("ACCESS GRANTED");
+              lcd->setCursor(0, 2); lcd->print("RFID: " + String(currentRFIDcard));
+              lcd->setCursor(0, 3); lcd->print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
               enableLed(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
               enableRelay(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
             } else {
@@ -934,11 +933,11 @@ void dowebcall(const char *foundrfid) {
           }
         } else {
           // deny access, api says user does not have access
-          lcd.clear();
-          lcd.setCursor(0, 0); lcd.print(config.device);
-          lcd.setCursor(0, 1); lcd.print("ACCESS DENIED");
-          lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
-          lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
+          lcd->clear();
+          lcd->setCursor(0, 0); lcd->print(config.device);
+          lcd->setCursor(0, 1); lcd->print("ACCESS DENIED");
+          lcd->setCursor(0, 2); lcd->print("RFID: " + String(currentRFIDcard));
+          lcd->setCursor(0, 3); lcd->print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
           disableLed(String(iteration) + " Access Denied: Disable LED: " + foundrfid);
           disableRelay(String(iteration) + " Access Denied: Disable Relay: " + foundrfid);
         }
@@ -1021,8 +1020,8 @@ void loop() {
         syslog.logf("%d New Card Found: %s", iteration, newcard);
         currentRFIDcard = newcard;
 
-        lcd.clear();
-        lcd.setCursor(0, 0); lcd.print("Checking Access...");
+        lcd->clear();
+        lcd->setCursor(0, 0); lcd->print("Checking Access...");
 
         // check accessOverrideCodes
         bool overRideActive = false;
@@ -1041,11 +1040,11 @@ void loop() {
           currentRFIDSurnameStr = "Mode";
           currentRFIDUserIDStr = "0";
           currentRFIDaccess = true;
-          lcd.clear();
-          lcd.setCursor(0, 0); lcd.print(config.device);
-          lcd.setCursor(0, 1); lcd.print("ACCESS GRANTED");
-          lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
-          lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
+          lcd->clear();
+          lcd->setCursor(0, 0); lcd->print(config.device);
+          lcd->setCursor(0, 1); lcd->print("ACCESS GRANTED");
+          lcd->setCursor(0, 2); lcd->print("RFID: " + String(currentRFIDcard));
+          lcd->setCursor(0, 3); lcd->print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
         } else {
           // normal user, do webcall
           dowebcall(newcard);
@@ -1081,16 +1080,16 @@ void loop() {
   mfrc522[0].PCD_StopCrypto1();
   if (!config.inmaintenance) {
     // not in maintenance mode, update LCD
-    lcd.clear();
-    lcd.setCursor(0, 0); lcd.print(config.device);
-    lcd.setCursor(0, 1); lcd.print("Present Access Card");
+    lcd->clear();
+    lcd->setCursor(0, 0); lcd->print(config.device);
+    lcd->setCursor(0, 1); lcd->print("Present Access Card");
   } else {
     // should be in maintenance mode, update LCD
-    lcd.clear();
-    lcd.setCursor(0, 0); lcd.print(config.device);
-    lcd.setCursor(0, 1); lcd.print("MAINTENANCE MODE");
-    lcd.setCursor(0, 2); lcd.print("ALL ACCESS DENIED");
-    lcd.setCursor(0, 3); lcd.print("");
+    lcd->clear();
+    lcd->setCursor(0, 0); lcd->print(config.device);
+    lcd->setCursor(0, 1); lcd->print("MAINTENANCE MODE");
+    lcd->setCursor(0, 2); lcd->print("ALL ACCESS DENIED");
+    lcd->setCursor(0, 3); lcd->print("");
   }
   disableLed(String(iteration) + " " + "Access Revoked: Card Removed: Disable LED: " + String(newcard));
   disableRelay(String(iteration) + " " + "Access Revoked: Card Removed: Disable Relay: " + String(newcard));
@@ -1178,9 +1177,9 @@ String getFullStatus() {
   fullStatusDoc["DNS2"] = WiFi.dnsIP(1).toString();
   fullStatusDoc["DNS3"] = WiFi.dnsIP(2).toString();
   fullStatusDoc["RelayPin"] = config.relaypin;
-  fullStatusDoc["LCDI2C"] = "0x" + String(LCD_I2C, HEX);
-  fullStatusDoc["LCDWidth"] = LCD_WIDTH;
-  fullStatusDoc["LCDHeight"] = LCD_HEIGHT;
+  fullStatusDoc["LCDI2CAddress"] = "0x" + String(config.lcdi2caddress, HEX);
+  fullStatusDoc["LCDWidth"] = config.lcdwidth;
+  fullStatusDoc["LCDHeight"] = config.lcdheight;
 
   // note this is the opposite of what is expected due to the way the relay works
   if (digitalRead(config.relaypin)) {
@@ -1354,11 +1353,11 @@ String getTimeStatus() {
 }
 
 void lcdPrint(String line1, String line2, String line3, String line4) {
-  lcd.clear();
-  lcd.setCursor(0, 0); lcd.print(line1);
-  lcd.setCursor(0, 1); lcd.print(line2);
-  lcd.setCursor(0, 2); lcd.print(line3);
-  lcd.setCursor(0, 3); lcd.print(line4);
+  lcd->clear();
+  lcd->setCursor(0, 0); lcd->print(line1);
+  lcd->setCursor(0, 1); lcd->print(line2);
+  lcd->setCursor(0, 2); lcd->print(line3);
+  lcd->setCursor(0, 3); lcd->print(line4);
 }
 
 void toggleMaintenance() {
@@ -1373,16 +1372,16 @@ void toggleMaintenance() {
 
   if (config.inmaintenance) {
     syslog.logf("Enabling Maintenance Mode");
-    lcd.clear();
-    lcd.setCursor(0, 0); lcd.print(config.device);
-    lcd.setCursor(0, 1); lcd.print("MAINTENANCE MODE");
-    lcd.setCursor(0, 2); lcd.print("ALL ACCESS DENIED");
-    lcd.setCursor(0, 3); lcd.print("");
+    lcd->clear();
+    lcd->setCursor(0, 0); lcd->print(config.device);
+    lcd->setCursor(0, 1); lcd->print("MAINTENANCE MODE");
+    lcd->setCursor(0, 2); lcd->print("ALL ACCESS DENIED");
+    lcd->setCursor(0, 3); lcd->print("");
   } else {
     syslog.logf("Disabling Maintenance Mode");
-    lcd.clear();
-    lcd.setCursor(0, 0); lcd.print(config.device);
-    lcd.setCursor(0, 1); lcd.print("Present Access Card");
+    lcd->clear();
+    lcd->setCursor(0, 0); lcd->print(config.device);
+    lcd->setCursor(0, 1); lcd->print("Present Access Card");
   }
 }
 
@@ -1396,11 +1395,11 @@ void logoutCurrentUser() {
   disableLed(String(iteration) + " " + "Web Admin User Logout Initiated: Disable LED: RFID:" + String(currentRFIDcard) + " UserID:" + currentRFIDUserIDStr);
   disableRelay(String(iteration) + " " + "Web Admin User Logout Initiated: Disable Relay: RFID:" + String(currentRFIDcard) + " UserID:" + currentRFIDUserIDStr);
 
-  lcd.clear();
-  lcd.setCursor(0, 0); lcd.print(config.device);
-  lcd.setCursor(0, 1); lcd.print("LOGGED OUT");
-  lcd.setCursor(0, 2); lcd.print("RFID: " + String(currentRFIDcard));
-  lcd.setCursor(0, 3); lcd.print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
+  lcd->clear();
+  lcd->setCursor(0, 0); lcd->print(config.device);
+  lcd->setCursor(0, 1); lcd->print("LOGGED OUT");
+  lcd->setCursor(0, 2); lcd->print("RFID: " + String(currentRFIDcard));
+  lcd->setCursor(0, 3); lcd->print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
 }
 
 void writeafile() {
@@ -1514,6 +1513,11 @@ void loadConfiguration(const char *filename, Config &config) {
 
   config.mfrcresetpin = doc["mfrcresetpin"] | 33;
 
+  //0x27 = int 39
+  config.lcdi2caddress = doc["lcdi2caddress"] | 39;
+  config.lcdwidth = doc["lcdwidth"] | 20;
+  config.lcdheight = doc["lcdheight"] | 4;
+
   file.close();
 }
 
@@ -1596,4 +1600,7 @@ void printConfig() {
   Serial.print("         ntpserver: "); Serial.println(config.ntpserver);
   Serial.print("mfrcslaceselectpin: "); Serial.println(config.mfrcslaveselectpin);
   Serial.print("      mfrcresetpin: "); Serial.println(config.mfrcresetpin);
+  Serial.print("     lcdi2caddress: "); Serial.println(config.lcdi2caddress);
+  Serial.print("          lcdwidth: "); Serial.println(config.lcdwidth);
+  Serial.print("         lcdheight: "); Serial.println(config.lcdheight);
 }

@@ -29,6 +29,10 @@ A simple ESP32 Based RFID Access Control System for tools
 - power relay via 5v to optically isolate from the ESP32 - toggle jumper
 - add reboot and flash buttons
 - add current transformer/detector device to monitor usage
+- figure out how to get the 3v from the esp32 working safely with the 5v on the lcd
+
+## Coding Cleanup
+- change from LiquidCrystal_I2C.h to LiquidCrystalIO.h
 
 ## Things to do
 - Fix the default settings
