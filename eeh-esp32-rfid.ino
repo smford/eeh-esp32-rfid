@@ -33,31 +33,31 @@ const char* serverURL2 = "&device=laser&api=abcde";
 
 // configuration structure
 struct Config {
-  String hostname;
-  String device;
-  String appname;
-  String ssid;
-  String wifipassword;
-  int relaypin;
-  int ledpin;
-  String httpuser;
-  String httppassword;
-  String overridecodes;
-  String apitoken;
-  String syslogserver;
-  int syslogport;
-  bool inmaintenance;
-  String ntptimezone;
-  int ntpsynctime;
-  int ntpwaitsynctime;
-  String ntpserver;
-  int mfrcslaveselectpin;
-  int mfrcresetpin;
-  int lcdi2caddress;
-  int lcdwidth;
-  int lcdheight;
-  int webserverporthttp;
-  int webserverporthttps;
+  String hostname;         // hostname of device
+  String device;           // device name
+  String appname;          // application name
+  String ssid;             // wifi ssid
+  String wifipassword;     // wifi password
+  int relaypin;            // relay pin number
+  int ledpin;              // led pin number
+  String httpuser;         // username to access web admin
+  String httppassword;     // password to access web admin
+  String overridecodes;    // list of rfid card numbers, seperated by commas, that have override access
+  String apitoken;         // api token used to authenticate against the user management system
+  String syslogserver;     // hostname or ip of the syslog server
+  int syslogport;          // sylog port number
+  bool inmaintenance;      // records whether the device is in maintenance mode between reboots
+  String ntptimezone;      // ntp time zone to use, use the TZ database name from https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+  int ntpsynctime;         // how frequently to schedule the regular syncing of ntp time
+  int ntpwaitsynctime;     // upon boot, wait these many seconds to get ntp time from server
+  String ntpserver;        // hostname or ip of the ntpserver
+  int mfrcslaveselectpin;  // mfrc slave select pin number
+  int mfrcresetpin;        // mfrc reset pin number
+  int lcdi2caddress;       // integer of the i2c address for the lcd screen, hex can be converted here: https://www.rapidtables.com/convert/number/hex-to-decimal.html
+  int lcdwidth;            // width in characters for the lcd display
+  int lcdheight;           // numler of lines for the lcd display
+  int webserverporthttp;   // http port number for web admin
+  int webserverporthttps;  // https port number for the web admin
   int webapiwaittime;      // forced delay in seconds between web api calls
 };
 
