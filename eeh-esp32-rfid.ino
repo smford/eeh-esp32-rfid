@@ -13,6 +13,7 @@
 #include <AsyncElegantOTA.h>
 #include <SPIFFS.h>
 #include "secrets.h"
+#include "webpages.h"
 
 // eztime library: https://github.com/ropg/ezTime v0.8.3
 // esp async webserver library: https://github.com/me-no-dev/ESPAsyncWebServer v1.2.3
@@ -59,36 +60,46 @@ struct Config {
   int webserverporthttps;
 };
 
-// use for loading and saving configuration data
+// used for loading and saving configuration data
 const char *filename = "/config5.txt";
 Config config;
 
+// clean these up
 const char* PARAM_INPUT_1 = "state";
 const char* PARAM_INPUT_2 = "pin";
 
 char *accessOverrideCodes[] = {"90379632", "boss2aaa", "boss3bbb"};
 
+// clean this up, likely redundant
 char* serverURL;
+
+// keeps track of when the last webapicall was made to prevent hammering
 unsigned long sinceLastRunTime = 0;
+
+// forced delay in seconds between web api calls
 unsigned long waitTime = 2; // in seconds
-unsigned long checkCardTime = 5; // in secondsE
-String returnedJSON;
+
+// forced delay checking new cards incase the mfrc device doesn't like super regular checks
+unsigned long checkCardTime = 2; // in secondsE
+
+// used to track the status of card presented on the mfrc reader
 uint8_t control = 0x00;
 
+// change this from global to local scope
+String returnedJSON;
+
+// currently presented card details
 char* currentRFIDcard = "";
 String currentRFIDUserIDStr = "";
 String currentRFIDFirstNameStr = "";
 String currentRFIDSurnameStr = "";
 bool currentRFIDaccess = false;
 
-// should we reboot the server?
-bool shouldReboot = false;
-
-// flags used within main loop to allow functions to be run
-// these are sometimes neccessary to allow the lcd to update, as the asyncwebserver does
-// not allow yeild or delay to be run within a sub function which the lcd library used
-bool gotoToggleMaintenance = false;
-bool gotoLogoutCurrentUser = false;
+// goto flags used within the two main loops (card present and card absent) to allow functions to be run
+// these are sometimes neccessary to allow the lcd to update, as the asyncwebserver does not allow yeild or delay to be run within any function called by it
+bool gotoToggleMaintenance = false;  // enter maintenance mode
+bool gotoLogoutCurrentUser = false;  // log out current user
+bool shouldReboot = false;           // schedule a reboot
 
 // maintenance and override modes
 bool inMaintenanceMode = false;
@@ -105,8 +116,10 @@ Syslog syslog(udpClient, SYSLOG_PROTO_IETF);
 
 // NTP
 Timezone myTZ;
-String bootTime;
 ezDebugLevel_t NTPDEBUG = INFO; // NONE, ERROR, INFO, DEBUG
+
+// used to record when the device was booted
+String bootTime;
 
 // Setup LCD
 LiquidCrystal_I2C *lcd;
@@ -126,324 +139,6 @@ int iteration = 0;
 
 // initialise webserver
 AsyncWebServer *server;
-
-
-// index.html
-const char index_html[] PROGMEM = R"rawliteral(
-<!DOCTYPE HTML>
-<html lang="en">
-<head>
-  <title>%EEH_HOSTNAME%</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta charset="UTF-8">
-  <style>
-    html {font-family: Arial; display: inline-block; text-align: center;}
-    h2 {font-size: 2.6rem;}
-    h3 {color: white; font-weight: normal; background-color: red;}
-    body {max-width: 600px; margin:0px auto; padding-bottom: 10px;}
-    .switch {position: relative; display: inline-block; width: 120px; height: 68px} 
-    .switch input {display: none}
-    .slider {position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 34px}
-    .slider:before {position: absolute; content: ""; height: 52px; width: 52px; left: 8px; bottom: 8px; background-color: #fff; -webkit-transition: .4s; transition: .4s; border-radius: 68px}
-    input:checked+.slider {background-color: #2196F3}
-    input:checked+.slider:before {-webkit-transform: translateX(52px); -ms-transform: translateX(52px); transform: translateX(52px)}
-  </style>
-</head>
-<body>
-  <h2>%EEH_HOSTNAME%</h2>
-  <h3 id="maintenancemode">%MAINTENANCEMODE%</h3>
-  <p>Device Time: <span id="ntptime">%DEVICETIME%</span> | Firmware Version: %FIRMWARE%</p>
-  <button onclick="logoutButton()">Logout Web Admin</button>
-  <button onclick="getUserDetailsButton()">Refresh Current Card User Details</button>
-  <button onclick="grantAccessButton()" %GRANTBUTTONENABLE%>Grant Access to Current Card</button>
-  <button onclick="revokeAccessButton()" %GRANTBUTTONENABLE%>Revoke Access to Current Card</button>
-  <button onclick="displayConfig()">Display Config</button>
-  <button onclick="refreshNTP()">Refresh NTP</button>
-  <button onclick="logoutCurrentUserButton()">Logout Current User</button>
-  <button onclick="rebootButton()">Reboot</button>
-  <input type="button" onclick="location.href='/update';" value="OTA Update" />
-  <p>Status: <span id="statusdetails"></span></p>
-  <p>System State: <span id="currentaccess">%CURRENTSYSTEMSTATE%</span></p>
-  <hr>
-  <div id="userdetails">%USERDETAILS%</div>
-  <hr>
-  %LEDSLIDER%
-  %RELAYSLIDER%
-  %MAINTENANCEMODESLIDER%
-  <p id="configheader"></p>
-  <p id="configdetails"></p>
-<script>
-function toggleCheckbox(element, pin) {
-  var xhr = new XMLHttpRequest();
-  if(element.checked){ xhr.open("GET", "/toggle?state=1&pin="+pin, true); }
-  else { xhr.open("GET", "/toggle?state=0&pin="+pin, true); }
-  xhr.send();
-}
-function toggleMaintenance(element) {
-  var xhr = new XMLHttpRequest();
-  var newState = "";
-  if (element.checked) {
-    document.getElementById("statusdetails").innerHTML = "Enabling Maintenance Mode";
-    newState = "enable";
-  } else {
-    document.getElementById("statusdetails").innerHTML = "Disabling Maintenance Mode";
-    newState = "disable";
-  }
-  xhr.open("GET", "/maintenance?state="+newState, true);
-  xhr.send();
-  setTimeout(function(){
-    document.getElementById("maintenancemode").innerHTML = xhr.responseText;
-    document.getElementById("statusdetails").innerHTML = "Toggled Maintenance Mode";
-  },5000);
-}
-function logoutButton() {
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/logout", true);
-  xhr.send();
-  setTimeout(function(){ window.open("/logged-out","_self"); }, 1000);
-}
-function logoutCurrentUserButton() {
-  document.getElementById("statusdetails").innerHTML = "Logging Out Current User ...";
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/logout-current-user", true);
-  xhr.send();
-  setTimeout(function(){
-    document.getElementById("relayslider").checked = false;
-    document.getElementById("ledslider").checked = false;
-    document.getElementById("statusdetails").innerHTML = "Logged Out User";
-    document.getElementById("userdetails").innerHTML = xhr.responseText;
-  },5000);
-}
-function grantAccessButton() {
-  document.getElementById("statusdetails").innerHTML = "Granting Access ...";
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/grant?haveaccess=true", true);
-  xhr.send();
-  setTimeout(function(){
-    document.getElementById("statusdetails").innerHTML = "Access Granted";
-    document.getElementById("userdetails").innerHTML = xhr.responseText;
-  },5000);
-}
-function getUserDetailsButton() {
-  document.getElementById("statusdetails").innerHTML = "Getting User Details ...";
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/getuser", true);
-  xhr.send();
-  setTimeout(function(){
-    document.getElementById("statusdetails").innerHTML = "Refreshed User Details";
-    document.getElementById("userdetails").innerHTML = xhr.responseText;
-  },5000);
-}
-function revokeAccessButton() {
-  document.getElementById("statusdetails").innerHTML = "Revoking access ...";
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/grant?haveaccess=false", true);
-  xhr.send();
-  setTimeout(function(){
-    document.getElementById("statusdetails").innerHTML = "Access Revoked";
-    document.getElementById("userdetails").innerHTML = xhr.responseText;
-  },5000);
-}
-function rebootButton() {
-  document.getElementById("statusdetails").innerHTML = "Invoking Reboot ...";
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/reboot", true);
-  xhr.send();
-  window.open("/reboot","_self");
-  // setTimeout(function(){ window.open("/reboot","_self"); }, 5);
-}
-function refreshNTP() {
-  document.getElementById("statusdetails").innerHTML = "Refreshing NTP ...";
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/ntprefresh", true);
-  xhr.send();
-  setTimeout(function(){
-    document.getElementById("statusdetails").innerHTML = "Refreshed NTP";
-    document.getElementById("ntptime").innerHTML = xhr.responseText;
-  },5000);
-}
-function displayConfig() {
-  document.getElementById("statusdetails").innerHTML = "Loading Configuration ...";
-  document.getElementById("configheader").innerHTML = "<h3>Configuration<h3>";
-  xmlhttp=new XMLHttpRequest();
-  xmlhttp.open("GET", "/fullstatus", false);
-  xmlhttp.send();
-  var mydata = JSON.parse(xmlhttp.responseText);
-  var displaydata = "<table><tr><th align='left'>Setting</th><th align='left'>Value</th></tr>";
-  for (var key of Object.keys(mydata)) {
-    displaydata = displaydata + "<tr><td align='left'>" + key + "</td><td align='left'>" + mydata[key] + "</td></tr>";
-  }
-  displaydata = displaydata + "</table>";
-  document.getElementById("statusdetails").innerHTML = "Configuration Loaded";
-  document.getElementById("configdetails").innerHTML = displaydata;
-}
-</script>
-</body>
-</html>
-)rawliteral";
-
-// logout.html
-const char logout_html[] PROGMEM = R"rawliteral(
-<!DOCTYPE HTML>
-<html lang="en">
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta charset="UTF-8">
-</head>
-<body>
-  <p>Logged out or <a href="/">return to homepage</a>.</p>
-  <p><strong>Note:</strong> close all web browser tabs to complete the logout process.</p>
-</body>
-</html>
-)rawliteral";
-
-// reboot.html base upon https://gist.github.com/Joel-James/62d98e8cb3a1b6b05102
-const char reboot_html[] PROGMEM = R"rawliteral(
-<!DOCTYPE HTML>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-</head>
-<body>
-<h3>
-  Rebooting, returning to main page in <span id="countdown">30</span> seconds
-</h3>
-<script type="text/javascript">
-  var seconds = 30;
-  function countdown() {
-    seconds = seconds - 1;
-    if (seconds < 0) {
-      window.location = "/";
-    } else {
-      document.getElementById("countdown").innerHTML = seconds;
-      window.setTimeout("countdown()", 1000);
-    }
-  }
-  countdown();
-</script>
-</body>
-</html>
-)rawliteral";
-
-
-// parses and processes index.html
-String processor(const String& var) {
-
-  if (var == "MAINTENANCEMODESLIDER") {
-    String buttons = "";
-    String outputStateValue = isInMaintenance();
-    buttons+= "<p>MAINTENANCE MODE</p><p><label class='switch'><input type='checkbox' onchange='toggleMaintenance(this)' id='mmslider' " + outputStateValue + "><span class='slider'></span></label></p>";
-    return buttons;
-  }
-
-  if (var == "LEDSLIDER") {
-    String buttons = "";
-    String outputStateValue = outputState(config.ledpin);
-    buttons+= "<p>LED</p><p><label class='switch'><input type='checkbox' onchange='toggleCheckbox(this, \"led\")' id='ledslider' " + outputStateValue + "><span class='slider'></span></label></p>";
-    return buttons;
-  }
-
-  if (var == "RELAYSLIDER") {
-    String buttons = "";
-    String outputStateValue = outputState(config.relaypin);
-    
-    // because HIGH = off for the relay, this needs to be reversed to make web button work
-    if (outputStateValue == "checked") {
-      outputStateValue = "";
-    } else {
-      outputStateValue = "checked";
-    }
-
-    buttons += "<p>RELAY</p><p><label class='switch'><input type='checkbox' onchange='toggleCheckbox(this, \"relay\")' id='relayslider' " + outputStateValue + "><span class='slider'></span></label></p>";
-    return buttons;
-  }
-
-  if (var == "EEH_HOSTNAME") {
-    return config.hostname;
-  }
-
-  if (var == "MAINTENANCEMODE") {
-    if (config.inmaintenance) {
-      return "MAINTENANCE MODE";
-    } else {
-      return "";
-    }
-  }
-
-  if (var == "USERDETAILS") {
-    if (strcmp(currentRFIDcard, "") == 0) {
-      return "NO CARD PRESENT";
-    } else {
-      String returnText = "";
-      String currentFullName = currentRFIDFirstNameStr + " " + currentRFIDSurnameStr;
-      String currentUserID = currentRFIDUserIDStr;
-      String currentAccess = "";
-
-      if (currentFullName == "") currentFullName = "ERROR: User Not Found";
-      if (currentUserID == "") currentUserID = "NONE";
-
-      if (currentRFIDaccess) {
-        currentAccess = "Allow";
-      } else {
-        currentAccess = "Deny";
-      }
-
-      returnText = "<table>";
-      returnText += "<tr><td align='left'><b>Name:</b></td><td align='left'>" + currentFullName + "</td></tr>";
-      returnText += "<tr><td align='left'><b>User ID:</b></td><td align='left'>" + currentUserID + "</td></tr>";
-      returnText += "<tr><td align='left'><b>RFID:</b></td><td align='left'>" + String(currentRFIDcard) + "</td></tr>";
-      returnText += "<tr><td align='left'><b>Device:</b></td><td align='left'>" + config.device + "</td></tr>";
-      returnText += "<tr><td align='left'><b>Access:</b></td><td align='left'>" + currentAccess + "</td></tr>";
-      returnText += "</table>";
-
-      return returnText;
-    }
-  }
-
-  if (var == "GRANTBUTTONENABLE") {
-    if (strcmp(currentRFIDcard, "") == 0) {
-      return "DISABLED";
-    }
-  }
-
-  if (var == "CURRENTSYSTEMSTATE") {
-    if (currentRFIDaccess) {
-      return "Granted";
-    } else {
-      return "Denied";
-    }
-  }
-
-  if (var == "FIRMWARE") {
-    return FIRMWARE_VERSION;
-  }
-
-  if (var == "DEVICETIME") {
-    return printTime();
-  }
-
-  return String();
-}
-
-// checks state of a pin, used when writing button slider position
-String outputState(int PINCHECK){
-  if(digitalRead(PINCHECK)){
-    return "checked";
-  }
-  else {
-    return "";
-  }
-  return "";
-}
-
-String isInMaintenance() {
-  if (config.inmaintenance) {
-    return "checked";
-  } else {
-    return "";
-  }
-  return "";
-}
 
 void setup() {
   Serial.begin(115200);
@@ -493,7 +188,6 @@ void setup() {
   }
 
   SPI.begin(); // Init SPI bus
-  //mfrc522.PCD_Init(); // Init MFRC522
   mfrc522[0].PCD_Init(config.mfrcslaveselectpin, config.mfrcresetpin);
   delay(4); // delay needed to allow mfrc522 to spin up properly
 
@@ -523,19 +217,19 @@ void setup() {
   Serial.print("   NTP Time Sync: "); Serial.println(config.ntpsynctime);
   Serial.print("   NTP Time Zone: "); Serial.println(config.ntptimezone);
 
-//===========
+  //===========
   File root = SPIFFS.open("/");
- 
+
   File file3 = root.openNextFile();
- 
-  while(file3){
- 
-      Serial.print("FILE: ");
-      Serial.println(file3.name());
- 
-      file3 = root.openNextFile();
+
+  while (file3) {
+
+    Serial.print("FILE: ");
+    Serial.println(file3.name());
+
+    file3 = root.openNextFile();
   }
-//===========
+  //===========
   Serial.print("checking nonexistent file: "); Serial.println(SPIFFS.exists("/nonexisting.txt"));
 
   if (SPIFFS.exists("/test.txt")) {
@@ -547,8 +241,8 @@ void setup() {
   }
 
   SPIFFS.remove("/test.txt");
-//===============
-  
+  //===============
+
   lcd->clear();
   lcd->print("Connecting to Wifi..");
 
@@ -574,8 +268,9 @@ void setup() {
   Serial.println();
 
   pinMode(config.ledpin, OUTPUT);
-  pinMode(config.relaypin, OUTPUT);
   disableLed("Automatically Disable LED upon boot");
+
+  pinMode(config.relaypin, OUTPUT);
   disableRelay("Automatically Disable Relay upon boot");
 
   Serial.println();
@@ -595,239 +290,9 @@ void setup() {
   Serial.print("Booted at: "); Serial.println(bootTime);
   syslog.logf("Booted");
 
-  // create web server
+  // create and configure web server
   server = new AsyncWebServer(config.webserverporthttp);
-
-  // configure web server
-  // Break all of these server.on in to a seperate file
-  // https://randomnerdtutorials.com/esp32-esp8266-web-server-http-authentication/
-  // Route for root / web page
-  server->on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
-      return request->requestAuthentication();
-    }
-
-    /*
-    int headers = request->headers();
-    int i;
-    for(i=0;i<headers;i++){
-      AsyncWebHeader* h = request->getHeader(i);
-      Serial.printf("HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str());
-    }
-    */
-
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-    request->send_P(200, "text/html", index_html, processor);
-  });
-
-  server->on("/logout", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(401);
-  });
-
-  server->on("/maintenance", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
-      return request->requestAuthentication();
-    }
-
-    String returnText = "";
-    String logmessage = "";
-
-    const char* selectState = request->getParam("state")->value().c_str();
-
-    if (strcmp(selectState, "enable") == 0) {
-      logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url() + " Enabling maintenance mode";
-      returnText = "MAINTENANCE MODE";
-      gotoToggleMaintenance = true;
-    } else if (strcmp(selectState, "disable") == 0) {
-      logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url() + " Disabling maintenance mode";
-      returnText = "";
-      gotoToggleMaintenance = true;
-    } else {
-      logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url() + " ERROR: invalid state sent to maintenance mode, ignoring: " + String(selectState);
-      returnText = "ERROR: invalid state sent to maintenance mode, ignoring: " + String(selectState);
-      gotoToggleMaintenance = false;
-    }
-    request->send(200, "text/html", returnText);
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-  });
-
-  server->on("/backlighton", HTTP_GET, [](AsyncWebServerRequest *request){
-    lcd->backlight();
-    request->send(200, "text/html", "backlight on");
-  });
-
-  server->on("/backlightoff", HTTP_GET, [](AsyncWebServerRequest *request){
-    lcd->noBacklight();
-    request->send(200, "text/html", "backlight off");
-  });
-
-  server->on("/logged-out", HTTP_GET, [](AsyncWebServerRequest *request){
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-    request->send_P(200, "text/html", logout_html, processor);
-  });
-
-  server->on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
-      return request->requestAuthentication();
-    }
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-    request->send(200, "text/html", reboot_html);
-    shouldReboot = true;
-  });
-
-  server->on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
-      return request->requestAuthentication();
-    }
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-    char getUserURL[240];
-    sprintf(getUserURL, "%s%s%s%s%s%s%s", ADMIN_SERVER, "getuser.php?device=", config.device, "&rfid=", String(currentRFIDcard), "&api=", config.apitoken);
-
-    //Serial.print("GetUserURL: "); Serial.println(getUserURL);
-    request->send(200, "text/html", getUserDetails(getUserURL));
-  });
-
-  server->on("/grant", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
-      return request->requestAuthentication();
-    }
-    const char* haveaccess = request->getParam("haveaccess")->value().c_str();
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + " " + request->url() + "?haveaccess=" + haveaccess;
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-    char grantURL[240];
-    sprintf(grantURL, "%s%s%s%s%s%s%s%s%s", ADMIN_SERVER, "moduser.php?device=", config.device, "&modrfid=", String(currentRFIDcard), "&api=", config.apitoken, "&haveaccess=", haveaccess);
-    if (strcmp(haveaccess, "true") == 0) {
-      // granting access
-      logmessage = "Web Admin: Granting access for " + String(currentRFIDcard);
-    } else {
-      // revoking access
-      logmessage = "Web Admin: Revoking access for " + String(currentRFIDcard);
-    }
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-    request->send(200, "text/html", grantAccess(grantURL));
-  });
-
-  server->on("/ntprefresh", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
-      return request->requestAuthentication();
-    }
-    //request->send(200, "text/html", "ok");
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-    updateNTP();
-    request->send(200, "text/html", printTime());
-  });
-
-  server->on("/logout-current-user", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
-      return request->requestAuthentication();
-    }
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-    gotoLogoutCurrentUser = true;
-
-    String returnText = "<table>";
-    returnText += "<tr><td align='left'><b>Name:</b></td><td align='left'>" + currentRFIDFirstNameStr + " " + currentRFIDSurnameStr + "</td></tr>";
-    returnText += "<tr><td align='left'><b>User ID:</b></td><td align='left'>" + currentRFIDUserIDStr + "</td></tr>";
-    returnText += "<tr><td align='left'><b>RFID:</b></td><td align='left'>" + String(currentRFIDcard) + "</td></tr>";
-    returnText += "<tr><td align='left'><b>Device:</b></td><td align='left'>" + config.device + "</td></tr>";
-    returnText += "<tr><td align='left'><b>Access:</b></td><td align='left'>Web Admin Logged Out</td></tr>";
-    returnText += "</table>";
-    
-    request->send(200, "text/html", returnText);
-  });
-
-  server->on("/health", HTTP_GET, [](AsyncWebServerRequest *request){
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-    request->send(200, "text/plain", "OK");
-  });
-
-  server->on("/fullstatus", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
-      return request->requestAuthentication();
-    }
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-    request->send(200, "application/json", getFullStatus());
-  });
-
-  server->on("/status", HTTP_GET, [](AsyncWebServerRequest *request){
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-    request->send(200, "application/json", getStatus());
-  });
-
-  // used for checking whether time is sync
-  server->on("/time", HTTP_GET, [](AsyncWebServerRequest *request){
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-    request->send(200, "text/plain", printTime());
-  });
-
-  // called when slider has been toggled
-  server->on("/toggle", HTTP_GET, [] (AsyncWebServerRequest *request) {
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
-      return request->requestAuthentication();
-    }
-    String inputMessage;
-    String inputPin;
-    if (request->hasParam(PARAM_INPUT_1) && request->hasParam(PARAM_INPUT_2)) {
-      inputMessage = request->getParam(PARAM_INPUT_1)->value();
-      inputPin = request->getParam(PARAM_INPUT_2)->value();
-
-      String logmessage = "Client:" + request->client()->remoteIP().toString() + " Toggle Slider" + inputMessage + ":" + inputPin + " " + request->url();
-      Serial.println(logmessage);
-      syslog.log(logmessage);
-      logmessage = "";
-
-      if (inputPin == "relay") {
-        if (inputMessage.toInt() == 1) {
-          logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable Relay" + " " + request->url();
-          enableRelay(logmessage);
-        } else {
-          logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable Relay" + " " + request->url();
-          disableRelay(logmessage);
-        }
-      }
-
-      if (inputPin == "led") {
-        if (inputMessage.toInt() == 1) {
-          logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable LED" + " " + request->url();
-          enableLed(logmessage);
-        } else {
-          logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable LED" + " " + request->url();
-          disableLed(logmessage);
-        }
-      }
-
-    } else {
-      inputMessage = "No message sent";
-    }
-    request->send(200, "text/plain", "OK");
-  });
-
-  // if url isn't found
-  server->onNotFound(notFound);
-
-  // finished configuring web server
+  configureWebServer();
 
   // configure ota web server
   AsyncElegantOTA.begin(server, config.httpuser.c_str(), config.httppassword.c_str());
@@ -835,8 +300,7 @@ void setup() {
   // startup web server
   server->begin();
 
-  // everything is loaded, update lcd
-  // checking if in maintenance mode
+  // since everything is now loaded, update lcd in the appropriate mode
   if (config.inmaintenance) {
     syslog.logf("Booting in to Maintenance Mode");
     lcd->clear();
@@ -968,21 +432,8 @@ void dowebcall(const char *foundrfid) {
 }
 
 void loop() {
-  // when no card present, display ntp sync events on serial
-  events();
 
-  // when no card present, reboot if we've told it to reboot
-  if (shouldReboot) {
-    rebootESP("Web Admin - Card Absent");
-  }
-
-  if (gotoToggleMaintenance) {
-    toggleMaintenance();
-  }
-
-  if (gotoLogoutCurrentUser) {
-    logoutCurrentUser();
-  }
+  loopBreakout("Card Absent");
 
   if (!mfrc522[0].PICC_IsNewCardPresent()) {
     // no new card found, re-loop
@@ -1065,22 +516,8 @@ void loop() {
         // this "else" runs as regularly as a loop when a card is present
         //Serial.println("same card, not checking again");
 
-        //===
-        // if card present, reboot if we've told it to reboot
-        if (shouldReboot) {
-          rebootESP("Web Admin - Card Present");
-        }
+        loopBreakout("Card Present");
 
-        if (gotoToggleMaintenance) {
-          toggleMaintenance();
-        }
-
-        if (gotoLogoutCurrentUser) {
-          logoutCurrentUser();
-        }
-
-        // when card present, display ntp sync events on serial
-        events();
       }
     } else {
       break;
@@ -1141,7 +578,7 @@ void enableLed(String message) {
   syslog.log(message);
 }
 
-void rebootESP(char* message) {
+void rebootESP(String message) {
   Serial.print(iteration); Serial.print(" Rebooting ESP32: "); Serial.println(message);
   syslog.logf("%d Rebooting ESP32:%s", iteration, message);
   // wait 10 seconds to allow syslog to be sent
@@ -1335,13 +772,6 @@ String getAccessOverrideCodes() {
   return nicelist;
 }
 
-void notFound(AsyncWebServerRequest *request) {
-  String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-  Serial.println(logmessage);
-  syslog.log(logmessage);
-  request->send(404, "text/plain", "Not found");
-}
-
 String printTime() {
   return myTZ.dateTime();
 }
@@ -1412,217 +842,4 @@ void logoutCurrentUser() {
   lcd->setCursor(0, 1); lcd->print("LOGGED OUT");
   lcd->setCursor(0, 2); lcd->print("RFID: " + String(currentRFIDcard));
   lcd->setCursor(0, 3); lcd->print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
-}
-
-void writeafile() {
-  if (!SPIFFS.begin(true)) {
-    Serial.println("An Error has occurred while mounting SPIFFS");
-    return;
-  }
-  File file = SPIFFS.open("/test.txt", FILE_WRITE);
-  if(!file){
-     Serial.println("There was an error opening the file for writing");
-     return;
-   }
-
-  if (file.print("TEST steve")) {
-    Serial.println("File was written");
-  } else {
-    Serial.println("File write failed");
-  }
- 
-  file.close();
-}
-
-void readafile() {
-  File file2 = SPIFFS.open("/test.txt");
-  if (!file2){
-    Serial.println("Failed to open file for reading");
-    return;
-  }
-
-  Serial.println("File Content:");
-  while(file2.available()){
-    Serial.write(file2.read());
-  }
-  file2.close();
-}
-
-// based upon https://arduinojson.org/v6/example/config/
-void loadConfiguration(const char *filename, Config &config) {
-  // Open file for reading
-  File file = SPIFFS.open(filename);
-
-  if (!file){
-    Serial.println("Failed to open file for reading");
-    return;
-  }
-
-  if (!SPIFFS.exists(filename)) {
-    Serial.println(String(filename) + " does not exist");
-  } else {
-    Serial.println(String(filename) + " exists");
-  }
-
-  StaticJsonDocument<1000> doc;
-
-  // Deserialize the JSON document
-  DeserializationError error = deserializeJson(doc, file);
-  if (error) {
-    Serial.println(F("Failed to read file, using default configuration"));
-  }
-
-  // Copy values from the JsonDocument to the Config
-  config.hostname = doc["hostname"].as<String>();
-  if (config.hostname == "null") { config.hostname = "esp32-1.home.narco.tk"; }
-
-  config.device = doc["device"].as<String>();
-  if (config.device == "null") { config.device = "laser"; }
-
-  config.appname = doc["appname"].as<String>();
-  if (config.appname == "null") { config.appname = "eeh-esp32-rfid-laser"; }
-
-  config.ssid = doc["ssid"].as<String>();
-  if (config.ssid == "null") { config.ssid = "narcotkshedtp"; }
-
-  config.wifipassword = doc["wifipassword"].as<String>();
-  //if (config.wifipassword == "null") { config.wifipassword = "junk"; }
-  if (config.wifipassword == "null") { config.wifipassword = String(password); }
-
-  config.relaypin = doc["relaypin"] | 26;
-  config.ledpin = doc["ledpin"] | 2;
-
-  config.httpuser = doc["httpuser"].as<String>();
-  if (config.httpuser == "null") { config.httpuser = "admin"; }
-
-  config.httppassword = doc["httppassword"].as<String>();
-  if (config.httppassword == "null") { config.httppassword = "admin"; }
-
-  config.overridecodes = doc["overridecodes"].as<String>();
-  if (config.overridecodes == "null") { config.overridecodes = "defaultoverridecodes"; }
-
-  config.apitoken = doc["apitoken"].as<String>();
-  if (config.apitoken == "null") { config.apitoken = "abcde"; }
-
-  config.syslogserver = doc["syslogserver"].as<String>();
-  if (config.syslogserver == "null") { config.syslogserver = "192.168.10.21"; }
-
-  config.syslogport = doc["syslogport"] | 514;
-
-  config.inmaintenance = doc["inmaintenance"] | false;
-
-  config.ntptimezone = doc["ntptimezone"].as<String>();
-  if (config.ntptimezone == "null") { config.ntptimezone = "Europe/London"; }
-
-  config.ntpsynctime = doc["ntpsynctime"] | 60;
-
-  config.ntpwaitsynctime = doc["ntpwaitsynctime"] | 5;
-
-  config.ntpserver = doc["ntpserver"].as<String>();
-  if (config.ntpserver == "null") { config.ntpserver = "192.168.10.21"; }
-
-  config.mfrcslaveselectpin = doc["mfrcslaveselectpin"] | 32;
-
-  config.mfrcresetpin = doc["mfrcresetpin"] | 33;
-
-  //0x27 = int 39
-  config.lcdi2caddress = doc["lcdi2caddress"] | 39;
-  config.lcdwidth = doc["lcdwidth"] | 20;
-  config.lcdheight = doc["lcdheight"] | 4;
-
-  config.webserverporthttp = doc["webserverporthttp"] | 80;
-  config.webserverporthttps = doc["webserverporthttps"] | 443;
-
-  file.close();
-}
-
-void saveConfiguration(const char *filename, const Config &config) {
-  // Delete existing file, otherwise the configuration is appended to the file
-  SPIFFS.remove(filename);
-
-  // Open file for writing
-  File file = SPIFFS.open(filename, FILE_WRITE);
-  if (!file) {
-    Serial.println(F("Failed to create file"));
-    return;
-  }
-
-  StaticJsonDocument<1000> doc;
-
-  // Set the values in the document
-  doc["hostname"] = config.hostname;
-  doc["ssid"] = config.ssid;
-  doc["wifipassword"] = config.wifipassword;
-  doc["relaypin"] = config.relaypin;
-  doc["ledpin"] = config.ledpin;
-  doc["httpuser"] = config.httpuser;
-  doc["httppassword"] = config.httppassword;
-  doc["overridecodes"] = config.overridecodes;
-  doc["apitoken"] = config.apitoken;
-  doc["syslogserver"] = config.syslogserver;
-  doc["syslogport"] = config.syslogport;
-  doc["inmaintenance"] = config.inmaintenance;
-  doc["ntptimezone"] = config.ntptimezone;
-  doc["ntpsynctime"] = config.ntpsynctime;
-  doc["ntpwaitsynctime"] = config.ntpwaitsynctime;
-  doc["ntpserver"] = config.ntpserver;
-  doc["mfrcslaveselectpin"] = config.mfrcslaveselectpin;
-  doc["mfrcresetpin"] = config.mfrcresetpin;
-  doc["lcdi2caddress"] = config.lcdi2caddress;
-  doc["lcdwidth"] = config.lcdwidth;
-  doc["lcdheight"] = config.lcdheight;
-  doc["webserverporthttp"] = config.webserverporthttp;
-  doc["webserverporthttps"] = config.webserverporthttps;
-
-  // Serialize JSON to file
-  if (serializeJson(doc, file) == 0) {
-    Serial.println(F("Failed to write to file"));
-  }
-
-  // Close the file
-  file.close();
-}
-
-
-// Prints the content of a file to the Serial
-void printFile(const char *filename) {
-  // Open file for reading
-  File file = SPIFFS.open(filename);
-  if (!file) {
-    Serial.println(F("Failed to read file"));
-    return;
-  }
-  // Extract each characters by one by one
-  while (file.available()) {
-    Serial.print((char)file.read());
-  }
-  Serial.println();
-  // Close the file
-  file.close();
-}
-
-void printConfig() {
-  Serial.print("          hostname: "); Serial.println(config.hostname);
-  Serial.print("              ssid: "); Serial.println(config.ssid);
-  Serial.print("      wifipassword: "); Serial.println(config.wifipassword);
-  Serial.print("          relaypin: "); Serial.println(config.relaypin);
-  Serial.print("            ledpin: "); Serial.println(config.ledpin);
-  Serial.print("          httpuser: "); Serial.println(config.httpuser);
-  Serial.print("      httppassword: "); Serial.println(config.httppassword);
-  Serial.print("     overridecodes: "); Serial.println(config.overridecodes);
-  Serial.print("          apitoken: "); Serial.println(config.apitoken);
-  Serial.print("      syslogserver: "); Serial.println(config.syslogserver);
-  Serial.print("        syslogport: "); Serial.println(config.syslogport);
-  Serial.print("     inmaintenance: "); Serial.println(config.inmaintenance);
-  Serial.print("       ntptimezone: "); Serial.println(config.ntptimezone);
-  Serial.print("       ntpsynctime: "); Serial.println(config.ntpsynctime);
-  Serial.print("   ntpwaitsynctime: "); Serial.println(config.ntpwaitsynctime);
-  Serial.print("         ntpserver: "); Serial.println(config.ntpserver);
-  Serial.print("mfrcslaceselectpin: "); Serial.println(config.mfrcslaveselectpin);
-  Serial.print("      mfrcresetpin: "); Serial.println(config.mfrcresetpin);
-  Serial.print("     lcdi2caddress: "); Serial.println(config.lcdi2caddress);
-  Serial.print("          lcdwidth: "); Serial.println(config.lcdwidth);
-  Serial.print("         lcdheight: "); Serial.println(config.lcdheight);
-  Serial.print(" webserverporthttp: "); Serial.println(config.webserverporthttp);
-  Serial.print("webserverporthttps: "); Serial.println(config.webserverporthttps);
 }

@@ -35,8 +35,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - Change from LiquidCrystal_I2C.h to LiquidCrystalIO.h
 - Make json output of boss's be a struct
 - Rather than lcdi2cadderss being an int, convert to a string ("0x27" for example) to allow easier configuration
-- Figure out a way to nicely handle to the two loops - loop1=card present  loop2=no card present
-- Move server.on to seperate file
 - Make defining of serverURL and its handling less gross, and add output to fullstatus
 - Convert to a function: Serial.print(iteration); Serial.println(" Checking access");
 - Convert "if (!mfrc522.PICC_IsNewCardPresent()) {" to a function
@@ -89,6 +87,8 @@ A simple ESP32 Based RFID Access Control System for tools
 - When revoking access, disable led and relay, access in web admin, and in full status.  To do the same effect, revoke access then log out user.
 
 ## Done
+- Move parts of the code to seperate files
+- Figure out a way to nicely handle to the two loops - loop1=card present  loop2=no card present
 - Make maintenance mode persist between reboots
 - Log off a user via the web admin
 - Added wifi signal strength to full status
