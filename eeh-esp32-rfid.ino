@@ -56,15 +56,13 @@ struct Config {
   int ntpsynctime;
   int ntpwaitsynctime;
   String ntpserver;
+  int mfrcslaveselectpin;
+  int mfrcresetpin;
 };
 
 // use for loading and saving configuration data
 const char *filename = "/config5.txt";
 Config config;
-
-// mfrc522 is in spi mode
-const int RST_PIN = 33; // Reset pin
-const int SS_PIN = 32; // Slave select pin
 
 const char* PARAM_INPUT_1 = "state";
 const char* PARAM_INPUT_2 = "pin";
@@ -97,8 +95,8 @@ bool gotoLogoutCurrentUser = false;
 bool inMaintenanceMode = false;
 bool inOverrideMode = false;
 
-// MFRC522
-MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance
+// setup MFRC522
+MFRC522 mfrc522[1];
 
 // setup udp connection
 WiFiUDP udpClient;
@@ -494,7 +492,8 @@ void setup() {
   }
 
   SPI.begin(); // Init SPI bus
-  mfrc522.PCD_Init(); // Init MFRC522
+  //mfrc522.PCD_Init(); // Init MFRC522
+  mfrc522[0].PCD_Init(config.mfrcslaveselectpin, config.mfrcresetpin);
   delay(4); // delay needed to allow mfrc522 to spin up properly
 
   Serial.println("\nSystem Configuration:");
@@ -975,13 +974,12 @@ void loop() {
     logoutCurrentUser();
   }
 
-  if (!mfrc522.PICC_IsNewCardPresent()) {
+  if (!mfrc522[0].PICC_IsNewCardPresent()) {
     // no new card found, re-loop
-    //Serial.println("x");
     return;
   }
 
-  if (!mfrc522.PICC_ReadCardSerial()) {
+  if (!mfrc522[0].PICC_ReadCardSerial()) {
     // no serial means no real card found, re-loop
     //Serial.println("y");
     return;
@@ -989,7 +987,7 @@ void loop() {
 
   // new card detected
   char newcard[32] = "";
-  array_to_string(mfrc522.uid.uidByte, 4, newcard);
+  array_to_string(mfrc522[0].uid.uidByte, 4, newcard);
   iteration++;
   Serial.print(iteration); Serial.print(" RFID Found: "); Serial.println(newcard);
 
@@ -1000,12 +998,12 @@ void loop() {
   while (true) {
     control = 0;
     for (int i = 0; i < 3; i++) {
-      if (!mfrc522.PICC_IsNewCardPresent()) {
-        if (mfrc522.PICC_ReadCardSerial()) {
+      if (!mfrc522[0].PICC_IsNewCardPresent()) {
+        if (mfrc522[0].PICC_ReadCardSerial()) {
           //Serial.print('a');
           control |= 0x16;
         }
-        if (mfrc522.PICC_ReadCardSerial()) {
+        if (mfrc522[0].PICC_ReadCardSerial()) {
           //Serial.print('b');
           control |= 0x16;
         }
@@ -1079,8 +1077,8 @@ void loop() {
     }
   }
 
-  mfrc522.PICC_HaltA();
-  mfrc522.PCD_StopCrypto1();
+  mfrc522[0].PICC_HaltA();
+  mfrc522[0].PCD_StopCrypto1();
   if (!config.inmaintenance) {
     // not in maintenance mode, update LCD
     lcd.clear();
@@ -1106,7 +1104,7 @@ void loop() {
 
   // Dump debug info about the card; PICC_HaltA() is automatically called
   //Serial.println("Starting picc_dumptoserial");
-  //mfrc522.PICC_DumpToSerial(&(mfrc522.uid));
+  //mfrc522[0].PICC_DumpToSerial(&(mfrc522[0].uid));
 }
 
 void enableRelay(String message) {
@@ -1157,8 +1155,8 @@ String getFullStatus() {
   fullStatusDoc["Temp"] = String((temprature_sens_read() - 32) / 1.8) + "C";
   fullStatusDoc["CompileTime"] = String(__DATE__) + " " + String(__TIME__);
   fullStatusDoc["ConfigFile"] = String(filename);
-  fullStatusDoc["MFRC522SlaveSelect"] = SS_PIN;
-  fullStatusDoc["MFRC522ResetPin"] = RST_PIN;
+  fullStatusDoc["MFRC522SlaveSelect"] = config.mfrcslaveselectpin;
+  fullStatusDoc["MFRC522ResetPin"] = config.mfrcresetpin;
   fullStatusDoc["MFRC522Firmware"] = getmfrcversion();
   fullStatusDoc["NTPServer"] = config.ntpserver;
   fullStatusDoc["NTPSyncTime"] = config.ntpsynctime;
@@ -1299,7 +1297,7 @@ void array_to_string(byte array[], unsigned int len, char buffer[])
 
 String getmfrcversion() {
   String mfrcver;
-  switch (mfrc522.PCD_ReadRegister(mfrc522.VersionReg)) {
+  switch (mfrc522[0].PCD_ReadRegister(mfrc522[0].VersionReg)) {
     case 0x91:
       mfrcver = "v1.0";
       break;
@@ -1307,7 +1305,7 @@ String getmfrcversion() {
       mfrcver = "v2.0";
       break;
     default:
-      mfrcver = "0x" + String(mfrc522.PCD_ReadRegister(mfrc522.VersionReg), HEX) + ":counterfeit";
+      mfrcver = "0x" + String(mfrc522[0].PCD_ReadRegister(mfrc522[0].VersionReg), HEX) + ":counterfeit";
   }
   return mfrcver;
 }
@@ -1512,6 +1510,10 @@ void loadConfiguration(const char *filename, Config &config) {
   config.ntpserver = doc["ntpserver"].as<String>();
   if (config.ntpserver == "null") { config.ntpserver = "192.168.10.21"; }
 
+  config.mfrcslaveselectpin = doc["mfrcslaveselectpin"] | 32;
+
+  config.mfrcresetpin = doc["mfrcresetpin"] | 33;
+
   file.close();
 }
 
@@ -1545,6 +1547,8 @@ void saveConfiguration(const char *filename, const Config &config) {
   doc["ntpsynctime"] = config.ntpsynctime;
   doc["ntpwaitsynctime"] = config.ntpwaitsynctime;
   doc["ntpserver"] = config.ntpserver;
+  doc["mfrcslaveselectpin"] = config.mfrcslaveselectpin;
+  doc["mfrcresetpin"] = config.mfrcresetpin;
 
   // Serialize JSON to file
   if (serializeJson(doc, file) == 0) {
@@ -1574,20 +1578,22 @@ void printFile(const char *filename) {
 }
 
 void printConfig() {
-  Serial.print("       hostname: "); Serial.println(config.hostname);
-  Serial.print("           ssid: "); Serial.println(config.ssid);
-  Serial.print("   wifipassword: "); Serial.println(config.wifipassword);
-  Serial.print("       relaypin: "); Serial.println(config.relaypin);
-  Serial.print("         ledpin: "); Serial.println(config.ledpin);
-  Serial.print("       httpuser: "); Serial.println(config.httpuser);
-  Serial.print("   httppassword: "); Serial.println(config.httppassword);
-  Serial.print("  overridecodes: "); Serial.println(config.overridecodes);
-  Serial.print("       apitoken: "); Serial.println(config.apitoken);
-  Serial.print("   syslogserver: "); Serial.println(config.syslogserver);
-  Serial.print("     syslogport: "); Serial.println(config.syslogport);
-  Serial.print("  inmaintenance: "); Serial.println(config.inmaintenance);
-  Serial.print("    ntptimezone: "); Serial.println(config.ntptimezone);
-  Serial.print("    ntpsynctime: "); Serial.println(config.ntpsynctime);
-  Serial.print("ntpwaitsynctime: "); Serial.println(config.ntpwaitsynctime);
-  Serial.print("      ntpserver: "); Serial.println(config.ntpserver);
+  Serial.print("          hostname: "); Serial.println(config.hostname);
+  Serial.print("              ssid: "); Serial.println(config.ssid);
+  Serial.print("      wifipassword: "); Serial.println(config.wifipassword);
+  Serial.print("          relaypin: "); Serial.println(config.relaypin);
+  Serial.print("            ledpin: "); Serial.println(config.ledpin);
+  Serial.print("          httpuser: "); Serial.println(config.httpuser);
+  Serial.print("      httppassword: "); Serial.println(config.httppassword);
+  Serial.print("     overridecodes: "); Serial.println(config.overridecodes);
+  Serial.print("          apitoken: "); Serial.println(config.apitoken);
+  Serial.print("      syslogserver: "); Serial.println(config.syslogserver);
+  Serial.print("        syslogport: "); Serial.println(config.syslogport);
+  Serial.print("     inmaintenance: "); Serial.println(config.inmaintenance);
+  Serial.print("       ntptimezone: "); Serial.println(config.ntptimezone);
+  Serial.print("       ntpsynctime: "); Serial.println(config.ntpsynctime);
+  Serial.print("   ntpwaitsynctime: "); Serial.println(config.ntpwaitsynctime);
+  Serial.print("         ntpserver: "); Serial.println(config.ntpserver);
+  Serial.print("mfrcslaceselectpin: "); Serial.println(config.mfrcslaveselectpin);
+  Serial.print("      mfrcresetpin: "); Serial.println(config.mfrcresetpin);
 }
