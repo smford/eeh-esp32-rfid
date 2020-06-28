@@ -32,6 +32,8 @@ A simple ESP32 Based RFID Access Control System for tools
 - figure out how to get the 3v from the esp32 working safely with the 5v on the lcd
 
 ## Coding Cleanup
+- Cleanup PARAM_INPUT_1 and PARAM_INPUT_2
+- Remove /backlighton and /backlightoff
 - Change from LiquidCrystal_I2C.h to LiquidCrystalIO.h
 - Make json output of boss's be a struct
 - Rather than lcdi2cadderss being an int, convert to a string ("0x27" for example) to allow easier configuration
@@ -42,8 +44,12 @@ A simple ESP32 Based RFID Access Control System for tools
 - change grantUser() and getUserDetails() in to a generic function
 - Implement lcdPrint(l1, l2, l3, l4) and make adaptable for varying sizes of display (autoscroll perhaps)
 - Change haveaccess to being: &access=grant or &access=revoke
+- Adjust the timeout on setTimeout(function(){, 5000 might be too generous and it makes web interface seen a bit unresponsive.  WebSockets will superceed this if implemented.
 
 ## Things to do
+- Change web admin password to be a hash
+- Change the api token to be a hash
+- Change password for OTA webpage to be a hash
 - Convert Web Admin to using websockets
 - Fix the default settings
 - Upload settings file
@@ -81,6 +87,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - When a card is removed or presented, auto refresh the web admin page
 - Sort out logging levels info or info+error
 - Enable https on device
+- Scan i2c devices and print out
 
 ## Abandoned
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
