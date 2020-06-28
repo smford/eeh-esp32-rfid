@@ -25,14 +25,6 @@
 #define FIRMWARE_VERSION "v1.1-ota"
 #define ADMIN_SERVER "http://192.168.10.21:8180/"
 
-// Provide official timezone names
-// https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-#define NTPTIMEZONE "Europe/London"
-#define NTPSYNCTIME 60
-#define NTPWAITSYNCTIME 5
-#define NTPSERVER "192.168.10.21"
-//#define NTPSERVER "europe.pool.ntp.org"
-
 // lcd configuration
 const int LCD_I2C = 0x27;
 const int LCD_WIDTH = 20;
@@ -59,6 +51,10 @@ struct Config {
   String syslogserver;
   int syslogport;
   bool inmaintenance;
+  String ntptimezone;
+  int ntpsynctime;
+  int ntpwaitsynctime;
+  String ntpserver;
 };
 
 // use for loading and saving configuration data
@@ -521,9 +517,9 @@ void setup() {
   Serial.print("      ESP32 Temp: "); Serial.print((temprature_sens_read() - 32) / 1.8); Serial.println("C");
 
   Serial.print(" MFRC522 Version: "); Serial.println(getmfrcversion());
-  Serial.print("      NTP Server: "); Serial.println(NTPSERVER);
-  Serial.print("   NTP Time Sync: "); Serial.println(NTPSYNCTIME);
-  Serial.print("   NTP Time Zone: "); Serial.println(NTPTIMEZONE);
+  Serial.print("      NTP Server: "); Serial.println(config.ntpserver);
+  Serial.print("   NTP Time Sync: "); Serial.println(config.ntpsynctime);
+  Serial.print("   NTP Time Zone: "); Serial.println(config.ntptimezone);
 
 //===========
   File root = SPIFFS.open("/");
@@ -582,16 +578,16 @@ void setup() {
 
   Serial.println();
 
-  // configure time, wait NTPWAITSYNCTIME seconds then progress, otherwise it can stall
-  Serial.print("Attempting to NTP Sync time for "); Serial.print(NTPWAITSYNCTIME); Serial.println(" seconds");
+  // configure time, wait config.ntpwaitsynctime seconds then progress, otherwise it can stall
+  Serial.print("Attempting to NTP Sync time for "); Serial.print(config.ntpwaitsynctime); Serial.println(" seconds");
   lcd.clear();
   lcd.print("Syncing NTP...");
-  waitForSync(NTPWAITSYNCTIME);
-  setInterval(NTPSYNCTIME);
-  setServer(NTPSERVER);
+  waitForSync(config.ntpwaitsynctime);
+  setInterval(config.ntpsynctime);
+  setServer(config.ntpserver);
   setDebug(NTPDEBUG);
-  myTZ.setLocation(F(NTPTIMEZONE));
-  Serial.print(String(NTPTIMEZONE) + ": "); Serial.println(printTime());
+  myTZ.setLocation(config.ntptimezone);
+  Serial.print(config.ntptimezone + ": "); Serial.println(printTime());
 
   bootTime = printTime();
   Serial.print("Booted at: "); Serial.println(bootTime);
@@ -1163,10 +1159,10 @@ String getFullStatus() {
   fullStatusDoc["MFRC522SlaveSelect"] = SS_PIN;
   fullStatusDoc["MFRC522ResetPin"] = RST_PIN;
   fullStatusDoc["MFRC522Firmware"] = getmfrcversion();
-  fullStatusDoc["NTPServer"] = NTPSERVER;
-  fullStatusDoc["NTPSyncTime"] = NTPSYNCTIME;
-  fullStatusDoc["NTPTimeZone"] = NTPTIMEZONE;
-  fullStatusDoc["NTPWaitSynctime"] = NTPWAITSYNCTIME;
+  fullStatusDoc["NTPServer"] = config.ntpserver;
+  fullStatusDoc["NTPSyncTime"] = config.ntpsynctime;
+  fullStatusDoc["NTPTimeZone"] = config.ntptimezone;
+  fullStatusDoc["NTPWaitSynctime"] = config.ntpwaitsynctime;
   fullStatusDoc["NTPSyncStatus"] = getTimeStatus();
   fullStatusDoc["APIWait"] = waitTime;
   fullStatusDoc["RFIDDelay"] = checkCardTime;
@@ -1505,6 +1501,16 @@ void loadConfiguration(const char *filename, Config &config) {
 
   config.inmaintenance = doc["inmaintenance"] | false;
 
+  config.ntptimezone = doc["ntptimezone"].as<String>();
+  if (config.ntptimezone == "null") { config.ntptimezone = "Europe/London"; }
+
+  config.ntpsynctime = doc["ntpsynctime"] | 60;
+
+  config.ntpwaitsynctime = doc["ntpwaitsynctime"] | 5;
+
+  config.ntpserver = doc["ntpserver"].as<String>();
+  if (config.ntpserver == "null") { config.ntpserver = "192.168.10.21"; }
+
   file.close();
 }
 
@@ -1534,6 +1540,10 @@ void saveConfiguration(const char *filename, const Config &config) {
   doc["syslogserver"] = config.syslogserver;
   doc["syslogport"] = config.syslogport;
   doc["inmaintenance"] = config.inmaintenance;
+  doc["ntptimezone"] = config.ntptimezone;
+  doc["ntpsynctime"] = config.ntpsynctime;
+  doc["ntpwaitsynctime"] = config.ntpwaitsynctime;
+  doc["ntpserver"] = config.ntpserver;
 
   // Serialize JSON to file
   if (serializeJson(doc, file) == 0) {
@@ -1563,16 +1573,20 @@ void printFile(const char *filename) {
 }
 
 void printConfig() {
-  Serial.print("     hostname: "); Serial.println(config.hostname);
-  Serial.print("         ssid: "); Serial.println(config.ssid);
-  Serial.print(" wifipassword: "); Serial.println(config.wifipassword);
-  Serial.print("     relaypin: "); Serial.println(config.relaypin);
-  Serial.print("       ledpin: "); Serial.println(config.ledpin);
-  Serial.print("     httpuser: "); Serial.println(config.httpuser);
-  Serial.print(" httppassword: "); Serial.println(config.httppassword);
-  Serial.print("overridecodes: "); Serial.println(config.overridecodes);
-  Serial.print("     apitoken: "); Serial.println(config.apitoken);
-  Serial.print(" syslogserver: "); Serial.println(config.syslogserver);
-  Serial.print("   syslogport: "); Serial.println(config.syslogport);
-  Serial.print("inmaintenance: "); Serial.println(config.inmaintenance);
+  Serial.print("       hostname: "); Serial.println(config.hostname);
+  Serial.print("           ssid: "); Serial.println(config.ssid);
+  Serial.print("   wifipassword: "); Serial.println(config.wifipassword);
+  Serial.print("       relaypin: "); Serial.println(config.relaypin);
+  Serial.print("         ledpin: "); Serial.println(config.ledpin);
+  Serial.print("       httpuser: "); Serial.println(config.httpuser);
+  Serial.print("   httppassword: "); Serial.println(config.httppassword);
+  Serial.print("  overridecodes: "); Serial.println(config.overridecodes);
+  Serial.print("       apitoken: "); Serial.println(config.apitoken);
+  Serial.print("   syslogserver: "); Serial.println(config.syslogserver);
+  Serial.print("     syslogport: "); Serial.println(config.syslogport);
+  Serial.print("  inmaintenance: "); Serial.println(config.inmaintenance);
+  Serial.print("    ntptimezone: "); Serial.println(config.ntptimezone);
+  Serial.print("    ntpsynctime: "); Serial.println(config.ntpsynctime);
+  Serial.print("ntpwaitsynctime: "); Serial.println(config.ntpwaitsynctime);
+  Serial.print("      ntpserver: "); Serial.println(config.ntpserver);
 }
