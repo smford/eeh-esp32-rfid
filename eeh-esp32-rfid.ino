@@ -20,6 +20,7 @@
 // mfrc522 library: https://github.com/miguelbalboa/rfid  v1.4.6
 // arduinojson library: https://github.com/bblanchon/ArduinoJson & https://arduinojson.org/ v6.15.2
 // liquidcrystal_i2c library: https://github.com/johnrickman/LiquidCrystal_I2C
+// asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
 
 #define WEB_SERVER_PORT 80
 #define FIRMWARE_VERSION "v1.1-ota"

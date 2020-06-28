@@ -31,6 +31,10 @@ A simple ESP32 Based RFID Access Control System for tools
 - add current transformer/detector device to monitor usage
 
 ## Things to do
+- Fix the default settings
+- Upload settings file
+- Download settings file
+- If no settings file, set default, and go in to programming mode
 - Cleanup the OTA webpage
 - Make maintenance mode persist between reboots
 - Add status light to signify when it is checking access, in trainer mode, locked, unlocked, etc
@@ -67,6 +71,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Allow flashing from default firmware, and then configuration via web admin
 - Use wifimanager or IotWebConf to make configuration easier
 - Enforce windows of operation
+- Display available wifi networks: https://github.com/me-no-dev/ESPAsyncWebServer#scanning-for-available-wifi-networks
 - Add a debugging mode
 - Scheduled reboots
 - When a card is removed or presented, auto refresh the web admin page
