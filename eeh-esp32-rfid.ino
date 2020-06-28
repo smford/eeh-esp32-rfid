@@ -22,7 +22,6 @@
 // liquidcrystal_i2c library: https://github.com/johnrickman/LiquidCrystal_I2C
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
 
-#define WEB_SERVER_PORT 80
 #define FIRMWARE_VERSION "v1.1-ota"
 #define ADMIN_SERVER "http://192.168.10.21:8180/"
 
@@ -56,6 +55,8 @@ struct Config {
   int lcdi2caddress;
   int lcdwidth;
   int lcdheight;
+  int webserverporthttp;
+  int webserverporthttps;
 };
 
 // use for loading and saving configuration data
@@ -124,7 +125,8 @@ uint8_t temprature_sens_read();
 int iteration = 0;
 
 // initialise webserver
-AsyncWebServer server(WEB_SERVER_PORT);
+AsyncWebServer *server;
+
 
 // index.html
 const char index_html[] PROGMEM = R"rawliteral(
@@ -510,7 +512,8 @@ void setup() {
   Serial.print(" RFID Card Delay: "); Serial.print(checkCardTime); Serial.println(" seconds");
   Serial.print("       Relay Pin: "); Serial.println(config.relaypin);
   Serial.print("         LED Pin: "); Serial.println(config.ledpin);
-  Serial.print(" Web Server Port: "); Serial.println(WEB_SERVER_PORT);
+  Serial.print("   Web HTTP Port: "); Serial.println(config.webserverporthttp);
+  Serial.print("  Web HTTPS Port: "); Serial.println(config.webserverporthttps);
   Serial.print("     ESP32 Flash: "); Serial.println(FIRMWARE_VERSION);
   Serial.print("  Flash Compiled: "); Serial.println(String(__DATE__) + " " + String(__TIME__));
   Serial.print("      ESP32 Temp: "); Serial.print((temprature_sens_read() - 32) / 1.8); Serial.println("C");
@@ -592,10 +595,14 @@ void setup() {
   Serial.print("Booted at: "); Serial.println(bootTime);
   syslog.logf("Booted");
 
+  // create web server
+  server = new AsyncWebServer(config.webserverporthttp);
+
+  // configure web server
   // Break all of these server.on in to a seperate file
   // https://randomnerdtutorials.com/esp32-esp8266-web-server-http-authentication/
   // Route for root / web page
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+  server->on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
@@ -615,11 +622,11 @@ void setup() {
     request->send_P(200, "text/html", index_html, processor);
   });
 
-  server.on("/logout", HTTP_GET, [](AsyncWebServerRequest *request){
+  server->on("/logout", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(401);
   });
 
-  server.on("/maintenance", HTTP_GET, [](AsyncWebServerRequest *request){
+  server->on("/maintenance", HTTP_GET, [](AsyncWebServerRequest *request){
     if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
@@ -647,24 +654,24 @@ void setup() {
     syslog.log(logmessage);
   });
 
-  server.on("/backlighton", HTTP_GET, [](AsyncWebServerRequest *request){
+  server->on("/backlighton", HTTP_GET, [](AsyncWebServerRequest *request){
     lcd->backlight();
     request->send(200, "text/html", "backlight on");
   });
 
-  server.on("/backlightoff", HTTP_GET, [](AsyncWebServerRequest *request){
+  server->on("/backlightoff", HTTP_GET, [](AsyncWebServerRequest *request){
     lcd->noBacklight();
     request->send(200, "text/html", "backlight off");
   });
 
-  server.on("/logged-out", HTTP_GET, [](AsyncWebServerRequest *request){
+  server->on("/logged-out", HTTP_GET, [](AsyncWebServerRequest *request){
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
     request->send_P(200, "text/html", logout_html, processor);
   });
 
-  server.on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request){
+  server->on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request){
     if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
@@ -675,7 +682,7 @@ void setup() {
     shouldReboot = true;
   });
 
-  server.on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
+  server->on("/getuser", HTTP_GET, [](AsyncWebServerRequest *request){
     if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
@@ -689,7 +696,7 @@ void setup() {
     request->send(200, "text/html", getUserDetails(getUserURL));
   });
 
-  server.on("/grant", HTTP_GET, [](AsyncWebServerRequest *request){
+  server->on("/grant", HTTP_GET, [](AsyncWebServerRequest *request){
     if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
@@ -711,7 +718,7 @@ void setup() {
     request->send(200, "text/html", grantAccess(grantURL));
   });
 
-  server.on("/ntprefresh", HTTP_GET, [](AsyncWebServerRequest *request){
+  server->on("/ntprefresh", HTTP_GET, [](AsyncWebServerRequest *request){
     if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
@@ -723,7 +730,7 @@ void setup() {
     request->send(200, "text/html", printTime());
   });
 
-  server.on("/logout-current-user", HTTP_GET, [](AsyncWebServerRequest *request){
+  server->on("/logout-current-user", HTTP_GET, [](AsyncWebServerRequest *request){
     if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
@@ -743,14 +750,14 @@ void setup() {
     request->send(200, "text/html", returnText);
   });
 
-  server.on("/health", HTTP_GET, [](AsyncWebServerRequest *request){
+  server->on("/health", HTTP_GET, [](AsyncWebServerRequest *request){
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
     request->send(200, "text/plain", "OK");
   });
 
-  server.on("/fullstatus", HTTP_GET, [](AsyncWebServerRequest *request){
+  server->on("/fullstatus", HTTP_GET, [](AsyncWebServerRequest *request){
     if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
@@ -760,7 +767,7 @@ void setup() {
     request->send(200, "application/json", getFullStatus());
   });
 
-  server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request){
+  server->on("/status", HTTP_GET, [](AsyncWebServerRequest *request){
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
@@ -768,7 +775,7 @@ void setup() {
   });
 
   // used for checking whether time is sync
-  server.on("/time", HTTP_GET, [](AsyncWebServerRequest *request){
+  server->on("/time", HTTP_GET, [](AsyncWebServerRequest *request){
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
@@ -776,7 +783,7 @@ void setup() {
   });
 
   // called when slider has been toggled
-  server.on("/toggle", HTTP_GET, [] (AsyncWebServerRequest *request) {
+  server->on("/toggle", HTTP_GET, [] (AsyncWebServerRequest *request) {
     if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
@@ -817,6 +824,19 @@ void setup() {
     request->send(200, "text/plain", "OK");
   });
 
+  // if url isn't found
+  server->onNotFound(notFound);
+
+  // finished configuring web server
+
+  // configure ota web server
+  AsyncElegantOTA.begin(server, config.httpuser.c_str(), config.httppassword.c_str());
+
+  // startup web server
+  server->begin();
+
+  // everything is loaded, update lcd
+  // checking if in maintenance mode
   if (config.inmaintenance) {
     syslog.logf("Booting in to Maintenance Mode");
     lcd->clear();
@@ -829,15 +849,6 @@ void setup() {
     lcd->setCursor(0, 0); lcd->print(config.device);
     lcd->setCursor(0, 1); lcd->print("Present Access Card");
   }
-
-  // if url isn't found
-  server.onNotFound(notFound);
-
-  // configure ota webserver
-  AsyncElegantOTA.begin(&server, config.httpuser.c_str(), config.httppassword.c_str());
-
-  // startup webserver
-  server.begin();
 }
 
 String grantAccess(const char *myurl) {
@@ -1165,7 +1176,8 @@ String getFullStatus() {
   fullStatusDoc["APIWait"] = waitTime;
   fullStatusDoc["RFIDDelay"] = checkCardTime;
   fullStatusDoc["ShouldReboot"] = shouldReboot;
-  fullStatusDoc["WebServerPort"] = WEB_SERVER_PORT;
+  fullStatusDoc["WebServerPortHTTP"] = config.webserverporthttp;
+  fullStatusDoc["WebServerPortHTTPS"] = config.webserverporthttps;
   fullStatusDoc["SSID"] = WiFi.SSID();
   fullStatusDoc["WifiStatus"] = WiFi.status();
   fullStatusDoc["WifiSignalStrength"] = WiFi.RSSI();
@@ -1518,6 +1530,9 @@ void loadConfiguration(const char *filename, Config &config) {
   config.lcdwidth = doc["lcdwidth"] | 20;
   config.lcdheight = doc["lcdheight"] | 4;
 
+  config.webserverporthttp = doc["webserverporthttp"] | 80;
+  config.webserverporthttps = doc["webserverporthttps"] | 443;
+
   file.close();
 }
 
@@ -1553,6 +1568,11 @@ void saveConfiguration(const char *filename, const Config &config) {
   doc["ntpserver"] = config.ntpserver;
   doc["mfrcslaveselectpin"] = config.mfrcslaveselectpin;
   doc["mfrcresetpin"] = config.mfrcresetpin;
+  doc["lcdi2caddress"] = config.lcdi2caddress;
+  doc["lcdwidth"] = config.lcdwidth;
+  doc["lcdheight"] = config.lcdheight;
+  doc["webserverporthttp"] = config.webserverporthttp;
+  doc["webserverporthttps"] = config.webserverporthttps;
 
   // Serialize JSON to file
   if (serializeJson(doc, file) == 0) {
@@ -1603,4 +1623,6 @@ void printConfig() {
   Serial.print("     lcdi2caddress: "); Serial.println(config.lcdi2caddress);
   Serial.print("          lcdwidth: "); Serial.println(config.lcdwidth);
   Serial.print("         lcdheight: "); Serial.println(config.lcdheight);
+  Serial.print(" webserverporthttp: "); Serial.println(config.webserverporthttp);
+  Serial.print("webserverporthttps: "); Serial.println(config.webserverporthttps);
 }
