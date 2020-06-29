@@ -220,10 +220,10 @@ void configureWebServer() {
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
-    char getUserURL[240];
-    sprintf(getUserURL, "%s%s%s%s%s%s%s", ADMIN_SERVER, "getuser.php?device=", config.device, "&rfid=", String(currentRFIDcard), "&api=", config.apitoken);
-
-    //Serial.print("GetUserURL: "); Serial.println(getUserURL);
+    String tempstring = config.serverurl + config.getuserpage + "?device=" + config.device + "&rfid=" + String(currentRFIDcard) + "&api=" + config.apitoken;
+    char getUserURL[tempstring.length() + 1];
+    tempstring.toCharArray(getUserURL, tempstring.length() + 1);
+    Serial.print("GetUserURL: "); Serial.println(getUserURL);
     request->send(200, "text/html", getUserDetails(getUserURL));
   });
 
@@ -235,8 +235,10 @@ void configureWebServer() {
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + " " + request->url() + "?haveaccess=" + haveaccess;
     Serial.println(logmessage);
     syslog.log(logmessage);
-    char grantURL[240];
-    sprintf(grantURL, "%s%s%s%s%s%s%s%s%s", ADMIN_SERVER, "moduser.php?device=", config.device, "&modrfid=", String(currentRFIDcard), "&api=", config.apitoken, "&haveaccess=", haveaccess);
+    String tempstring = config.serverurl + config.moduserpage + "?device=" + config.device + "&modrfid=" + String(currentRFIDcard) + "&api=" + config.apitoken + "&haveaccess=" + haveaccess;
+    char grantURL[tempstring.length() + 1];
+    tempstring.toCharArray(grantURL, tempstring.length() + 1);
+    Serial.print("GrantURL: "); Serial.println(grantURL);
     if (strcmp(haveaccess, "true") == 0) {
       // granting access
       logmessage = "Web Admin: Granting access for " + String(currentRFIDcard);

@@ -24,7 +24,6 @@
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
 
 #define FIRMWARE_VERSION "v1.1-ota"
-#define ADMIN_SERVER "http://192.168.10.21:8180/"
 
 //const char* serverURL1 = "https://mock-rfid-system.herokuapp.com/check?rfid=";
 //const char* serverURL1 = "http://192.168.10.21:56000/check?rfid=";
@@ -60,6 +59,9 @@ struct Config {
   int webserverporthttp;   // http port number for web admin
   int webserverporthttps;  // https port number for the web admin
   int webapiwaittime;      // forced delay in seconds between web api calls
+  String serverurl;        // url of authentication server, e.g. "http://something.com/" or "https://whatever.net"
+  String getuserpage;      // mod user webpage hosted on authentication server, e.g. "getuser.php"
+  String moduserpage;      // mod user webpage hosted on authentication server, e.g. "moduser.php"
 };
 
 // used for loading and saving configuration data
@@ -583,7 +585,7 @@ void rebootESP(String message) {
 }
 
 String getFullStatus() {
-  StaticJsonDocument<2000> fullStatusDoc;
+  StaticJsonDocument<2200> fullStatusDoc;
   fullStatusDoc["Timestamp"] = printTime();
   fullStatusDoc["Hostname"] = config.hostname;
   fullStatusDoc["BootTime"] = bootTime;
@@ -592,6 +594,9 @@ String getFullStatus() {
   fullStatusDoc["OverrideUsers"] = getAccessOverrideCodes();
   fullStatusDoc["SyslogServer"] = config.syslogserver;
   fullStatusDoc["SyslogPort"] = config.syslogport;
+  fullStatusDoc["ServerURL"] = config.serverurl;
+  fullStatusDoc["GetUserPage"] = config.getuserpage;
+  fullStatusDoc["ModUserPage"] = config.moduserpage;
   fullStatusDoc["ServerURL1"] = serverURL1;
   fullStatusDoc["ServerURL2"] = serverURL2;
   fullStatusDoc["Firmware"] = FIRMWARE_VERSION;

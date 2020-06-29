@@ -140,6 +140,19 @@ void loadConfiguration(const char *filename, Config &config) {
 
   config.webapiwaittime = doc["webapiwaittime"] | 2;
 
+  config.serverurl = doc["serverurl"].as<String>();
+  if (config.serverurl == "null") {
+    config.serverurl = "http://192.168.10.21:8180";
+  }
+  config.getuserpage = doc["getuserpage"].as<String>();
+  if (config.getuserpage == "null") {
+    config.getuserpage = "/getuser.php";
+  }
+  config.moduserpage = doc["moduserpage"].as<String>();
+  if (config.moduserpage == "null") {
+    config.moduserpage = "/moduser.php";
+  }
+
   file.close();
 }
 
@@ -154,7 +167,7 @@ void saveConfiguration(const char *filename, const Config &config) {
     return;
   }
 
-  StaticJsonDocument<1000> doc;
+  StaticJsonDocument<2000> doc;
 
   // Set the values in the document
   doc["hostname"] = config.hostname;
@@ -182,11 +195,17 @@ void saveConfiguration(const char *filename, const Config &config) {
   doc["webserverporthttp"] = config.webserverporthttp;
   doc["webserverporthttps"] = config.webserverporthttps;
   doc["webapiwaittime"] = config.webapiwaittime;
+  doc["serverurl"] = config.serverurl;
+  doc["getuserpage"] = config.getuserpage;
+  doc["moduserpage"] = config.moduserpage;
+
 
   // Serialize JSON to file
   if (serializeJson(doc, file) == 0) {
     Serial.println(F("Failed to write to file"));
   }
+
+  // need to print out the deserialisation to discern size
 
   // Close the file
   file.close();
@@ -236,4 +255,7 @@ void printConfig() {
   Serial.print(" webserverporthttp: "); Serial.println(config.webserverporthttp);
   Serial.print("webserverporthttps: "); Serial.println(config.webserverporthttps);
   Serial.print("    webapiwaittime: "); Serial.println(config.webapiwaittime);
+  Serial.print("         serverurl: "); Serial.println(config.serverurl);
+  Serial.print("       getuserpage: "); Serial.println(config.getuserpage);
+  Serial.print("       moduserpage: "); Serial.println(config.moduserpage);
 }
