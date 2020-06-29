@@ -32,6 +32,8 @@ A simple ESP32 Based RFID Access Control System for tools
 - figure out how to get the 3v from the esp32 working safely with the 5v on the lcd
 
 ## Coding Cleanup
+- Convert MFRC522 mfrc522[1]; to being MFRC522 *mfrc522; and mfrc522 = new MFRC522(config.mfrcslaveselectpin, config.mfrcresetpin) style
+- Mask out secrets from all output
 - Cleanup PARAM_INPUT_1 and PARAM_INPUT_2
 - Remove /backlighton and /backlightoff
 - Change from LiquidCrystal_I2C.h to LiquidCrystalIO.h
