@@ -36,7 +36,6 @@ struct Config {
   int ledpin;              // led pin number
   String httpuser;         // username to access web admin
   String httppassword;     // password to access web admin
-  String overridecodes;    // list of rfid card numbers, seperated by commas, that have override access
   String apitoken;         // api token used to authenticate against the user management system
   String syslogserver;     // hostname or ip of the syslog server
   int syslogport;          // sylog port number
@@ -58,6 +57,7 @@ struct Config {
   String checkuserpage;    // check user webpage hosted on authentication server, e.g. "checkuser.php"
   String getuserpage;      // get user webpage hosted on authentication server, e.g. "getuser.php"
   String moduserpage;      // mod user webpage hosted on authentication server, e.g. "moduser.php"
+  String overridecodes;    // list of rfid card numbers, seperated by commas, that have override access
 };
 
 // used for loading and saving configuration data
@@ -67,8 +67,6 @@ Config config;
 // clean these up
 const char* PARAM_INPUT_1 = "state";
 const char* PARAM_INPUT_2 = "pin";
-
-char *accessOverrideCodes[] = {"90379632", "boss2aaa", "boss3bbb"};
 
 // keeps track of when the last webapicall was made to prevent hammering
 unsigned long sinceLastRunTime = 0;
@@ -143,13 +141,22 @@ void setup() {
   Serial.println("Removing old config files");
   SPIFFS.remove("/config.txt");
 
+  //===========
+  Serial.println("Listing files stored on SPIFFS");
+  File root = SPIFFS.open("/");
+  File foundfile = root.openNextFile();
+  while (foundfile) {
+    Serial.print("FILE: ");
+    Serial.println(foundfile.name());
+    foundfile = root.openNextFile();
+  }
+  //===========
+
   Serial.println("=============");
-  Serial.println(F("Print file before:"));
-  printFile(filename);
+  Serial.print(F("Print file before:")); printFile(filename);
   Serial.println(F("Loading configuration..."));
   loadConfiguration(filename, config);
-  Serial.println(F("Print file after:"));
-  printFile(filename);
+  Serial.print(F("Print file after:")); printFile(filename);
   Serial.println("=============");
   printConfig();
   Serial.println("=============");
@@ -203,16 +210,6 @@ void setup() {
   Serial.print("    NTP Time Sync: "); Serial.println(config.ntpsynctime);
   Serial.print("    NTP Time Zone: "); Serial.println(config.ntptimezone);
 
-  //===========
-  Serial.println("Listing files stored on SPIFFS");
-  File root = SPIFFS.open("/");
-  File foundfile = root.openNextFile();
-  while (foundfile) {
-    Serial.print("FILE: ");
-    Serial.println(foundfile.name());
-    foundfile = root.openNextFile();
-  }
-  //===========
   /*
   Serial.print("checking nonexistent file: "); Serial.println(SPIFFS.exists("/nonexisting.txt"));
 
@@ -428,12 +425,12 @@ void loop() {
   }
 
   if (!mfrc522[0].PICC_ReadCardSerial()) {
-    // no serial means no real card found, re-loop
+    // empty ReadCardSerial means no real card found, re-loop
     //Serial.println("y");
     return;
   }
 
-  // new card detected
+  // if here it means a card is present
   char newcard[32] = "";
   array_to_string(mfrc522[0].uid.uidByte, 4, newcard);
   iteration++;
@@ -468,16 +465,7 @@ void loop() {
         lcd->clear();
         lcd->setCursor(0, 0); lcd->print("Checking Access...");
 
-        // check accessOverrideCodes
-        bool overRideActive = false;
-        for (byte i = 0; i < (sizeof(accessOverrideCodes) / sizeof(accessOverrideCodes[0])); i++) {
-          if (strcmp(currentRFIDcard, accessOverrideCodes[i]) == 0) {
-            overRideActive = true;
-            inOverrideMode = true;
-          }
-        }
-
-        if (overRideActive) {
+        if (checkOverride(currentRFIDcard)) {
           // access override detected
           enableLed(String(iteration) + " Access Override Detected: Enable LED: " + String(currentRFIDcard));
           enableRelay(String(iteration) + " Access Override Detected: Enable Relay: " + String(currentRFIDcard));
@@ -576,7 +564,7 @@ String getFullStatus() {
   fullStatusDoc["BootTime"] = bootTime;
   fullStatusDoc["AppName"] = config.appname;
   fullStatusDoc["EEHDevice"] = config.device;
-  fullStatusDoc["OverrideUsers"] = getAccessOverrideCodes();
+  fullStatusDoc["OverrideUsers"] = config.overridecodes;
   fullStatusDoc["SyslogServer"] = config.syslogserver;
   fullStatusDoc["SyslogPort"] = config.syslogport;
   fullStatusDoc["ServerURL"] = config.serverurl;
@@ -742,20 +730,6 @@ String getmfrcversion() {
   return mfrcver;
 }
 
-String getAccessOverrideCodes() {
-  String nicelist = "";
-  String tempcomma = "";
-  for (int i = 0; i < (sizeof(accessOverrideCodes) / sizeof(accessOverrideCodes[0])); i++) {
-    if (i == 0) {
-      tempcomma = "";
-    } else {
-      tempcomma = ", ";
-    }
-    nicelist += tempcomma + String(accessOverrideCodes[i]);
-  }
-  return nicelist;
-}
-
 String printTime() {
   return myTZ.dateTime();
 }
@@ -826,4 +800,15 @@ void logoutCurrentUser() {
   lcd->setCursor(0, 1); lcd->print("LOGGED OUT");
   lcd->setCursor(0, 2); lcd->print("RFID: " + String(currentRFIDcard));
   lcd->setCursor(0, 3); lcd->print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
+}
+
+// checks whether rfid is in the override list
+bool checkOverride(const char *foundrfid) {
+  if (config.overridecodes.indexOf(foundrfid) >= 0) {
+    Serial.print(iteration); Serial.print(" "); Serial.print(foundrfid); Serial.println(" found in override list");
+    return true;
+  } else {
+    Serial.print(iteration); Serial.print(" "); Serial.print(foundrfid); Serial.println(" not in override list");
+    return false;
+  }
 }

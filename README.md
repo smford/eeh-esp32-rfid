@@ -37,9 +37,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Cleanup PARAM_INPUT_1 and PARAM_INPUT_2
 - Remove /backlighton and /backlightoff
 - Change from LiquidCrystal_I2C.h to LiquidCrystalIO.h
-- Make json output of boss's be a struct
 - Rather than lcdi2cadderss being an int, convert to a string ("0x27" for example) to allow easier configuration
-- Make defining of serverURL and its handling less gross, and add output to fullstatus
 - Convert to a function: Serial.print(iteration); Serial.println(" Checking access");
 - Convert "if (!mfrc522.PICC_IsNewCardPresent()) {" to a function
 - Change button and slider code generation to sit within processor function
@@ -94,6 +92,7 @@ A simple ESP32 Based RFID Access Control System for tools
 ## Abandoned
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 - When revoking access, disable led and relay, access in web admin, and in full status.  To do the same effect, revoke access then log out user.
+- Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
 - Move parts of the code to seperate files

@@ -116,12 +116,6 @@ void loadConfiguration(const char *filename, Config &config) {
     config.httppassword = "admin";
   }
 
-  config.overridecodes = doc["overridecodes"].as<String>();
-  if (config.overridecodes == "null") {
-    initiatesave = true;
-    config.overridecodes = "defaultoverridecodes";
-  }
-
   config.apitoken = doc["apitoken"].as<String>();
   if (config.apitoken == "null") {
     initiatesave = true;
@@ -244,6 +238,12 @@ void loadConfiguration(const char *filename, Config &config) {
     config.moduserpage = "/moduser.php";
   }
 
+  config.overridecodes = doc["overridecodes"].as<String>();
+  if (config.overridecodes == "null") {
+    initiatesave = true;
+    config.overridecodes = "90379632,222222,333333";
+  }
+
   file.close();
 
   if (initiatesave) {
@@ -273,7 +273,6 @@ void saveConfiguration(const char *filename, const Config &config) {
   doc["ledpin"] = config.ledpin;
   doc["httpuser"] = config.httpuser;
   doc["httppassword"] = config.httppassword;
-  doc["overridecodes"] = config.overridecodes;
   doc["apitoken"] = config.apitoken;
   doc["syslogserver"] = config.syslogserver;
   doc["syslogport"] = config.syslogport;
@@ -295,7 +294,7 @@ void saveConfiguration(const char *filename, const Config &config) {
   doc["checkuserpage"] = config.checkuserpage;
   doc["getuserpage"] = config.getuserpage;
   doc["moduserpage"] = config.moduserpage;
-
+  doc["overridecodes"] = config.overridecodes;
 
   // Serialize JSON to file
   if (serializeJson(doc, file) == 0) {
@@ -334,7 +333,6 @@ void printConfig() {
   Serial.print("            ledpin: "); Serial.println(config.ledpin);
   Serial.print("          httpuser: "); Serial.println(config.httpuser);
   Serial.print("      httppassword: "); Serial.println(config.httppassword);
-  Serial.print("     overridecodes: "); Serial.println(config.overridecodes);
   Serial.print("          apitoken: "); Serial.println(config.apitoken);
   Serial.print("      syslogserver: "); Serial.println(config.syslogserver);
   Serial.print("        syslogport: "); Serial.println(config.syslogport);
@@ -356,4 +354,5 @@ void printConfig() {
   Serial.print("     checkuserpage: "); Serial.println(config.checkuserpage);
   Serial.print("       getuserpage: "); Serial.println(config.getuserpage);
   Serial.print("       moduserpage: "); Serial.println(config.moduserpage);
+  Serial.print("     overridecodes: "); Serial.println(config.overridecodes);
 }
