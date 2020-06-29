@@ -59,7 +59,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - Enable active checking of access, regularly poll and check whether card still has access
 - Figure out sizing for JSON doc
 - Figure out sizing of variable for url
-- Store configuration to spiffs
 - Regularly pull down user list from server and store in spiffs
 - Regularly send "in use data" back to somewhere
 - Add a sensor to detect whether the laser is actually firing and ship somewhere
@@ -70,7 +69,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - If ntp sync fails 10 times, force a reboot
 
 ## Bugs
-- Bad/odd http response codes can cause a crash - often seen when having trouble doing web calls
+- Bad/odd http response codes can cause a crash - often seen when having trouble doing web calls, do a check after httpGETRequest
 - NTP sync sometimes doesnt change time to correct zone, likely problem querying eztime server
 - If bootTime = Thursday, 01-Jan-1970 00:00:16 UTC, refresh it for the most current time
 
@@ -95,6 +94,8 @@ A simple ESP32 Based RFID Access Control System for tools
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
+- Store configuration to spiffs
+- Make defining of serverURL and its handling less gross, and add output to fullstatus
 - Move parts of the code to seperate files
 - Figure out a way to nicely handle to the two loops - loop1=card present  loop2=no card present
 - Make maintenance mode persist between reboots
