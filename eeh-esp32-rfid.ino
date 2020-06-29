@@ -23,12 +23,7 @@
 // liquidcrystal_i2c library: https://github.com/johnrickman/LiquidCrystal_I2C
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
 
-#define FIRMWARE_VERSION "v1.1-ota"
-
-//const char* serverURL1 = "https://mock-rfid-system.herokuapp.com/check?rfid=";
-//const char* serverURL1 = "http://192.168.10.21:56000/check?rfid=";
-const char* serverURL1 = "http://192.168.10.21:8180/check.php?rfid=";
-const char* serverURL2 = "&device=laser&api=abcde";
+#define FIRMWARE_VERSION "v1.2-ota"
 
 // configuration structure
 struct Config {
@@ -59,13 +54,14 @@ struct Config {
   int webserverporthttp;   // http port number for web admin
   int webserverporthttps;  // https port number for the web admin
   int webapiwaittime;      // forced delay in seconds between web api calls
-  String serverurl;        // url of authentication server, e.g. "http://something.com/" or "https://whatever.net"
-  String getuserpage;      // mod user webpage hosted on authentication server, e.g. "getuser.php"
+  String serverurl;        // url of authentication server, e.g. "http://something.com/" or "https://192.168.20.60"
+  String checkuserpage;    // check user webpage hosted on authentication server, e.g. "checkuser.php"
+  String getuserpage;      // get user webpage hosted on authentication server, e.g. "getuser.php"
   String moduserpage;      // mod user webpage hosted on authentication server, e.g. "moduser.php"
 };
 
 // used for loading and saving configuration data
-const char *filename = "/config5.txt";
+const char *filename = "/config.txt";
 Config config;
 
 // clean these up
@@ -73,9 +69,6 @@ const char* PARAM_INPUT_1 = "state";
 const char* PARAM_INPUT_2 = "pin";
 
 char *accessOverrideCodes[] = {"90379632", "boss2aaa", "boss3bbb"};
-
-// clean this up, likely redundant
-char* serverURL;
 
 // keeps track of when the last webapicall was made to prevent hammering
 unsigned long sinceLastRunTime = 0;
@@ -149,18 +142,13 @@ void setup() {
 
   Serial.println("Removing old config files");
   SPIFFS.remove("/config.txt");
-  SPIFFS.remove("/config2.txt");
-  SPIFFS.remove("/config3.txt");
-  SPIFFS.remove("/config4.txt");
 
   Serial.println("=============");
-  Serial.println(F("Print config file before..."));
+  Serial.println(F("Print file before:"));
   printFile(filename);
   Serial.println(F("Loading configuration..."));
   loadConfiguration(filename, config);
-  Serial.println(F("Saving configuration..."));
-  saveConfiguration(filename, config);
-  Serial.println(F("Print config file after..."));
+  Serial.println(F("Print file after:"));
   printFile(filename);
   Serial.println("=============");
   printConfig();
@@ -216,18 +204,16 @@ void setup() {
   Serial.print("    NTP Time Zone: "); Serial.println(config.ntptimezone);
 
   //===========
+  Serial.println("Listing files stored on SPIFFS");
   File root = SPIFFS.open("/");
-
-  File file3 = root.openNextFile();
-
-  while (file3) {
-
+  File foundfile = root.openNextFile();
+  while (foundfile) {
     Serial.print("FILE: ");
-    Serial.println(file3.name());
-
-    file3 = root.openNextFile();
+    Serial.println(foundfile.name());
+    foundfile = root.openNextFile();
   }
   //===========
+  /*
   Serial.print("checking nonexistent file: "); Serial.println(SPIFFS.exists("/nonexisting.txt"));
 
   if (SPIFFS.exists("/test.txt")) {
@@ -239,6 +225,7 @@ void setup() {
   }
 
   SPIFFS.remove("/test.txt");
+  */
   //===============
 
   lcd->clear();
@@ -338,14 +325,16 @@ void dowebcall(const char *foundrfid) {
   if ((currentRunTime - sinceLastRunTime) > (config.webapiwaittime * 1000)) {
     if (WiFi.status() == WL_CONNECTED) {
       StaticJsonDocument<300> doc;
-      char serverURL[240];
-      sprintf(serverURL, "%s%s%s", serverURL1, foundrfid, serverURL2);
+      //char serverURL[240];
+      //sprintf(serverURL, "%s%s%s", serverURL1, foundrfid, serverURL2);
 
-      String logmessage = "";
+      String tempstring = config.serverurl + config.checkuserpage + "?device=" + config.device + "&rfid=" + String(currentRFIDcard) + "&api=" + config.apitoken;
+      char checkURL[tempstring.length() + 1];
+      tempstring.toCharArray(checkURL, tempstring.length() + 1);
 
-      Serial.print(iteration); Serial.print(" dowebcall ServerURL: "); Serial.println(serverURL);
+      Serial.print(iteration); Serial.print(" dowebcall checkURL: "); Serial.println(checkURL);
 
-      returnedJSON = httpGETRequest(serverURL);
+      returnedJSON = httpGETRequest(checkURL);
       Serial.print(iteration); Serial.print(" ReturnedJSON:"); Serial.println(returnedJSON);
 
       DeserializationError error = deserializeJson(doc, returnedJSON);
@@ -449,10 +438,6 @@ void loop() {
   array_to_string(mfrc522[0].uid.uidByte, 4, newcard);
   iteration++;
   Serial.print(iteration); Serial.print(" RFID Found: "); Serial.println(newcard);
-
-  char serverURL[80];
-  sprintf(serverURL, "%s%s%s", serverURL1, newcard, serverURL2);
-  Serial.print(iteration); Serial.print(" ServerURL: "); Serial.println(serverURL);
 
   while (true) {
     control = 0;
@@ -595,10 +580,9 @@ String getFullStatus() {
   fullStatusDoc["SyslogServer"] = config.syslogserver;
   fullStatusDoc["SyslogPort"] = config.syslogport;
   fullStatusDoc["ServerURL"] = config.serverurl;
+  fullStatusDoc["CheckUserPage"] = config.checkuserpage;
   fullStatusDoc["GetUserPage"] = config.getuserpage;
   fullStatusDoc["ModUserPage"] = config.moduserpage;
-  fullStatusDoc["ServerURL1"] = serverURL1;
-  fullStatusDoc["ServerURL2"] = serverURL2;
   fullStatusDoc["Firmware"] = FIRMWARE_VERSION;
   fullStatusDoc["Temp"] = String((temprature_sens_read() - 32) / 1.8) + "C";
   fullStatusDoc["CompileTime"] = String(__DATE__) + " " + String(__TIME__);
