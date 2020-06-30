@@ -157,6 +157,16 @@ void configureWebServer() {
     request->send(401);
   });
 
+  server->on("/download", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
+      return request->requestAuthentication();
+    }
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    Serial.println(logmessage);
+    syslog.log(logmessage);
+    request->send(SPIFFS, filename, "application/json");
+  });
+
   server->on("/maintenance", HTTP_GET, [](AsyncWebServerRequest * request) {
     if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();

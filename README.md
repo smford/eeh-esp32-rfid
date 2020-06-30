@@ -54,7 +54,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - Change password for OTA webpage to be a hash
 - Convert Web Admin to using websockets
 - Upload settings file
-- Download settings file
 - If no settings file, set default, and go in to programming mode
 - Add status light to signify when it is checking access, in trainer mode, locked, unlocked, etc
 - Enable active checking of access, regularly poll and check whether card still has access
@@ -95,6 +94,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
+- Download settings file
 - Fix the default settings
 - Store configuration to spiffs
 - Make defining of serverURL and its handling less gross, and add output to fullstatus

@@ -28,6 +28,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   <button onclick="grantAccessButton()" %GRANTBUTTONENABLE%>Grant Access to Current Card</button>
   <button onclick="revokeAccessButton()" %GRANTBUTTONENABLE%>Revoke Access to Current Card</button>
   <button onclick="displayConfig()">Display Config</button>
+  <button onclick="downloadButton()">Download Config</button>
   <button onclick="refreshNTP()">Refresh NTP</button>
   <button onclick="logoutCurrentUserButton()">Logout Current User</button>
   <button onclick="rebootButton()">Reboot</button>
@@ -146,6 +147,9 @@ function displayConfig() {
   displaydata = displaydata + "</table>";
   document.getElementById("statusdetails").innerHTML = "Configuration Loaded";
   document.getElementById("configdetails").innerHTML = displaydata;
+}
+function downloadButton() {
+  window.open("/download","_blank");
 }
 </script>
 </body>
