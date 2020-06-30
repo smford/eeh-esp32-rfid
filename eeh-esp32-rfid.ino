@@ -23,7 +23,7 @@
 // liquidcrystal_i2c library: https://github.com/johnrickman/LiquidCrystal_I2C
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
 
-#define FIRMWARE_VERSION "v1.2-ota"
+#define FIRMWARE_VERSION "v1.3-ota"
 
 // configuration structure
 struct Config {
@@ -74,7 +74,7 @@ unsigned long sinceLastRunTime = 0;
 // used to track the status of card presented on the mfrc reader
 uint8_t control = 0x00;
 
-// change this from global to local scope
+// possibly delete, maybe change this from global to local scope
 String returnedJSON;
 
 // currently presented card details
@@ -93,6 +93,9 @@ bool shouldReboot = false;           // schedule a reboot
 // maintenance and override modes
 bool inMaintenanceMode = false;
 bool inOverrideMode = false;
+
+// should i reset configuration to default?
+bool resetConfigToDefault = false;
 
 // setup MFRC522
 MFRC522 mfrc522[1];
@@ -138,28 +141,20 @@ void setup() {
     return;
   }
 
-  Serial.println("Removing old config files");
-  SPIFFS.remove("/config.txt");
-
-  //===========
-  Serial.println("Listing files stored on SPIFFS");
-  File root = SPIFFS.open("/");
-  File foundfile = root.openNextFile();
-  while (foundfile) {
-    Serial.print("FILE: ");
-    Serial.println(foundfile.name());
-    foundfile = root.openNextFile();
+  if (resetConfigToDefault) {
+    Serial.println("Resetting Configuration to Default");
+    SPIFFS.remove(filename);
   }
-  //===========
 
+  listFiles();
   Serial.println("=============");
-  Serial.print(F("Print file before:")); printFile(filename);
-  Serial.println(F("Loading configuration..."));
+  Serial.print("Config Before Load: "); printFile(filename);
   loadConfiguration(filename, config);
-  Serial.print(F("Print file after:")); printFile(filename);
+  Serial.print("Config After Load: "); printFile(filename);
   Serial.println("=============");
   printConfig();
   Serial.println("=============");
+  listFiles();
 
   // configure lcd using loaded configuration
   lcd = new LiquidCrystal_I2C(config.lcdi2caddress, config.lcdwidth, config.lcdheight);
@@ -416,7 +411,6 @@ void dowebcall(const char *foundrfid) {
 }
 
 void loop() {
-
   loopBreakout("Card Absent");
 
   if (!mfrc522[0].PICC_IsNewCardPresent()) {
@@ -810,5 +804,16 @@ bool checkOverride(const char *foundrfid) {
   } else {
     Serial.print(iteration); Serial.print(" "); Serial.print(foundrfid); Serial.println(" not in override list");
     return false;
+  }
+}
+
+void listFiles() {
+  Serial.println("Listing files stored on SPIFFS");
+  File root = SPIFFS.open("/");
+  File foundfile = root.openNextFile();
+  while (foundfile) {
+    Serial.print("FILE: ");
+    Serial.println(foundfile.name());
+    foundfile = root.openNextFile();
   }
 }

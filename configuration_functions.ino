@@ -39,26 +39,31 @@ void loadConfiguration(const char *filename, Config &config) {
   // flag used to detect if a default value is loaded, if default value loaded initiate a save after load
   bool initiatesave = false;
 
+  if (!SPIFFS.exists(filename)) {
+    Serial.println(String(filename) + " not found");
+    initiatesave = true;
+  } else {
+    Serial.println(String(filename) + " found");
+  }
+
   // Open file for reading
+  Serial.println("Opening " + String(filename));
   File file = SPIFFS.open(filename);
 
   if (!file) {
-    Serial.println("Failed to open file for reading");
+    Serial.println("ERROR: Failed to open file" + String(filename));
     return;
   }
 
-  if (!SPIFFS.exists(filename)) {
-    Serial.println(String(filename) + " does not exist");
-  } else {
-    Serial.println(String(filename) + " exists");
-  }
-
-  StaticJsonDocument<1000> doc;
+  StaticJsonDocument<2000> doc;
 
   // Deserialize the JSON document
   DeserializationError error = deserializeJson(doc, file);
   if (error) {
-    Serial.println(F("Failed to read file, using default configuration"));
+    Serial.println(F("Failed to process configuration file, will load default configuration"));
+    Serial.println("===ERROR===");
+    Serial.println(error.c_str());
+    Serial.println("===========");
   }
 
   // Copy values from the JsonDocument to the Config
@@ -141,6 +146,7 @@ void loadConfiguration(const char *filename, Config &config) {
     initiatesave = true;
     config.ntptimezone = "Europe/London";
   }
+
   config.ntpsynctime = doc["ntpsynctime"];
   if (config.ntpsynctime == 0) {
     initiatesave = true;
@@ -177,7 +183,6 @@ void loadConfiguration(const char *filename, Config &config) {
     config.mfrccardwaittime = 1;
   }
 
-  //0x27 = int 39
   config.lcdi2caddress = doc["lcdi2caddress"];
   if (config.lcdi2caddress == 0) {
     initiatesave = true;
@@ -267,6 +272,8 @@ void saveConfiguration(const char *filename, const Config &config) {
 
   // Set the values in the document
   doc["hostname"] = config.hostname;
+  doc["device"] = config.device;
+  doc["appname"] = config.appname;
   doc["ssid"] = config.ssid;
   doc["wifipassword"] = config.wifipassword;
   doc["relaypin"] = config.relaypin;
@@ -327,6 +334,8 @@ void printFile(const char *filename) {
 
 void printConfig() {
   Serial.print("          hostname: "); Serial.println(config.hostname);
+  Serial.print("            device: "); Serial.println(config.device);
+  Serial.print("           appname: "); Serial.println(config.appname);
   Serial.print("              ssid: "); Serial.println(config.ssid);
   Serial.print("      wifipassword: "); Serial.println(config.wifipassword);
   Serial.print("          relaypin: "); Serial.println(config.relaypin);
