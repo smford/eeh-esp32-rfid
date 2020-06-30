@@ -47,6 +47,8 @@ A simple ESP32 Based RFID Access Control System for tools
 - Adjust the timeout on setTimeout(function(){, 5000 might be too generous and it makes web interface seen a bit unresponsive.  WebSockets will superceed this if implemented.
 
 ## Things to do
+- Make syslog optional
+- Make shipping metrics optional
 - Change web admin password to be a hash
 - Change the api token to be a hash
 - Change password for OTA webpage to be a hash
