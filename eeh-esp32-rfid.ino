@@ -12,8 +12,8 @@
 #include <LiquidCrystal_I2C.h>
 #include <AsyncElegantOTA.h>
 #include <SPIFFS.h>
-#include "secrets.h"
 #include "webpages.h"
+#include "defaults.h"
 
 // eztime library: https://github.com/ropg/ezTime v0.8.3
 // esp async webserver library: https://github.com/me-no-dev/ESPAsyncWebServer v1.2.3

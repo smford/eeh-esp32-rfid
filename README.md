@@ -51,7 +51,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - Change the api token to be a hash
 - Change password for OTA webpage to be a hash
 - Convert Web Admin to using websockets
-- Fix the default settings
 - Upload settings file
 - Download settings file
 - If no settings file, set default, and go in to programming mode
@@ -94,6 +93,7 @@ A simple ESP32 Based RFID Access Control System for tools
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
+- Fix the default settings
 - Store configuration to spiffs
 - Make defining of serverURL and its handling less gross, and add output to fullstatus
 - Move parts of the code to seperate files
