@@ -1,4 +1,6 @@
-void writeuploadfile(String uploadfilename, const char *uploadeddata) {
+//void writeuploadfile(String uploadfilename, const char *uploadeddata) {
+void writeuploadfile(String uploadfilename, const uint8_t *uploadeddata, size_t len) {
+
   uploadfilename = "/" + uploadfilename;
   String logmessage = "Writing uploaded file: " + uploadfilename;
   Serial.println(logmessage);
@@ -21,12 +23,18 @@ void writeuploadfile(String uploadfilename, const char *uploadeddata) {
     return;
   }
 
-  Serial.print("Uploaded data: "); Serial.println(uploadeddata);
-  if (file.print(uploadeddata)) {
-    logmessage = "File Write Success: " + uploadfilename;
-  } else {
-    logmessage = "ERROR: File Write Error: " + uploadfilename;
+  Serial.print("Uploaded data: "); Serial.println((const char *)uploadeddata);
+  Serial.print("Size: "); Serial.println(len);
+
+  // write out the data as long as len > 0
+  if (len) {
+    if (file.write(uploadeddata, len) == len) {
+     logmessage = "File Write Success: " + uploadfilename;
+    } else {
+      logmessage = "ERROR: File Write Error: " + uploadfilename;
+    }
   }
+  
   Serial.println(logmessage);
   syslog.log(logmessage);
   file.close();

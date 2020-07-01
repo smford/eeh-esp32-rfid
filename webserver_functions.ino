@@ -231,6 +231,18 @@ void configureWebServer() {
     request->send(200, "text/plain", listFiles(true));
   });
 
+  server->onFileUpload(handleUpload);
+
+  server->on("/simpleupload", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
+      return request->requestAuthentication();
+    }
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    Serial.println(logmessage);
+    syslog.log(logmessage);
+    request->send(200, "text/html", simpleupload_html);
+  });
+
   server->on("/upload", HTTP_GET, [](AsyncWebServerRequest * request)
   {
     if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
@@ -287,7 +299,7 @@ void configureWebServer() {
     //Serial.print("Uploaded file data: "); Serial.println(data);
 
     //Serial.println("writing file");
-    writeuploadfile(uploadfilename, (const char*)data);
+    writeuploadfile(uploadfilename, data, len);
     Serial.println("=======");
     Serial.println("Reading file");
     readafile(uploadfilename);

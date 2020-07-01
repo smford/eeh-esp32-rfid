@@ -841,3 +841,21 @@ String humanReadableSize(const size_t bytes) {
   else if (bytes < (1024 * 1024 * 1024)) return String(bytes / 1024.0 / 1024.0) + " MB";
   else return String(bytes / 1024.0 / 1024.0 / 1024.0) + " GB";
 }
+
+void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
+  if(!index){
+    Serial.println("xxxUploadStart: " + String(filename));
+    // open the file on first call and store the file handle in the request object
+    request->_tempFile = SPIFFS.open("/"+filename, "w");
+  }
+  if(len) {
+    // stream the incoming chunk to the opened file
+    request->_tempFile.write(data,len);
+  }
+  if(final){
+    Serial.println("xxxUploadEnd: " + String(filename) + ",size: " + String(index+len));
+    // close the file handle as the upload is now done
+    request->_tempFile.close();
+    request->redirect("/");
+  }
+}

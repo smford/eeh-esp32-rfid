@@ -211,3 +211,20 @@ const char reboot_html[] PROGMEM = R"rawliteral(
 </body>
 </html>
 )rawliteral";
+
+
+const char simpleupload_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+</head>
+<body>
+  <form method = "POST" action = "/doUpload" enctype="multipart/form-data">
+    <input type="file" name="data"/>
+    <input type="submit" name="upload" value="Upload" title = "Upload Files">
+  </form>
+</body>
+</html>
+)rawliteral";
