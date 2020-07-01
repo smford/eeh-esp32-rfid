@@ -806,10 +806,12 @@ String listFiles(bool ishtml) {
   Serial.println("Listing files stored on SPIFFS");
   File root = SPIFFS.open("/");
   File foundfile = root.openNextFile();
-  if (ishtml) { returnText += "<table><tr><th align='left'>Name</th><th align='left'>Size</th><th></th><th></th></tr>"; }
+  if (ishtml) { returnText += "<table><tr><th align='left'>Name</th><th align='left'>Size</th><th></th><th></th><th></th><th></th</tr>"; }
   while (foundfile) {
     if (ishtml) {
-      returnText += "<tr align='left'><td>" + String(foundfile.name()) + "</td><td>" + humanReadableSize(foundfile.size()) + "</td><td><a href='/file?name=" + String(foundfile.name()) + "&action=download'>Download</a></td><td><a href='/file?name=" + String(foundfile.name()) + "&action=delete'>Delete</a></td></tr>";
+      returnText += "<tr align='left'><td>" + String(foundfile.name()) + "</td><td>" + humanReadableSize(foundfile.size()) + "</td><td><a href='/file?name=" + String(foundfile.name()) + "&action=download'>Download</a></td><td><a href='/file?name=" + String(foundfile.name()) + "&action=delete'>Delete</a></td>";
+      returnText += "<td><button onclick=\"downloadDeleteButton(\'" + String(foundfile.name()) + "\', \'download\')\">Download</button>";
+      returnText += "<td><button onclick=\"downloadDeleteButton(\'" + String(foundfile.name()) + "\', \'delete\')\">Delete</button></tr>";
     } else {
       returnText += "File: " + String(foundfile.name()) + "\n";
     }

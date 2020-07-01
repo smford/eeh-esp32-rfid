@@ -161,6 +161,21 @@ function listFilesButton() {
   document.getElementById("configheader").innerHTML = "<h3>Files<h3>";
   document.getElementById("configdetails").innerHTML = xmlhttp.responseText;
 }
+function downloadDeleteButton(filename, action) {
+  var urltocall = "/file?name=" + filename + "&action=" + action;
+  xmlhttp=new XMLHttpRequest();
+  if (action == "delete") {
+    xmlhttp.open("GET", urltocall, false);
+    xmlhttp.send();
+    document.getElementById("configheader").innerHTML = xmlhttp.responseText;
+    xmlhttp.open("GET", "/listfiles", false);
+    xmlhttp.send();
+    document.getElementById("configdetails").innerHTML = xmlhttp.responseText;
+  }
+  if (action == "download") {
+    window.open(urltocall,"_blank");
+  }
+}
 </script>
 </body>
 </html>
