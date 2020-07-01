@@ -43,6 +43,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   %RELAYSLIDER%
   %MAINTENANCEMODESLIDER%
   <p id="configheader"></p>
+  <p id="configstatus"></p>
   <p id="configdetails"></p>
 <script>
 function toggleCheckbox(element, pin) {
@@ -157,7 +158,7 @@ function listFilesButton() {
   xmlhttp=new XMLHttpRequest();
   xmlhttp.open("GET", "/listfiles", false);
   xmlhttp.send();
-  document.getElementById("statusdetails").innerHTML = "Files Listed";
+  document.getElementById("configstatus").innerHTML = "Files Listed";
   document.getElementById("configheader").innerHTML = "<h3>Files<h3>";
   document.getElementById("configdetails").innerHTML = xmlhttp.responseText;
 }
@@ -167,12 +168,13 @@ function downloadDeleteButton(filename, action) {
   if (action == "delete") {
     xmlhttp.open("GET", urltocall, false);
     xmlhttp.send();
-    document.getElementById("configheader").innerHTML = xmlhttp.responseText;
+    document.getElementById("configstatus").innerHTML = xmlhttp.responseText;
     xmlhttp.open("GET", "/listfiles", false);
     xmlhttp.send();
     document.getElementById("configdetails").innerHTML = xmlhttp.responseText;
   }
   if (action == "download") {
+    document.getElementById("configstatus").innerHTML = "";
     window.open(urltocall,"_blank");
   }
 }
