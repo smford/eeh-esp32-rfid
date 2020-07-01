@@ -14,7 +14,6 @@
 #include <SPIFFS.h>
 #include "webpages.h"
 #include "defaults.h"
-#include "upload_htm.h"
 
 // eztime library: https://github.com/ropg/ezTime v0.8.3
 // esp async webserver library: https://github.com/me-no-dev/ESPAsyncWebServer v1.2.3
@@ -23,9 +22,8 @@
 // arduinojson library: https://github.com/bblanchon/ArduinoJson & https://arduinojson.org/ v6.15.2
 // liquidcrystal_i2c library: https://github.com/johnrickman/LiquidCrystal_I2C
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
-// minimalUploadAuthESP32 https://github.com/CelliesProjects/minimalUploadAuthESP32
 
-#define FIRMWARE_VERSION "v1.3-ota"
+#define FIRMWARE_VERSION "v1.4-ota"
 
 // configuration structure
 struct Config {
@@ -63,9 +61,6 @@ struct Config {
 };
 
 String listFiles(bool ishtml=false);
-
-// maximum filesize to allow to be uploaded
-const size_t MAX_FILESIZE = 1024 * 1024 * 5;
 
 // used for loading and saving configuration data
 const char *filename = "/config.txt";
@@ -142,9 +137,11 @@ AsyncWebServer *server;
 void setup() {
   Serial.begin(115200);
 
+  Serial.print("Firmware: "); Serial.println(FIRMWARE_VERSION);
+
   Serial.println("Booting ...");
 
-  Serial.println("Loading Configuration ...");
+  Serial.println("Mounting SPIFFS ...");
   if (!SPIFFS.begin(true)) {
     Serial.println("ERROR: Cannot mount SPIFFS");
     //return;
@@ -155,23 +152,22 @@ void setup() {
     SPIFFS.remove(filename);
   }
 
-  Serial.print(listFiles());
-  Serial.println("=============");
-  Serial.print("Config Before Load: "); printFile(filename);
+  Serial.println(listFiles());
+
+  Serial.println("Loading Configuration ...");
   loadConfiguration(filename, config);
-  Serial.print("Config After Load: "); printFile(filename);
-  Serial.println("=============");
   printConfig();
-  Serial.println("=============");
-  Serial.print(listFiles());
 
   // configure lcd using loaded configuration
+  Serial.println("Configuring LCD ...");
   lcd = new LiquidCrystal_I2C(config.lcdi2caddress, config.lcdwidth, config.lcdheight);
   lcd->init();
   lcd->backlight();
   lcd->noCursor();
+
   lcd->print("Booting...");
 
+  Serial.println("Configuring Syslog ...");
   // configure syslog server using loaded configuration
   syslog.server(config.syslogserver.c_str(), config.syslogport);
   syslog.deviceHostname(config.hostname.c_str());
@@ -184,6 +180,7 @@ void setup() {
     // need to implement this
   }
 
+  Serial.println("Configuring RFID ...");
   SPI.begin(); // Init SPI bus
   mfrc522[0].PCD_Init(config.mfrcslaveselectpin, config.mfrcresetpin);
   delay(4); // delay needed to allow mfrc522 to spin up properly
@@ -208,29 +205,13 @@ void setup() {
   Serial.print("      ESP32 Flash: "); Serial.println(FIRMWARE_VERSION);
   Serial.print("   Flash Compiled: "); Serial.println(String(__DATE__) + " " + String(__TIME__));
   Serial.print("       ESP32 Temp: "); Serial.print((temprature_sens_read() - 32) / 1.8); Serial.println("C");
-
   Serial.print("  MFRC522 Version: "); Serial.println(getmfrcversion());
   Serial.print("       NTP Server: "); Serial.println(config.ntpserver);
   Serial.print("    NTP Time Sync: "); Serial.println(config.ntpsynctime);
   Serial.print("    NTP Time Zone: "); Serial.println(config.ntptimezone);
 
-  /*
-  Serial.print("checking nonexistent file: "); Serial.println(SPIFFS.exists("/nonexisting.txt"));
-
-  if (SPIFFS.exists("/test.txt")) {
-    Serial.println("test.txt exists");
-    readafile();
-  } else {
-    Serial.println("test.txt does not exist, creating");
-    writeafile();
-  }
-
-  SPIFFS.remove("/test.txt");
-  */
-  //===============
-
   lcd->clear();
-  lcd->print("Connecting to Wifi..");
+  lcd->print("Connecting Wifi...");
 
   Serial.print("\nConnecting to Wifi: ");
   WiFi.begin(config.ssid.c_str(), config.wifipassword.c_str());
@@ -253,15 +234,18 @@ void setup() {
   Serial.print("        DNS 3: "); Serial.println(WiFi.dnsIP(2));
   Serial.println();
 
+  Serial.println("Configuring LED ...");
   pinMode(config.ledpin, OUTPUT);
   disableLed("Automatically Disable LED upon boot");
 
+  Serial.println("Configuring Relay ...");
   pinMode(config.relaypin, OUTPUT);
   disableRelay("Automatically Disable Relay upon boot");
 
   Serial.println();
 
   // configure time, wait config.ntpwaitsynctime seconds then progress, otherwise it can stall
+  Serial.println("Configuring NTP ...");
   Serial.print("Attempting to NTP Sync time for "); Serial.print(config.ntpwaitsynctime); Serial.println(" seconds");
   lcd->clear();
   lcd->print("Syncing NTP...");
@@ -272,19 +256,22 @@ void setup() {
   myTZ.setLocation(config.ntptimezone);
   Serial.print(config.ntptimezone + ": "); Serial.println(printTime());
 
-  bootTime = printTime();
-  Serial.print("Booted at: "); Serial.println(bootTime);
-  syslog.logf("Booted");
-
-  // create and configure web server
+  // configure web server
+  Serial.println("Configuring Webserver ...");
   server = new AsyncWebServer(config.webserverporthttp);
   configureWebServer();
 
+  Serial.println("Configuring OTA Webserver ...");
   // configure ota web server
   AsyncElegantOTA.begin(server, config.httpuser.c_str(), config.httppassword.c_str());
 
+  Serial.println("Starting Webserver ...");
   // startup web server
   server->begin();
+
+  bootTime = printTime();
+  Serial.print("Booted at: "); Serial.println(bootTime);
+  syslog.logf("Booted");
 
   // since everything is now loaded, update lcd in the appropriate mode
   if (config.inmaintenance) {
@@ -326,8 +313,6 @@ void dowebcall(const char *foundrfid) {
   if ((currentRunTime - sinceLastRunTime) > (config.webapiwaittime * 1000)) {
     if (WiFi.status() == WL_CONNECTED) {
       StaticJsonDocument<300> doc;
-      //char serverURL[240];
-      //sprintf(serverURL, "%s%s%s", serverURL1, foundrfid, serverURL2);
 
       String tempstring = config.serverurl + config.checkuserpage + "?device=" + config.device + "&rfid=" + String(currentRFIDcard) + "&api=" + config.apitoken;
       char checkURL[tempstring.length() + 1];
@@ -429,11 +414,10 @@ void loop() {
 
   if (!mfrc522[0].PICC_ReadCardSerial()) {
     // empty ReadCardSerial means no real card found, re-loop
-    //Serial.println("y");
     return;
   }
 
-  // if here it means a card is present
+  // if we have reached here it means a card is present
   char newcard[32] = "";
   array_to_string(mfrc522[0].uid.uidByte, 4, newcard);
   iteration++;
@@ -816,15 +800,16 @@ bool checkOverride(const char *foundrfid) {
   }
 }
 
+// list all of the files, if ishtml=true, return html rather than simple text
 String listFiles(bool ishtml) {
   String returnText = "";
   Serial.println("Listing files stored on SPIFFS");
   File root = SPIFFS.open("/");
   File foundfile = root.openNextFile();
-  if (ishtml) { returnText += "<table><tr><th align='left'>Name</th><th align='left'>Size (bytes)</th><th></th><th></th></tr>"; }
+  if (ishtml) { returnText += "<table><tr><th align='left'>Name</th><th align='left'>Size</th><th></th><th></th></tr>"; }
   while (foundfile) {
     if (ishtml) {
-      returnText += "<tr align='left'><td>" + String(foundfile.name()) + "</td><td>" + foundfile.size() + "</td><td><a href='/file?name=" + String(foundfile.name()) + "&action=download'>Download</a></td><td><a href='/file?name=" + String(foundfile.name()) + "&action=delete'>Delete</a></td></tr>";
+      returnText += "<tr align='left'><td>" + String(foundfile.name()) + "</td><td>" + humanReadableSize(foundfile.size()) + "</td><td><a href='/file?name=" + String(foundfile.name()) + "&action=download'>Download</a></td><td><a href='/file?name=" + String(foundfile.name()) + "&action=delete'>Delete</a></td></tr>";
     } else {
       returnText += "File: " + String(foundfile.name()) + "\n";
     }
@@ -834,28 +819,11 @@ String listFiles(bool ishtml) {
   return returnText;
 }
 
-/* format bytes as KB, MB or GB string */
+// Make size of files human readable
+// source: https://github.com/CelliesProjects/minimalUploadAuthESP32
 String humanReadableSize(const size_t bytes) {
   if (bytes < 1024) return String(bytes) + " B";
   else if (bytes < (1024 * 1024)) return String(bytes / 1024.0) + " KB";
   else if (bytes < (1024 * 1024 * 1024)) return String(bytes / 1024.0 / 1024.0) + " MB";
   else return String(bytes / 1024.0 / 1024.0 / 1024.0) + " GB";
-}
-
-void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
-  if(!index){
-    Serial.println("xxxUploadStart: " + String(filename));
-    // open the file on first call and store the file handle in the request object
-    request->_tempFile = SPIFFS.open("/"+filename, "w");
-  }
-  if(len) {
-    // stream the incoming chunk to the opened file
-    request->_tempFile.write(data,len);
-  }
-  if(final){
-    Serial.println("xxxUploadEnd: " + String(filename) + ",size: " + String(index+len));
-    // close the file handle as the upload is now done
-    request->_tempFile.close();
-    request->redirect("/");
-  }
 }

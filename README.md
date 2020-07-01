@@ -53,7 +53,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - Change the api token to be a hash
 - Change password for OTA webpage to be a hash
 - Convert Web Admin to using websockets
-- Upload settings file
 - If no settings file, set default, and go in to programming mode
 - Add status light to signify when it is checking access, in trainer mode, locked, unlocked, etc
 - Enable active checking of access, regularly poll and check whether card still has access
@@ -87,8 +86,6 @@ A simple ESP32 Based RFID Access Control System for tools
 - Sort out logging levels info or info+error
 - Enable https on device
 - Web Admin: Scan i2c devices and print out
-- Web Admin: List files on spiffs
-- Web Admin: View/Download and delete files on spiffs
 
 ## Abandoned
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
@@ -96,6 +93,9 @@ A simple ESP32 Based RFID Access Control System for tools
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
+- Upload settings file
+- Web Admin: List files on spiffs
+- Web Admin: View/Download and delete files on spiffs
 - Download settings file
 - Fix the default settings
 - Store configuration to spiffs

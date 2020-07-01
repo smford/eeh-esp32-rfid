@@ -27,12 +27,11 @@ const char index_html[] PROGMEM = R"rawliteral(
   <button onclick="getUserDetailsButton()">Refresh Current Card User Details</button>
   <button onclick="grantAccessButton()" %GRANTBUTTONENABLE%>Grant Access to Current Card</button>
   <button onclick="revokeAccessButton()" %GRANTBUTTONENABLE%>Revoke Access to Current Card</button>
-  <button onclick="displayConfig()">Display Config</button>
-  <button onclick="downloadButton()">Download Config</button>
-  <button onclick="uploadButton()">Upload Config</button>
+  <button onclick="displayConfig()">Display Running Config</button>
+  <button onclick="uploadFileButton()">Upload File</button>
+  <button onclick="listFilesButton()">List Files</button>
   <button onclick="refreshNTP()">Refresh NTP</button>
   <button onclick="logoutCurrentUserButton()">Logout Current User</button>
-  <button onclick="listFilesButton()">List Files</button>
   <button onclick="rebootButton()">Reboot</button>
   <input type="button" onclick="location.href='/update';" value="OTA Update" />
   <p>Status: <span id="statusdetails"></span></p>
@@ -150,10 +149,7 @@ function displayConfig() {
   document.getElementById("statusdetails").innerHTML = "Configuration Loaded";
   document.getElementById("configdetails").innerHTML = displaydata;
 }
-function downloadButton() {
-  window.open("/download","_blank");
-}
-function uploadButton() {
+function uploadFileButton() {
   window.open("/upload","_blank");
 }
 function listFilesButton() {
@@ -162,6 +158,7 @@ function listFilesButton() {
   xmlhttp.open("GET", "/listfiles", false);
   xmlhttp.send();
   document.getElementById("statusdetails").innerHTML = "Files Listed";
+  document.getElementById("configheader").innerHTML = "<h3>Files<h3>";
   document.getElementById("configdetails").innerHTML = xmlhttp.responseText;
 }
 </script>
@@ -221,7 +218,7 @@ const char simpleupload_html[] PROGMEM = R"rawliteral(
   <meta charset="UTF-8">
 </head>
 <body>
-  <form method = "POST" action = "/doUpload" enctype="multipart/form-data">
+  <form method = "POST" action = "/" enctype="multipart/form-data">
     <input type="file" name="data"/>
     <input type="submit" name="upload" value="Upload" title = "Upload Files">
   </form>
