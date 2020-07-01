@@ -167,6 +167,140 @@ void configureWebServer() {
     request->send(SPIFFS, filename, "application/json");
   });
 
+  server->on("/file", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
+      return request->requestAuthentication();
+    }
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    Serial.println(logmessage);
+    syslog.log(logmessage);
+
+    int args = request->args();
+    for (int i = 0; i < args; i++) {
+      Serial.printf("ARG[%s]: %s\n", request->argName(i).c_str(), request->arg(i).c_str());
+    }
+
+    //=======
+    const char *fileName = request->getParam("name")->value().c_str();
+    const char *fileAction = request->getParam("action")->value().c_str();
+
+    if (!SPIFFS.exists(fileName)) {
+      request->send(200, "text/plain", "ERROR");
+    } else {
+      if (strcmp(fileAction, "download") == 0) {
+        request->send(SPIFFS, fileName, "application/octet-stream");
+      }
+      if (strcmp(fileAction, "delete") == 0) {
+        SPIFFS.remove(fileName);
+        request->send(200, "text/plain", "Deleted File: " + String(fileName));
+      }
+    }
+
+    /*
+    if (SPIFFS.exists(fileName)) {
+      request->send(SPIFFS, fileName, "application/octet-stream");
+    } else {
+      request->send(200, "text/plain", "ERROR");
+    }
+    */
+  });
+
+  /*
+    server->on("/upload", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
+      return request->requestAuthentication();
+    }
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    Serial.println(logmessage);
+    syslog.log(logmessage);
+    //request->send(SPIFFS, filename, "application/json");
+    String returnText = "something";
+    request->send(200, "text/html", returnText);
+    });
+  */
+  //============
+
+  server->on("/listfiles", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
+      return request->requestAuthentication();
+    }
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    Serial.println(logmessage);
+    syslog.log(logmessage);
+    request->send(200, "text/plain", listFiles(true));
+  });
+
+  server->on("/upload", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
+      return request->requestAuthentication();
+    }
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    Serial.println(logmessage);
+    syslog.log(logmessage);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", upload_htm, upload_htm_len);
+    response->addHeader("Server", "ESP Async Web Server");
+    request->send(response);
+  });
+
+  server->on("/api/upload", HTTP_POST, [](AsyncWebServerRequest * request)
+  {
+    if (request->authenticate(config.httpuser.c_str(), config.httppassword.c_str()))
+      request->send(200);
+    else
+      request->requestAuthentication();
+  },
+  /*{
+    Serial.println("checking auth");
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
+      Serial.println("no auth, sending back");
+      return request->requestAuthentication();
+    }
+    },*/
+  [](AsyncWebServerRequest * request, String uploadfilename, size_t index, uint8_t *data, size_t len, bool final)
+  {
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str()))
+      request->requestAuthentication();
+
+    // https://javascript.info/formdata
+
+    static time_t startTimer;
+    if (!index) {
+      startTimer = millis();
+      const char * fileSizeHeader{"FileSize"};
+      Serial.printf("UPLOAD: %s starting upload\n", uploadfilename.c_str());
+      if (request->hasHeader(fileSizeHeader)) {
+        Serial.printf("UPLOAD: fileSize:%s\n", request->header(fileSizeHeader));
+        if (request->header(fileSizeHeader).toInt() > MAX_FILESIZE) {
+          char content[70];
+          snprintf(content, sizeof(content), "File too large. (%s)<br>Max upload size is %s", humanReadableSize(request->header(fileSizeHeader).toInt()), humanReadableSize(MAX_FILESIZE));
+          request->send(400, "text/html", content);
+          request->client()->close();
+          Serial.printf("UPLOAD: Aborted upload of '%s' because file too big.\n", uploadfilename.c_str());
+          return;
+        }
+      }
+    }
+    //Store or do something with the data...
+    //Serial.printf("file: '%s' received %i bytes\ttotal: %i\n", filename.c_str(), len, index + len);
+    //Serial.print("Uploaded file data: "); Serial.println(data);
+
+    //Serial.println("writing file");
+    writeuploadfile(uploadfilename, (const char*)data);
+    Serial.println("=======");
+    Serial.println("Reading file");
+    readafile(uploadfilename);
+    Serial.println("finshed reading file");
+
+    if (final)
+      Serial.printf("UPLOAD: %s Done. Received %i bytes in %.2fs which is %.2f kB/s.\n", uploadfilename.c_str(),
+      index + len,
+      (millis() - startTimer) / 1000.0,
+      1.0 * (index + len) / (millis() - startTimer));
+  });
+  //============
+
   server->on("/maintenance", HTTP_GET, [](AsyncWebServerRequest * request) {
     if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();

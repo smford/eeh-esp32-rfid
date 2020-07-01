@@ -14,6 +14,7 @@
 #include <SPIFFS.h>
 #include "webpages.h"
 #include "defaults.h"
+#include "upload_htm.h"
 
 // eztime library: https://github.com/ropg/ezTime v0.8.3
 // esp async webserver library: https://github.com/me-no-dev/ESPAsyncWebServer v1.2.3
@@ -22,6 +23,7 @@
 // arduinojson library: https://github.com/bblanchon/ArduinoJson & https://arduinojson.org/ v6.15.2
 // liquidcrystal_i2c library: https://github.com/johnrickman/LiquidCrystal_I2C
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
+// minimalUploadAuthESP32 https://github.com/CelliesProjects/minimalUploadAuthESP32
 
 #define FIRMWARE_VERSION "v1.3-ota"
 
@@ -59,6 +61,11 @@ struct Config {
   String moduserpage;      // mod user webpage hosted on authentication server, e.g. "moduser.php"
   String overridecodes;    // list of rfid card numbers, seperated by commas, that have override access
 };
+
+String listFiles(bool ishtml=false);
+
+// maximum filesize to allow to be uploaded
+const size_t MAX_FILESIZE = 1024 * 1024 * 5;
 
 // used for loading and saving configuration data
 const char *filename = "/config.txt";
@@ -135,10 +142,12 @@ AsyncWebServer *server;
 void setup() {
   Serial.begin(115200);
 
-  // loading configuration
+  Serial.println("Booting ...");
+
+  Serial.println("Loading Configuration ...");
   if (!SPIFFS.begin(true)) {
-    Serial.println("An Error has occurred while mounting SPIFFS");
-    return;
+    Serial.println("ERROR: Cannot mount SPIFFS");
+    //return;
   }
 
   if (resetConfigToDefault) {
@@ -146,7 +155,7 @@ void setup() {
     SPIFFS.remove(filename);
   }
 
-  listFiles();
+  Serial.print(listFiles());
   Serial.println("=============");
   Serial.print("Config Before Load: "); printFile(filename);
   loadConfiguration(filename, config);
@@ -154,7 +163,7 @@ void setup() {
   Serial.println("=============");
   printConfig();
   Serial.println("=============");
-  listFiles();
+  Serial.print(listFiles());
 
   // configure lcd using loaded configuration
   lcd = new LiquidCrystal_I2C(config.lcdi2caddress, config.lcdwidth, config.lcdheight);
@@ -807,13 +816,28 @@ bool checkOverride(const char *foundrfid) {
   }
 }
 
-void listFiles() {
+String listFiles(bool ishtml) {
+  String returnText = "";
   Serial.println("Listing files stored on SPIFFS");
   File root = SPIFFS.open("/");
   File foundfile = root.openNextFile();
+  if (ishtml) { returnText += "<table><tr><th align='left'>Name</th><th align='left'>Size (bytes)</th><th></th><th></th></tr>"; }
   while (foundfile) {
-    Serial.print("FILE: ");
-    Serial.println(foundfile.name());
+    if (ishtml) {
+      returnText += "<tr align='left'><td>" + String(foundfile.name()) + "</td><td>" + foundfile.size() + "</td><td><a href='/file?name=" + String(foundfile.name()) + "&action=download'>Download</a></td><td><a href='/file?name=" + String(foundfile.name()) + "&action=delete'>Delete</a></td></tr>";
+    } else {
+      returnText += "File: " + String(foundfile.name()) + "\n";
+    }
     foundfile = root.openNextFile();
   }
+  if (ishtml) { returnText += "</table>"; }
+  return returnText;
+}
+
+/* format bytes as KB, MB or GB string */
+String humanReadableSize(const size_t bytes) {
+  if (bytes < 1024) return String(bytes) + " B";
+  else if (bytes < (1024 * 1024)) return String(bytes / 1024.0) + " KB";
+  else if (bytes < (1024 * 1024 * 1024)) return String(bytes / 1024.0 / 1024.0) + " MB";
+  else return String(bytes / 1024.0 / 1024.0 / 1024.0) + " GB";
 }

@@ -29,8 +29,10 @@ const char index_html[] PROGMEM = R"rawliteral(
   <button onclick="revokeAccessButton()" %GRANTBUTTONENABLE%>Revoke Access to Current Card</button>
   <button onclick="displayConfig()">Display Config</button>
   <button onclick="downloadButton()">Download Config</button>
+  <button onclick="uploadButton()">Upload Config</button>
   <button onclick="refreshNTP()">Refresh NTP</button>
   <button onclick="logoutCurrentUserButton()">Logout Current User</button>
+  <button onclick="listFilesButton()">List Files</button>
   <button onclick="rebootButton()">Reboot</button>
   <input type="button" onclick="location.href='/update';" value="OTA Update" />
   <p>Status: <span id="statusdetails"></span></p>
@@ -150,6 +152,17 @@ function displayConfig() {
 }
 function downloadButton() {
   window.open("/download","_blank");
+}
+function uploadButton() {
+  window.open("/upload","_blank");
+}
+function listFilesButton() {
+  document.getElementById("statusdetails").innerHTML = "Listing Files ...";
+  xmlhttp=new XMLHttpRequest();
+  xmlhttp.open("GET", "/listfiles", false);
+  xmlhttp.send();
+  document.getElementById("statusdetails").innerHTML = "Files Listed";
+  document.getElementById("configdetails").innerHTML = xmlhttp.responseText;
 }
 </script>
 </body>

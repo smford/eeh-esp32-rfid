@@ -1,3 +1,37 @@
+void writeuploadfile(String uploadfilename, const char *uploadeddata) {
+  uploadfilename = "/" + uploadfilename;
+  String logmessage = "Writing uploaded file: " + uploadfilename;
+  Serial.println(logmessage);
+  syslog.log(logmessage);
+
+  if (SPIFFS.exists(uploadfilename.c_str())) {
+    logmessage = "File exists, deleting: " + uploadfilename;
+    SPIFFS.remove(uploadfilename.c_str());
+  } else {
+    logmessage = "File does not exist: " + uploadfilename;
+  }
+  Serial.println(logmessage);
+  syslog.log(logmessage);
+
+  File file = SPIFFS.open(uploadfilename, FILE_WRITE);
+  if (!file) {
+    logmessage = "ERROR: There was an error opening file " + uploadfilename + " in preparation for writing";
+    Serial.println(logmessage);
+    syslog.log(logmessage);
+    return;
+  }
+
+  Serial.print("Uploaded data: "); Serial.println(uploadeddata);
+  if (file.print(uploadeddata)) {
+    logmessage = "File Write Success: " + uploadfilename;
+  } else {
+    logmessage = "ERROR: File Write Error: " + uploadfilename;
+  }
+  Serial.println(logmessage);
+  syslog.log(logmessage);
+  file.close();
+}
+
 void writeafile() {
   if (!SPIFFS.begin(true)) {
     Serial.println("An Error has occurred while mounting SPIFFS");
@@ -18,8 +52,8 @@ void writeafile() {
   file.close();
 }
 
-void readafile() {
-  File file2 = SPIFFS.open("/test.txt");
+void readafile(String readthisfile) {
+  File file2 = SPIFFS.open(readthisfile);
   if (!file2) {
     Serial.println("Failed to open file for reading");
     return;
