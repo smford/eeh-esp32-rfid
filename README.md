@@ -86,7 +86,9 @@ A simple ESP32 Based RFID Access Control System for tools
 - When a card is removed or presented, auto refresh the web admin page
 - Sort out logging levels info or info+error
 - Enable https on device
-- Scan i2c devices and print out
+- Web Admin: Scan i2c devices and print out
+- Web Admin: List files on spiffs
+- Web Admin: View/Download and delete files on spiffs
 
 ## Abandoned
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
