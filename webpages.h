@@ -29,6 +29,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   <button onclick="revokeAccessButton()" %GRANTBUTTONENABLE%>Revoke Access to Current Card</button>
   <button onclick="displayConfig()">Display Running Config</button>
   <button onclick="uploadFileButton()">Upload File</button>
+  <button onclick="showUploadButton()">2Upload File</button>
   <button onclick="listFilesButton()">List Files</button>
   <button onclick="refreshNTP()">Refresh NTP</button>
   <button onclick="logoutCurrentUserButton()">Logout Current User</button>
@@ -177,6 +178,12 @@ function downloadDeleteButton(filename, action) {
     document.getElementById("configstatus").innerHTML = "";
     window.open(urltocall,"_blank");
   }
+}
+function showUploadButton() {
+  document.getElementById("configheader").innerHTML = "<h3>Upload File<h3>"
+  document.getElementById("configstatus").innerHTML = "";
+  var uploadform = "<form method = \"POST\" action = \"/\" enctype=\"multipart/form-data\"><input type=\"file\" name=\"data\"/><input type=\"submit\" name=\"upload\" value=\"Upload\" title = \"Upload File\"></form>"
+  document.getElementById("configdetails").innerHTML = uploadform;
 }
 </script>
 </body>
