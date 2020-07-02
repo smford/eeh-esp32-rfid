@@ -24,7 +24,7 @@
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 
-#define FIRMWARE_VERSION "v1.5.1-ota"
+#define FIRMWARE_VERSION "v1.5.3-ota"
 
 // configuration structure
 struct Config {
@@ -66,6 +66,7 @@ struct Config {
 };
 
 String listFiles(bool ishtml=false);
+void lcdPrint(String line1="", String line2="", String line3="", String line4="");
 
 // used for loading and saving configuration data
 const char *filename = "/config.txt";
@@ -169,7 +170,7 @@ void setup() {
   lcd->backlight();
   lcd->noCursor();
 
-  lcd->print("Booting...");
+  lcdPrint("Booting...");
 
   Serial.println("Configuring Syslog ...");
   // configure syslog server using loaded configuration
@@ -220,8 +221,7 @@ void setup() {
     Serial.print("InfluxDB Ship Time: "); Serial.println(config.influxdbshiptime);
   }
 
-  lcd->clear();
-  lcd->print("Connecting Wifi...");
+  lcdPrint("Connecting Wifi...");
 
   Serial.print("\nConnecting to Wifi: ");
   WiFi.begin(config.ssid.c_str(), config.wifipassword.c_str());
@@ -257,8 +257,7 @@ void setup() {
   // configure time, wait config.ntpwaitsynctime seconds then progress, otherwise it can stall
   Serial.println("Configuring NTP ...");
   Serial.print("Attempting to NTP Sync time for "); Serial.print(config.ntpwaitsynctime); Serial.println(" seconds");
-  lcd->clear();
-  lcd->print("Syncing NTP...");
+  lcdPrint("Syncing NTP...");
   waitForSync(config.ntpwaitsynctime);
   setInterval(config.ntpsynctime);
   setServer(config.ntpserver);
@@ -286,15 +285,9 @@ void setup() {
   // since everything is now loaded, update lcd in the appropriate mode
   if (config.inmaintenance) {
     syslog.logf("Booting in to Maintenance Mode");
-    lcd->clear();
-    lcd->setCursor(0, 0); lcd->print(config.device);
-    lcd->setCursor(0, 1); lcd->print("MAINTENANCE MODE");
-    lcd->setCursor(0, 2); lcd->print("ALL ACCESS DENIED");
-    lcd->setCursor(0, 3); lcd->print("");
+    lcdPrint(config.device, "MAINTENANCE MODE", "ALL ACCESS DENIED");
   } else {
-    lcd->clear();
-    lcd->setCursor(0, 0); lcd->print(config.device);
-    lcd->setCursor(0, 1); lcd->print("Present Access Card");
+    lcdPrint(config.device, "Present Access Card");
   }
 }
 
@@ -370,11 +363,7 @@ void dowebcall(const char *foundrfid) {
             if (!config.inmaintenance) {
               // grant access because not in maintenance mode; and rfid, grant and device match
               currentRFIDaccess = true;
-              lcd->clear();
-              lcd->setCursor(0, 0); lcd->print(config.device);
-              lcd->setCursor(0, 1); lcd->print("ACCESS GRANTED");
-              lcd->setCursor(0, 2); lcd->print("RFID: " + String(currentRFIDcard));
-              lcd->setCursor(0, 3); lcd->print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
+              lcdPrint(config.device, "ACCESS GRANTED", "RFID: " + String(currentRFIDcard), currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
               enableLed(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
               enableRelay(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
             } else {
@@ -391,11 +380,7 @@ void dowebcall(const char *foundrfid) {
           }
         } else {
           // deny access, api says user does not have access
-          lcd->clear();
-          lcd->setCursor(0, 0); lcd->print(config.device);
-          lcd->setCursor(0, 1); lcd->print("ACCESS DENIED");
-          lcd->setCursor(0, 2); lcd->print("RFID: " + String(currentRFIDcard));
-          lcd->setCursor(0, 3); lcd->print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
+          lcdPrint(config.device, "ACCESS DENIED", "RFID: " + String(currentRFIDcard), currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
           disableLed(String(iteration) + " Access Denied: Disable LED: " + foundrfid);
           disableRelay(String(iteration) + " Access Denied: Disable Relay: " + foundrfid);
         }
@@ -459,8 +444,7 @@ void loop() {
         syslog.logf("%d New Card Found: %s", iteration, newcard);
         currentRFIDcard = newcard;
 
-        lcd->clear();
-        lcd->setCursor(0, 0); lcd->print("Checking Access...");
+        lcdPrint("Checking Access...");
 
         if (checkOverride(currentRFIDcard)) {
           // access override detected
@@ -470,11 +454,7 @@ void loop() {
           currentRFIDSurnameStr = "Mode";
           currentRFIDUserIDStr = "0";
           currentRFIDaccess = true;
-          lcd->clear();
-          lcd->setCursor(0, 0); lcd->print(config.device);
-          lcd->setCursor(0, 1); lcd->print("ACCESS GRANTED");
-          lcd->setCursor(0, 2); lcd->print("RFID: " + String(currentRFIDcard));
-          lcd->setCursor(0, 3); lcd->print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
+          lcdPrint(config.device, "ACCESS GRANTED", "RFID: " + String(currentRFIDcard), currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
         } else {
           // normal user, do webcall
           dowebcall(newcard);
@@ -496,16 +476,10 @@ void loop() {
   mfrc522[0].PCD_StopCrypto1();
   if (!config.inmaintenance) {
     // not in maintenance mode, update LCD
-    lcd->clear();
-    lcd->setCursor(0, 0); lcd->print(config.device);
-    lcd->setCursor(0, 1); lcd->print("Present Access Card");
+    lcdPrint(config.device, "Present Access Card");
   } else {
     // should be in maintenance mode, update LCD
-    lcd->clear();
-    lcd->setCursor(0, 0); lcd->print(config.device);
-    lcd->setCursor(0, 1); lcd->print("MAINTENANCE MODE");
-    lcd->setCursor(0, 2); lcd->print("ALL ACCESS DENIED");
-    lcd->setCursor(0, 3); lcd->print("");
+    lcdPrint(config.device, "MAINTENANCE MODE", "ALL ACCESS DENIED");
   }
   disableLed(String(iteration) + " " + "Access Revoked: Card Removed: Disable LED: " + String(newcard));
   disableRelay(String(iteration) + " " + "Access Revoked: Card Removed: Disable Relay: " + String(newcard));
@@ -778,16 +752,10 @@ void toggleMaintenance() {
 
   if (config.inmaintenance) {
     syslog.logf("Enabling Maintenance Mode");
-    lcd->clear();
-    lcd->setCursor(0, 0); lcd->print(config.device);
-    lcd->setCursor(0, 1); lcd->print("MAINTENANCE MODE");
-    lcd->setCursor(0, 2); lcd->print("ALL ACCESS DENIED");
-    lcd->setCursor(0, 3); lcd->print("");
+    lcdPrint(config.device, "MAINTENANCE MODE", "ALL ACCESS DENIED");
   } else {
     syslog.logf("Disabling Maintenance Mode");
-    lcd->clear();
-    lcd->setCursor(0, 0); lcd->print(config.device);
-    lcd->setCursor(0, 1); lcd->print("Present Access Card");
+    lcdPrint(config.device, "Present Access Card");
   }
 }
 
@@ -801,11 +769,7 @@ void logoutCurrentUser() {
   disableLed(String(iteration) + " " + "Web Admin User Logout Initiated: Disable LED: RFID:" + String(currentRFIDcard) + " UserID:" + currentRFIDUserIDStr);
   disableRelay(String(iteration) + " " + "Web Admin User Logout Initiated: Disable Relay: RFID:" + String(currentRFIDcard) + " UserID:" + currentRFIDUserIDStr);
 
-  lcd->clear();
-  lcd->setCursor(0, 0); lcd->print(config.device);
-  lcd->setCursor(0, 1); lcd->print("LOGGED OUT");
-  lcd->setCursor(0, 2); lcd->print("RFID: " + String(currentRFIDcard));
-  lcd->setCursor(0, 3); lcd->print(currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
+  lcdPrint(config.device, "LOGGED OUT", "RFID: " + String(currentRFIDcard), currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
 }
 
 // checks whether rfid is in the override list

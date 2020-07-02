@@ -43,7 +43,6 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Convert "if (!mfrc522.PICC_IsNewCardPresent()) {" to a function
 - Change button and slider code generation to sit within processor function
 - change grantUser() and getUserDetails() in to a generic function
-- Implement lcdPrint(l1, l2, l3, l4) and make adaptable for varying sizes of display (autoscroll perhaps)
 - Change haveaccess to being: &access=grant or &access=revoke
 - Adjust the timeout on setTimeout(function(){, 5000 might be too generous and it makes web interface seen a bit unresponsive.  WebSockets will superceed this if implemented.
 
@@ -74,6 +73,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 ## Nice to have
 - Change from LiquidCrystal_I2C.h to LiquidCrystalIO.h
 - Rather than lcdi2cadderss being an int, convert to a string ("0x27" for example) to allow easier configuration
+- make lcdPrint() adaptable for varying sizes of display (autoscroll perhaps)
 - Cleanup the OTA webpage
 - Allow all settings to be updated via web admin
 - Allow flashing from default firmware, and then configuration via web admin
@@ -93,6 +93,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
+- Implement lcdPrint(l1, l2, l3, l4)
 - Auth protect /backlighton and /backlightoff
 - Mask out secrets from all output
 - Cleanup PARAM_INPUT_1 and PARAM_INPUT_2
