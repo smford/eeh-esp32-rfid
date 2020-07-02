@@ -1,6 +1,6 @@
 # eeh-esp32-rfid
 
-A simple ESP32 Based RFID Access Control System for tools
+A simple ESP32 Based RFID Access Control System for tools or door.
 
 ## Components
 - ESP32 Dev Board
@@ -9,17 +9,22 @@ A simple ESP32 Based RFID Access Control System for tools
 - I2C 2004 LCD
 
 ## Features
-- Web Admin interface
-- Short and Full Status information
-- Webapi: reboot, status check, time check, full status check, refresh ntp, + more
-- Upon RFID being presented eeh-esp32-rfid will check whether that card has been granted access to the device and fire the relay
-- Users can be baked in to the firmware (super boss access, incase of network connectivity problems) or checked against a server (normal user access)
-- Logging via syslog
-- Session tracking in logs
-- NTP Time synchronisation
+- Authenticated Web Admin interface
+- Users can be from an internally baked list (in case of network connectivity problems), or checked against an external user managment system via api queries
 - Multiple types of user are supported: admin, trainer, user, + more
-- Support tls web api calls using JSON
-- Unfire relay upon rfid card removal
+- Forced user presence, the relay will unfired when a card is removed
+- User access management possible via Web Admin, useful after training a user to give immediate access
+- User session tracking
+- Short and Full Status information, for use with monitoring systems supporting json
+- OTA Updating of device
+- Configuration stored as code
+- Full remote and automated management possible by use of the api
+- Informative LCD Display
+- Maintenance Mode where only specific users can get override access
+- Logging via syslog
+- Metrics collected in influxdb/telegraf: system temp, access granted, and actual device being used (still to come)
+- NTP Time synchronisation
+- Support tls web api calls using json
 
 ## Pin Out
 
@@ -48,7 +53,6 @@ A simple ESP32 Based RFID Access Control System for tools
 
 ## Things to do
 - Make syslog optional
-- Make shipping metrics optional
 - Change web admin password to be a hash
 - Change the api token to be a hash
 - Change password for OTA webpage to be a hash
@@ -59,13 +63,12 @@ A simple ESP32 Based RFID Access Control System for tools
 - Figure out sizing for JSON doc
 - Figure out sizing of variable for url
 - Regularly pull down user list from server and store in spiffs
-- Regularly send "in use data" back to somewhere
 - Add a sensor to detect whether the laser is actually firing and ship somewhere
 - API token implementation for laptop to esp32
 - If no card present, grant and revoke access buttons are disabled, but when a card is presented and card details are refreshed, if a card is found the buttons should be enabled
 - Standardise time format: https://github.com/ropg/ezTime#built-in-date-and-time-formats
-- Upon boot, pull time from server, then start using utp
-- If ntp sync fails 10 times, force a reboot
+- Upon boot, pull time from server, then start using ntp
+- If ntp sync fails 10 times, force a reboot to address bug with ESP32s
 
 ## Bugs
 - Bad/odd http response codes can cause a crash - often seen when having trouble doing web calls, do a check after httpGETRequest
@@ -74,7 +77,6 @@ A simple ESP32 Based RFID Access Control System for tools
 
 ## Nice to have
 - Cleanup the OTA webpage
-- Send stats back to influxdb
 - Allow all settings to be updated via web admin
 - Allow flashing from default firmware, and then configuration via web admin
 - Use wifimanager or IotWebConf to make configuration easier
@@ -93,6 +95,9 @@ A simple ESP32 Based RFID Access Control System for tools
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
+- Make shipping metrics optional
+- Regularly send "in use data" back to somewhere
+- Send stats back to influxdb
 - Upload with error messages
 - Clean up download and delete links
 - Upload with progress bar
