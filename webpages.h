@@ -28,8 +28,8 @@ const char index_html[] PROGMEM = R"rawliteral(
   <button onclick="grantAccessButton()" %GRANTBUTTONENABLE%>Grant Access to Current Card</button>
   <button onclick="revokeAccessButton()" %GRANTBUTTONENABLE%>Revoke Access to Current Card</button>
   <button onclick="displayConfig()">Display Running Config</button>
-  <button onclick="uploadFileButton()">Upload File</button>
-  <button onclick="showUploadButton()">2Upload File</button>
+  <button onclick="showUploadButton()">Upload File - Simple</button>
+  <button onclick="showUploadButtonFancy()">Upload File - Fancy</button>
   <button onclick="listFilesButton()">List Files</button>
   <button onclick="refreshNTP()">Refresh NTP</button>
   <button onclick="logoutCurrentUserButton()">Logout Current User</button>
@@ -151,9 +151,6 @@ function displayConfig() {
   document.getElementById("statusdetails").innerHTML = "Configuration Loaded";
   document.getElementById("configdetails").innerHTML = displaydata;
 }
-function uploadFileButton() {
-  window.open("/upload","_blank");
-}
 function listFilesButton() {
   document.getElementById("statusdetails").innerHTML = "Listing Files ...";
   xmlhttp=new XMLHttpRequest();
@@ -184,6 +181,62 @@ function showUploadButton() {
   document.getElementById("configstatus").innerHTML = "";
   var uploadform = "<form method = \"POST\" action = \"/\" enctype=\"multipart/form-data\"><input type=\"file\" name=\"data\"/><input type=\"submit\" name=\"upload\" value=\"Upload\" title = \"Upload File\"></form>"
   document.getElementById("configdetails").innerHTML = uploadform;
+}
+function showUploadButtonFancy() {
+  document.getElementById("configheader").innerHTML = "<h3>Upload File 3<h3>"
+  document.getElementById("configstatus").innerHTML = "";
+  var uploadform = "<form method = \"POST\" action = \"/\" enctype=\"multipart/form-data\"><input type=\"file\" name=\"data\"/><input type=\"submit\" name=\"upload\" value=\"Upload\" title = \"Upload File\"></form>"
+  document.getElementById("configdetails").innerHTML = uploadform;
+  var uploadform =
+  "<form id=\"upload_form\" enctype=\"multipart/form-data\" method=\"post\">" +
+  "<input type=\"file\" name=\"file1\" id=\"file1\" onchange=\"uploadFile()\"><br>" +
+  "<progress id=\"progressBar\" value=\"0\" max=\"100\" style=\"width:300px;\"></progress>" +
+  "<h3 id=\"status\"></h3>" +
+  "<p id=\"loaded_n_total\"></p>" +
+  "</form>";
+  document.getElementById("configdetails").innerHTML = uploadform;
+}
+function _(el) {
+  return document.getElementById(el);
+}
+function uploadFile() {
+  var file = _("file1").files[0];
+  // alert(file.name+" | "+file.size+" | "+file.type);
+  var formdata = new FormData();
+  formdata.append("file1", file);
+  var ajax = new XMLHttpRequest();
+  ajax.upload.addEventListener("progress", progressHandler, false);
+  ajax.addEventListener("load", completeHandler, false); // doesnt appear to ever get called even upon success
+  ajax.addEventListener("error", errorHandler, false);
+  ajax.addEventListener("abort", abortHandler, false);
+  ajax.open("POST", "/");
+  ajax.send(formdata);
+}
+function progressHandler(event) {
+  //_("loaded_n_total").innerHTML = "Uploaded " + event.loaded + " bytes of " + event.total; // event.total doesnt show accurate total file size
+  _("loaded_n_total").innerHTML = "Uploaded " + event.loaded + " bytes";
+  var percent = (event.loaded / event.total) * 100;
+  _("progressBar").value = Math.round(percent);
+  _("status").innerHTML = Math.round(percent) + "% uploaded... please wait";
+  if (percent >= 100) {
+    _("status").innerHTML = "Please wait, writing file to filesystem";
+  }
+}
+function completeHandler(event) {
+  _("status").innerHTML = "Upload Complete";
+  _("progressBar").value = 0;
+  xmlhttp=new XMLHttpRequest();
+  xmlhttp.open("GET", "/listfiles", false);
+  xmlhttp.send();
+  document.getElementById("configstatus").innerHTML = "File Uploaded";
+  document.getElementById("configheader").innerHTML = "<h3>Files<h3>";
+  document.getElementById("configdetails").innerHTML = xmlhttp.responseText;
+}
+function errorHandler(event) {
+  _("status").innerHTML = "Upload Failed";
+}
+function abortHandler(event) {
+  _("status").innerHTML = "Upload Aborted";
 }
 </script>
 </body>
@@ -234,7 +287,7 @@ const char reboot_html[] PROGMEM = R"rawliteral(
 )rawliteral";
 
 
-const char simpleupload_html[] PROGMEM = R"rawliteral(
+/* const char simpleupload_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML>
 <html lang="en">
 <head>
@@ -249,3 +302,4 @@ const char simpleupload_html[] PROGMEM = R"rawliteral(
 </body>
 </html>
 )rawliteral";
+*/

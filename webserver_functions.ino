@@ -31,7 +31,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
   if (len) {
     // stream the incoming chunk to the opened file
     request->_tempFile.write(data, len);
-    logmessage = "Writing file: " + String(filename);;
+    logmessage = "Writing file: " + String(filename) + " index=" + String(index) + " len=" + String(len);
     Serial.println(logmessage);
     syslog.log(logmessage);
   }
@@ -236,6 +236,7 @@ void configureWebServer() {
 
   server->onFileUpload(handleUpload);
 
+  /*
   server->on("/upload", HTTP_GET, [](AsyncWebServerRequest * request) {
     if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
@@ -245,6 +246,7 @@ void configureWebServer() {
     syslog.log(logmessage);
     request->send(200, "text/html", simpleupload_html);
   });
+  */
 
   server->on("/maintenance", HTTP_GET, [](AsyncWebServerRequest * request) {
     if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {

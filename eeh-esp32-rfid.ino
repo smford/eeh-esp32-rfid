@@ -22,8 +22,9 @@
 // arduinojson library: https://github.com/bblanchon/ArduinoJson & https://arduinojson.org/ v6.15.2
 // liquidcrystal_i2c library: https://github.com/johnrickman/LiquidCrystal_I2C
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
+// file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 
-#define FIRMWARE_VERSION "v1.4-ota"
+#define FIRMWARE_VERSION "v1.4.1-ota"
 
 // configuration structure
 struct Config {
