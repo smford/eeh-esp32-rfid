@@ -24,7 +24,7 @@
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 
-#define FIRMWARE_VERSION "v1.5.5-ota"
+#define FIRMWARE_VERSION "v1.5.6-ota"
 
 // configuration structure
 struct Config {
@@ -65,8 +65,8 @@ struct Config {
   int influxdbshiptime;    // how often should we ship metrics to influxdb
 };
 
-String listFiles(bool ishtml=false);
-void lcdPrint(String line1="", String line2="", String line3="", String line4="");
+String listFiles(bool ishtml = false);
+void lcdPrint(String line1 = "", String line2 = "", String line3 = "", String line4 = "");
 
 // used for loading and saving configuration data
 const char *filename = "/config.txt";
@@ -306,96 +306,90 @@ void dowebcall(const char *foundrfid) {
   unsigned long currentRunTime = millis();
 
   if ((currentRunTime - sinceLastRunTime) < (config.webapiwaittime * 1000)) {
-    Serial.print(iteration); Serial.println(" Firing webcall too fast, ignoring");
-
-    // probably need this
+    Serial.print(iteration); Serial.println(" Firing webcall too fast, waiting");
     delay((config.webapiwaittime * 1000) - (currentRunTime - sinceLastRunTime));
-    //return;
   }
 
-  if ((currentRunTime - sinceLastRunTime) > (config.webapiwaittime * 1000)) {
-    if (WiFi.status() == WL_CONNECTED) {
-      StaticJsonDocument<300> doc;
+  if (WiFi.status() == WL_CONNECTED) {
+    StaticJsonDocument<300> doc;
 
-      String tempstring = config.serverurl + config.checkuserpage + "?device=" + config.device + "&rfid=" + String(currentRFIDcard) + "&api=" + config.apitoken;
-      char checkURL[tempstring.length() + 1];
-      tempstring.toCharArray(checkURL, tempstring.length() + 1);
+    String tempstring = config.serverurl + config.checkuserpage + "?device=" + config.device + "&rfid=" + String(currentRFIDcard) + "&api=" + config.apitoken;
+    char checkURL[tempstring.length() + 1];
+    tempstring.toCharArray(checkURL, tempstring.length() + 1);
 
-      Serial.print(iteration); Serial.print(" dowebcall checkURL: "); Serial.println(checkURL);
+    Serial.print(iteration); Serial.print(" dowebcall checkURL: "); Serial.println(checkURL);
 
-      returnedJSON = httpGETRequest(checkURL);
-      Serial.print(iteration); Serial.print(" ReturnedJSON:"); Serial.println(returnedJSON);
+    returnedJSON = httpGETRequest(checkURL);
+    Serial.print(iteration); Serial.print(" ReturnedJSON:"); Serial.println(returnedJSON);
 
-      DeserializationError error = deserializeJson(doc, returnedJSON);
-      if (error) {
-        Serial.print(iteration); Serial.print(F(" DeserializeJson() failed: ")); Serial.println(error.c_str());
-        syslog.logf(LOG_ERR, "%d Error Decoding JSON: %s", iteration, error.c_str());
-      }
+    DeserializationError error = deserializeJson(doc, returnedJSON);
+    if (error) {
+      Serial.print(iteration); Serial.print(F(" DeserializeJson() failed: ")); Serial.println(error.c_str());
+      syslog.logf(LOG_ERR, "%d Error Decoding JSON: %s", iteration, error.c_str());
+    }
 
-      Serial.print(iteration); Serial.println(" Assigning Variables");
-      const char* Timestamp = doc["Timestamp"];
-      const char* RFID = doc["RFID"];
-      const char* EEHDevice = doc["EEHDevice"];
-      const char* UserID = doc["UserID"];
-      const char* FirstName = doc["FirstName"];
-      const char* Surname = doc["Surname"];
-      const char* Grant = doc["Grant"];
-      Serial.print(iteration); Serial.print(" Timestamp: "); Serial.println(Timestamp);
-      Serial.print(iteration); Serial.print("      RFID: "); Serial.println(RFID);
-      Serial.print(iteration); Serial.print(" EEHDevice: "); Serial.println(EEHDevice);
-      Serial.print(iteration); Serial.print("    UserID: "); Serial.println(UserID);
-      Serial.print(iteration); Serial.print("      Name: "); Serial.println(String(FirstName) + " " + String(Surname));
-      Serial.print(iteration); Serial.print("     Grant: "); Serial.println(Grant);
+    Serial.print(iteration); Serial.println(" Assigning Variables");
+    const char* Timestamp = doc["Timestamp"];
+    const char* RFID = doc["RFID"];
+    const char* EEHDevice = doc["EEHDevice"];
+    const char* UserID = doc["UserID"];
+    const char* FirstName = doc["FirstName"];
+    const char* Surname = doc["Surname"];
+    const char* Grant = doc["Grant"];
+    Serial.print(iteration); Serial.print(" Timestamp: "); Serial.println(Timestamp);
+    Serial.print(iteration); Serial.print("      RFID: "); Serial.println(RFID);
+    Serial.print(iteration); Serial.print(" EEHDevice: "); Serial.println(EEHDevice);
+    Serial.print(iteration); Serial.print("    UserID: "); Serial.println(UserID);
+    Serial.print(iteration); Serial.print("      Name: "); Serial.println(String(FirstName) + " " + String(Surname));
+    Serial.print(iteration); Serial.print("     Grant: "); Serial.println(Grant);
 
-      Serial.print(iteration); Serial.println(" Checking access");
-      if (strcmp(RFID, foundrfid) == 0) {
-        // presented rfid matches api returned rfid
-        currentRFIDUserIDStr = doc["UserID"].as<String>();
-        currentRFIDFirstNameStr = doc["FirstName"].as<String>();
-        currentRFIDSurnameStr = doc["Surname"].as<String>();
+    Serial.print(iteration); Serial.println(" Checking access");
+    if (strcmp(RFID, foundrfid) == 0) {
+      // presented rfid matches api returned rfid
+      currentRFIDUserIDStr = doc["UserID"].as<String>();
+      currentRFIDFirstNameStr = doc["FirstName"].as<String>();
+      currentRFIDSurnameStr = doc["Surname"].as<String>();
 
-        if (strcmp(Grant, "true") == 0) {
-          // api says user has access
+      if (strcmp(Grant, "true") == 0) {
+        // api says user has access
 
-          if (strcmp(config.device.c_str(), EEHDevice) == 0) {
-            // device matches api returned device
+        if (strcmp(config.device.c_str(), EEHDevice) == 0) {
+          // device matches api returned device
 
-            if (!config.inmaintenance) {
-              // grant access because not in maintenance mode; and rfid, grant and device match
-              currentRFIDaccess = true;
-              lcdPrint(config.device, "ACCESS GRANTED", "RFID: " + String(currentRFIDcard), currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
-              enableLed(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
-              enableRelay(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
-            } else {
-              // in maintenance mode, show message, deny access
-              Serial.println(String(iteration) + " In maintenance mode, ignoring non-Override access");
-              syslog.log(String(iteration) + "In maintenance mode, ignoring non-Override access");
-              lcdPrint("ACCESS DENIED", "IN MAINTENANCE MODE", "Only Override User", "Allowed");
-            }
-
+          if (!config.inmaintenance) {
+            // grant access because not in maintenance mode; and rfid, grant and device match
+            currentRFIDaccess = true;
+            lcdPrint(config.device, "ACCESS GRANTED", "RFID: " + String(currentRFIDcard), currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
+            enableLed(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
+            enableRelay(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
           } else {
-            // deny access, device does not match api returned device name
-            disableLed(String(iteration) + " Device Mismatch: Disable LED: Expected:" + config.device + " Got:" + EEHDevice);
-            disableRelay(String(iteration) + " Device Mismatch: Disable Relay: Expected:" + config.device + " Got:" + EEHDevice);
+            // in maintenance mode, show message, deny access
+            Serial.println(String(iteration) + " In maintenance mode, ignoring non-Override access");
+            syslog.log(String(iteration) + "In maintenance mode, ignoring non-Override access");
+            lcdPrint("ACCESS DENIED", "IN MAINTENANCE MODE", "Only Override User", "Allowed");
           }
+
         } else {
-          // deny access, api says user does not have access
-          lcdPrint(config.device, "ACCESS DENIED", "RFID: " + String(currentRFIDcard), currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
-          disableLed(String(iteration) + " Access Denied: Disable LED: " + foundrfid);
-          disableRelay(String(iteration) + " Access Denied: Disable Relay: " + foundrfid);
+          // deny access, device does not match api returned device name
+          disableLed(String(iteration) + " Device Mismatch: Disable LED: Expected:" + config.device + " Got:" + EEHDevice);
+          disableRelay(String(iteration) + " Device Mismatch: Disable Relay: Expected:" + config.device + " Got:" + EEHDevice);
         }
       } else {
-        // deny access, rfid matches does not match api returned rfid
-        disableLed(String(iteration) + " RFID Mismatch: Disable LED: Expected:" + foundrfid + " Got:" + RFID);
-        disableRelay(String(iteration) + " RFID Mismatch: Disable Relay: Expected:" + foundrfid + " Got:" + RFID);
+        // deny access, api says user does not have access
+        lcdPrint(config.device, "ACCESS DENIED", "RFID: " + String(currentRFIDcard), currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
+        disableLed(String(iteration) + " Access Denied: Disable LED: " + foundrfid);
+        disableRelay(String(iteration) + " Access Denied: Disable Relay: " + foundrfid);
       }
-
-      sinceLastRunTime = millis();
     } else {
-      Serial.println("WiFi Disconnected");
+      // deny access, rfid matches does not match api returned rfid
+      disableLed(String(iteration) + " RFID Mismatch: Disable LED: Expected:" + foundrfid + " Got:" + RFID);
+      disableRelay(String(iteration) + " RFID Mismatch: Disable Relay: Expected:" + foundrfid + " Got:" + RFID);
     }
+
+    sinceLastRunTime = millis();
   } else {
-    Serial.print(iteration); Serial.println(" Not doing webcall, firing too fast");
+    Serial.println("ERROR: WiFi Disconnected, Cannot do authenticate user against server");
+    lcdPrint(config.device, "WIFI DISCONNECTED");
   }
 }
 
@@ -799,7 +793,9 @@ String listFiles(bool ishtml) {
   Serial.println("Listing files stored on SPIFFS");
   File root = SPIFFS.open("/");
   File foundfile = root.openNextFile();
-  if (ishtml) { returnText += "<table><tr><th align='left'>Name</th><th align='left'>Size</th><th></th><th></th></tr>"; }
+  if (ishtml) {
+    returnText += "<table><tr><th align='left'>Name</th><th align='left'>Size</th><th></th><th></th></tr>";
+  }
   while (foundfile) {
     if (ishtml) {
       returnText += "<tr align='left'><td>" + String(foundfile.name()) + "</td><td>" + humanReadableSize(foundfile.size()) + "</td>";
@@ -811,7 +807,9 @@ String listFiles(bool ishtml) {
     }
     foundfile = root.openNextFile();
   }
-  if (ishtml) { returnText += "</table>"; }
+  if (ishtml) {
+    returnText += "</table>";
+  }
   root.close();
   foundfile.close();
   return returnText;

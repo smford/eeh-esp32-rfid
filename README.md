@@ -48,6 +48,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Creat a generic shipMetric(String metricname, String metricvalue) function rather than individual ship* functions
 
 ## Things to do
+- If wifi is disconnected, update LCD to alert user and put in to maintenance mode
 - Make syslog optional
 - Change web admin password to be a hash
 - Change the api token to be a hash
@@ -94,6 +95,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
+- Cleanup config.webapiwaittime
 - Added Wifi signal strength metric logging
 - Convert "if (!mfrc522.PICC_IsNewCardPresent()) {" to a function
 - Implement lcdPrint(l1, l2, l3, l4)
