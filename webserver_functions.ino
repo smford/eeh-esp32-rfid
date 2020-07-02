@@ -413,9 +413,9 @@ void configureWebServer() {
     }
     String inputMessage;
     String inputPin;
-    if (request->hasParam(PARAM_INPUT_1) && request->hasParam(PARAM_INPUT_2)) {
-      inputMessage = request->getParam(PARAM_INPUT_1)->value();
-      inputPin = request->getParam(PARAM_INPUT_2)->value();
+    if (request->hasParam("state") && request->hasParam("pin")) {
+      inputMessage = request->getParam("state")->value();
+      inputPin = request->getParam("pin")->value();
 
       String logmessage = "Client:" + request->client()->remoteIP().toString() + " Toggle Slider" + inputMessage + ":" + inputPin + " " + request->url();
       Serial.println(logmessage);

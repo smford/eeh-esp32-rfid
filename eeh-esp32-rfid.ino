@@ -24,7 +24,7 @@
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 
-#define FIRMWARE_VERSION "v1.5-ota"
+#define FIRMWARE_VERSION "v1.5.1-ota"
 
 // configuration structure
 struct Config {
@@ -70,10 +70,6 @@ String listFiles(bool ishtml=false);
 // used for loading and saving configuration data
 const char *filename = "/config.txt";
 Config config;
-
-// clean these up
-const char* PARAM_INPUT_1 = "state";
-const char* PARAM_INPUT_2 = "pin";
 
 // keeps track of when the last webapicall was made to prevent hammering
 unsigned long sinceLastRunTime = 0;

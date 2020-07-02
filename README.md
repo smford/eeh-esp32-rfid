@@ -39,8 +39,6 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 
 ## Coding Cleanup
 - Convert MFRC522 mfrc522[1]; to being MFRC522 *mfrc522; and mfrc522 = new MFRC522(config.mfrcslaveselectpin, config.mfrcresetpin) style
-- Mask out secrets from all output
-- Cleanup PARAM_INPUT_1 and PARAM_INPUT_2
 - Remove /backlighton and /backlightoff
 - Change from LiquidCrystal_I2C.h to LiquidCrystalIO.h
 - Rather than lcdi2cadderss being an int, convert to a string ("0x27" for example) to allow easier configuration
@@ -96,6 +94,8 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
+- Mask out secrets from all output
+- Cleanup PARAM_INPUT_1 and PARAM_INPUT_2
 - Make shipping metrics optional
 - Regularly send "in use data" back to somewhere
 - Send stats back to influxdb

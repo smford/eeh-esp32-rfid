@@ -327,12 +327,15 @@ void printConfig() {
   Serial.print("            device: "); Serial.println(config.device);
   Serial.print("           appname: "); Serial.println(config.appname);
   Serial.print("              ssid: "); Serial.println(config.ssid);
-  Serial.print("      wifipassword: "); Serial.println(config.wifipassword);
+  Serial.print("      wifipassword: "); Serial.println("**********");
+  //Serial.print("      wifipassword: "); Serial.println(config.wifipassword);
   Serial.print("          relaypin: "); Serial.println(config.relaypin);
   Serial.print("            ledpin: "); Serial.println(config.ledpin);
   Serial.print("          httpuser: "); Serial.println(config.httpuser);
-  Serial.print("      httppassword: "); Serial.println(config.httppassword);
-  Serial.print("          apitoken: "); Serial.println(config.apitoken);
+  Serial.print("      httppassword: "); Serial.println("**********");
+  //Serial.print("      httppassword: "); Serial.println(config.httppassword);
+  Serial.print("          apitoken: "); Serial.println("**********");
+  //Serial.print("          apitoken: "); Serial.println(config.apitoken);
   Serial.print("      syslogserver: "); Serial.println(config.syslogserver);
   Serial.print("        syslogport: "); Serial.println(config.syslogport);
   Serial.print("     inmaintenance: "); Serial.println(config.inmaintenance);
