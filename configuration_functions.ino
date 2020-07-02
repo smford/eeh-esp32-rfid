@@ -215,6 +215,26 @@ void loadConfiguration(const char *filename, Config &config) {
     config.overridecodes = default_overridecodes;
   }
 
+  config.influxdbenable = doc["influxdbenable"] | default_influxdbenable;
+
+  config.influxdbserver = doc["influxdbserver"].as<String>();
+  if (config.influxdbserver == "null") {
+    initiatesave = true;
+    config.influxdbserver = default_influxdbserver;
+  }
+
+  config.influxdbserverport = doc["influxdbserverport"];
+  if (config.influxdbserverport == 0) {
+    initiatesave = true;
+    config.influxdbserverport = default_influxdbserverport;
+  }
+
+  config.influxdbshiptime = doc["influxdbshiptime"];
+  if (config.influxdbshiptime == 0) {
+    initiatesave = true;
+    config.influxdbshiptime = default_influxdbshiptime;
+  }
+
   file.close();
 
   if (initiatesave) {
@@ -268,6 +288,10 @@ void saveConfiguration(const char *filename, const Config &config) {
   doc["getuserpage"] = config.getuserpage;
   doc["moduserpage"] = config.moduserpage;
   doc["overridecodes"] = config.overridecodes;
+  doc["influxdbenable"] = config.influxdbenable;
+  doc["influxdbserver"] = config.influxdbserver;
+  doc["influxdbserverport"] = config.influxdbserverport;
+  doc["influxdbshiptime"] = config.influxdbshiptime;
 
   // Serialize JSON to file
   if (serializeJson(doc, file) == 0) {
@@ -330,4 +354,8 @@ void printConfig() {
   Serial.print("       getuserpage: "); Serial.println(config.getuserpage);
   Serial.print("       moduserpage: "); Serial.println(config.moduserpage);
   Serial.print("     overridecodes: "); Serial.println(config.overridecodes);
+  Serial.print("    influxdbenable: "); Serial.println(config.influxdbenable);
+  Serial.print("    influxdbserver: "); Serial.println(config.influxdbserver);
+  Serial.print("influxdbserverport: "); Serial.println(config.influxdbserverport);
+  Serial.print("  influxdbshiptime: "); Serial.println(config.influxdbshiptime);
 }

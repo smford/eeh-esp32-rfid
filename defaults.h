@@ -29,3 +29,7 @@ const String default_checkuserpage = "/check.php";
 const String default_getuserpage = "/getuser.php";
 const String default_moduserpage = "/moduser.php";
 const String default_overridecodes = "90379632,222222,333333";
+const int default_influxdbenable = 1;
+const String default_influxdbserver = "192.168.10.21";
+const int default_influxdbserverport = 8094;
+const int default_influxdbshiptime = 30;

@@ -59,6 +59,10 @@ struct Config {
   String getuserpage;      // get user webpage hosted on authentication server, e.g. "getuser.php"
   String moduserpage;      // mod user webpage hosted on authentication server, e.g. "moduser.php"
   String overridecodes;    // list of rfid card numbers, seperated by commas, that have override access
+  bool influxdbenable;     // turns on or off shipping of metrics to influxdb
+  String influxdbserver;   // hostname or ip of influxdb server
+  int influxdbserverport;  // port number for influxdb
+  int influxdbshiptime;    // how often should we ship metrics to influxdb
 };
 
 String listFiles(bool ishtml=false);
@@ -73,6 +77,9 @@ const char* PARAM_INPUT_2 = "pin";
 
 // keeps track of when the last webapicall was made to prevent hammering
 unsigned long sinceLastRunTime = 0;
+
+// keeps track of the time when the last metrics were shipped for influxdb
+unsigned long influxdbLastRunTime = 0;
 
 // used to track the status of card presented on the mfrc reader
 uint8_t control = 0x00;
@@ -188,28 +195,34 @@ void setup() {
 
   Serial.println("\nSystem Configuration:");
   Serial.println("---------------------");
-  Serial.print("         Hostname: "); Serial.println(config.hostname);
-  Serial.print("         App Name: "); Serial.println(config.appname);
-  Serial.print("       EEH Device: "); Serial.println(config.device);
+  Serial.print("          Hostname: "); Serial.println(config.hostname);
+  Serial.print("          App Name: "); Serial.println(config.appname);
+  Serial.print("        EEH Device: "); Serial.println(config.device);
   if (config.inmaintenance) {
-    Serial.println(" Maintenance Mode: true");
+    Serial.println("  Maintenance Mode: true");
   } else {
-    Serial.println(" Maintenance Mode: false");
+    Serial.println("  Maintenance Mode: false");
   }
-  Serial.print("    Syslog Server: "); Serial.print(config.syslogserver); Serial.print(":"); Serial.println(config.syslogport);
-  Serial.print("Web API Wait Time: "); Serial.print(config.webapiwaittime); Serial.println(" seconds");
-  Serial.print("  RFID Card Delay: "); Serial.print(config.mfrccardwaittime); Serial.println(" seconds");
-  Serial.print("        Relay Pin: "); Serial.println(config.relaypin);
-  Serial.print("          LED Pin: "); Serial.println(config.ledpin);
-  Serial.print("    Web HTTP Port: "); Serial.println(config.webserverporthttp);
-  Serial.print("   Web HTTPS Port: "); Serial.println(config.webserverporthttps);
-  Serial.print("      ESP32 Flash: "); Serial.println(FIRMWARE_VERSION);
-  Serial.print("   Flash Compiled: "); Serial.println(String(__DATE__) + " " + String(__TIME__));
-  Serial.print("       ESP32 Temp: "); Serial.print((temprature_sens_read() - 32) / 1.8); Serial.println("C");
-  Serial.print("  MFRC522 Version: "); Serial.println(getmfrcversion());
-  Serial.print("       NTP Server: "); Serial.println(config.ntpserver);
-  Serial.print("    NTP Time Sync: "); Serial.println(config.ntpsynctime);
-  Serial.print("    NTP Time Zone: "); Serial.println(config.ntptimezone);
+  Serial.print("     Syslog Server: "); Serial.print(config.syslogserver); Serial.print(":"); Serial.println(config.syslogport);
+  Serial.print(" Web API Wait Time: "); Serial.print(config.webapiwaittime); Serial.println(" seconds");
+  Serial.print("   RFID Card Delay: "); Serial.print(config.mfrccardwaittime); Serial.println(" seconds");
+  Serial.print("         Relay Pin: "); Serial.println(config.relaypin);
+  Serial.print("           LED Pin: "); Serial.println(config.ledpin);
+  Serial.print("     Web HTTP Port: "); Serial.println(config.webserverporthttp);
+  Serial.print("    Web HTTPS Port: "); Serial.println(config.webserverporthttps);
+  Serial.print("       ESP32 Flash: "); Serial.println(FIRMWARE_VERSION);
+  Serial.print("    Flash Compiled: "); Serial.println(String(__DATE__) + " " + String(__TIME__));
+  Serial.print("        ESP32 Temp: "); Serial.print((temprature_sens_read() - 32) / 1.8); Serial.println("C");
+  Serial.print("   MFRC522 Version: "); Serial.println(getmfrcversion());
+  Serial.print("        NTP Server: "); Serial.println(config.ntpserver);
+  Serial.print("     NTP Time Sync: "); Serial.println(config.ntpsynctime);
+  Serial.print("     NTP Time Zone: "); Serial.println(config.ntptimezone);
+  if (config.influxdbenable) {
+    Serial.println("  InfluxDB Enabled: true");
+    Serial.print("   InfluxDB Server: "); Serial.println(config.influxdbserver);
+    Serial.print("     InfluxDB Port: "); Serial.println(config.influxdbserverport);
+    Serial.print("InfluxDB Ship Time: "); Serial.println(config.influxdbshiptime);
+  }
 
   lcd->clear();
   lcd->print("Connecting Wifi...");
@@ -642,6 +655,15 @@ String getFullStatus() {
     fullStatusDoc["inOverrideMode"] = "false";
   }
 
+  if (config.influxdbenable) {
+    fullStatusDoc["InfluxDBEnable"] = "true";
+  } else {
+    fullStatusDoc["InfluxDBEnable"] = "false";
+  }
+  fullStatusDoc["InfluxDBServer"] = config.influxdbserver;
+  fullStatusDoc["InfluxDBServerPort"] = config.influxdbserverport;
+  fullStatusDoc["InfluxDBShipTime"] = config.influxdbshiptime;
+
   String fullStatus = "";
   serializeJson(fullStatusDoc, fullStatus);
 
@@ -832,4 +854,38 @@ String humanReadableSize(const size_t bytes) {
   else if (bytes < (1024 * 1024)) return String(bytes / 1024.0) + " KB";
   else if (bytes < (1024 * 1024 * 1024)) return String(bytes / 1024.0 / 1024.0) + " MB";
   else return String(bytes / 1024.0 / 1024.0 / 1024.0) + " GB";
+}
+
+// ship core esp32 temp metrics to influxdb/telegraf
+void shipTemp() {
+  unsigned long currentRunTime = millis();
+
+  String line = config.device + "-temp value=" + String(((temprature_sens_read() - 32) / 1.8), 2);
+
+  Serial.print("Shipping: "); Serial.println(line);
+
+  udpClient.beginPacket(config.influxdbserver.c_str(), config.influxdbserverport);
+  udpClient.print(line);
+  udpClient.endPacket();
+}
+
+// ship usage metrics (device enabled or disabled) to influxdb/telegraf
+void shipUsage() {
+  unsigned long currentRunTime = millis();
+  String line;
+
+  // this is needed because the relay pin is naturally high when un-fired
+  if (digitalRead(config.relaypin)) {
+    line = config.device + "-usage value=0"; // shows NOT in use
+  } else {
+    line = config.device + "-usage value=1"; // shows WHEN in use
+  }
+
+  //line = config.device + "-usage value=" + String(digitalRead(config.relaypin));
+
+  Serial.print("Shipping: "); Serial.println(line);
+
+  udpClient.beginPacket(config.influxdbserver.c_str(), config.influxdbserverport);
+  udpClient.print(line);
+  udpClient.endPacket();
 }
