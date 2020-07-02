@@ -105,7 +105,7 @@ void loadConfiguration(const char *filename, Config &config) {
     config.syslogport = default_syslogport;
   }
 
-  config.inmaintenance = doc["inmaintenance"] | false;
+  config.inmaintenance = doc["inmaintenance"] | default_inmaintenance;
 
   config.ntptimezone = doc["ntptimezone"].as<String>();
   if (config.ntptimezone == "null") {
