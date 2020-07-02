@@ -18,6 +18,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Short and Full Status information, for use with monitoring systems supporting json
 - OTA Updating of device
 - Configuration stored as code
+- Can track exact device usage, for example, how long a laser was actually firing for a particular user
 - Full remote and automated management possible by use of the api
 - Informative LCD Display
 - Maintenance Mode where only specific users can get override access
