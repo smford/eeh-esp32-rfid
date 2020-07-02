@@ -24,7 +24,7 @@
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 
-#define FIRMWARE_VERSION "v1.5.7-ota"
+#define FIRMWARE_VERSION "v1.5.8-ota"
 
 // configuration structure
 struct Config {
@@ -80,9 +80,6 @@ unsigned long influxdbLastRunTime = 0;
 
 // used to track the status of card presented on the mfrc reader
 uint8_t control = 0x00;
-
-// possibly delete, maybe change this from global to local scope
-String returnedJSON;
 
 // currently presented card details
 char* currentRFIDcard = "";
@@ -319,7 +316,7 @@ void dowebcall(const char *foundrfid) {
 
     Serial.print(iteration); Serial.print(" dowebcall checkURL: "); Serial.println(checkURL);
 
-    returnedJSON = httpGETRequest(checkURL);
+    String returnedJSON = httpGETRequest(checkURL);
     Serial.print(iteration); Serial.print(" ReturnedJSON:"); Serial.println(returnedJSON);
 
     DeserializationError error = deserializeJson(doc, returnedJSON);

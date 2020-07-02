@@ -72,6 +72,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - If bootTime = Thursday, 01-Jan-1970 00:00:16 UTC, refresh it for the most current time
 
 ## Nice to have
+- Convert from using String to standard string library to keep memory clean and device more stable
 - Change from LiquidCrystal_I2C.h to LiquidCrystalIO.h
 - Rather than lcdi2cadderss being an int, convert to a string ("0x27" for example) to allow easier configuration
 - make lcdPrint() adaptable for varying sizes of display (autoscroll perhaps)
@@ -94,6 +95,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
+- Change returnedJSON from global to local scope
 - Change haveaccess to being: &access=grant or &access=revoke
 - Cleanup config.webapiwaittime
 - Added Wifi signal strength metric logging
