@@ -93,6 +93,10 @@ A simple ESP32 Based RFID Access Control System for tools
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
+- Upload with error messages
+- Clean up download and delete links
+- Upload with progress bar
+- Upload any file
 - Upload settings file
 - Web Admin: List files on spiffs
 - Web Admin: View/Download and delete files on spiffs
