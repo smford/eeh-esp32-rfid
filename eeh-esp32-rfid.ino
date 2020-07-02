@@ -24,7 +24,7 @@
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 
-#define FIRMWARE_VERSION "v1.5.4-ota"
+#define FIRMWARE_VERSION "v1.5.5-ota"
 
 // configuration structure
 struct Config {
@@ -852,6 +852,19 @@ void shipUsage() {
   }
 
   //line = config.device + "-usage value=" + String(digitalRead(config.relaypin));
+
+  Serial.print("Shipping: "); Serial.println(line);
+
+  udpClient.beginPacket(config.influxdbserver.c_str(), config.influxdbserverport);
+  udpClient.print(line);
+  udpClient.endPacket();
+}
+
+// ship wifi signal strength metrics to influxdb/telegraf
+void shipWifiSignal() {
+  unsigned long currentRunTime = millis();
+
+  String line = config.device + "-wifisignal value=" + String(WiFi.RSSI());
 
   Serial.print("Shipping: "); Serial.println(line);
 

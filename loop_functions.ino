@@ -22,6 +22,7 @@ void loopBreakout(String message) {
     if ((millis() - influxdbLastRunTime) > (config.influxdbshiptime * 1000)) {
       shipUsage();
       shipTemp();
+      shipWifiSignal();
       influxdbLastRunTime = millis();
     }
   }
