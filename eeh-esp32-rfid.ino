@@ -24,7 +24,7 @@
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 
-#define FIRMWARE_VERSION "v1.5.3-ota"
+#define FIRMWARE_VERSION "v1.5.4-ota"
 
 // configuration structure
 struct Config {
@@ -402,13 +402,8 @@ void dowebcall(const char *foundrfid) {
 void loop() {
   loopBreakout("Card Absent");
 
-  if (!mfrc522[0].PICC_IsNewCardPresent()) {
-    // no new card found, re-loop
-    return;
-  }
-
-  if (!mfrc522[0].PICC_ReadCardSerial()) {
-    // empty ReadCardSerial means no real card found, re-loop
+  // check if a new rfid card has been presented, if not re-loop
+  if (!newCardFound()) {
     return;
   }
 
@@ -489,11 +484,26 @@ void loop() {
   currentRFIDFirstNameStr = "";
   currentRFIDSurnameStr = "";
   inOverrideMode = false;
-  delay((config.mfrccardwaittime * 1000));
+  //delay((config.mfrccardwaittime * 1000));
 
   // Dump debug info about the card; PICC_HaltA() is automatically called
   //Serial.println("Starting picc_dumptoserial");
   //mfrc522[0].PICC_DumpToSerial(&(mfrc522[0].uid));
+}
+
+// returns true if a new rfid card has been found
+bool newCardFound() {
+  // forced delay to allow mfrc device to be able to properly detect a newly presented card
+  if (config.mfrccardwaittime > 0) {
+    delay((config.mfrccardwaittime * 1000));
+  }
+
+  // both of these tests need to return true to know with certainty that a new card has been presented
+  if (mfrc522[0].PICC_IsNewCardPresent() && mfrc522[0].PICC_ReadCardSerial()) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 void enableRelay(String message) {
