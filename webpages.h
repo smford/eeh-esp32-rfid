@@ -88,16 +88,6 @@ function logoutCurrentUserButton() {
     document.getElementById("userdetails").innerHTML = xhr.responseText;
   },5000);
 }
-function grantAccessButton() {
-  document.getElementById("statusdetails").innerHTML = "Granting Access ...";
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/grant?haveaccess=true", true);
-  xhr.send();
-  setTimeout(function(){
-    document.getElementById("statusdetails").innerHTML = "Access Granted";
-    document.getElementById("userdetails").innerHTML = xhr.responseText;
-  },5000);
-}
 function getUserDetailsButton() {
   document.getElementById("statusdetails").innerHTML = "Getting User Details ...";
   var xhr = new XMLHttpRequest();
@@ -108,10 +98,20 @@ function getUserDetailsButton() {
     document.getElementById("userdetails").innerHTML = xhr.responseText;
   },5000);
 }
+function grantAccessButton() {
+  document.getElementById("statusdetails").innerHTML = "Granting Access ...";
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "/grant?access=grant", true);
+  xhr.send();
+  setTimeout(function(){
+    document.getElementById("statusdetails").innerHTML = "Access Granted";
+    document.getElementById("userdetails").innerHTML = xhr.responseText;
+  },5000);
+}
 function revokeAccessButton() {
   document.getElementById("statusdetails").innerHTML = "Revoking access ...";
   var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/grant?haveaccess=false", true);
+  xhr.open("GET", "/grant?access=revoke", true);
   xhr.send();
   setTimeout(function(){
     document.getElementById("statusdetails").innerHTML = "Access Revoked";

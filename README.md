@@ -42,7 +42,6 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Convert to a function: Serial.print(iteration); Serial.println(" Checking access");
 - Change button and slider code generation to sit within processor function
 - change grantUser() and getUserDetails() in to a generic function
-- Change haveaccess to being: &access=grant or &access=revoke
 - Adjust the timeout on setTimeout(function(){, 5000 might be too generous and it makes web interface seen a bit unresponsive.  WebSockets will superceed this if implemented.
 - Make while (true) loop better and more logical, while (true) loop + break is for when an already existing card is still present
 - Creat a generic shipMetric(String metricname, String metricvalue) function rather than individual ship* functions
@@ -95,6 +94,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
+- Change haveaccess to being: &access=grant or &access=revoke
 - Cleanup config.webapiwaittime
 - Added Wifi signal strength metric logging
 - Convert "if (!mfrc522.PICC_IsNewCardPresent()) {" to a function

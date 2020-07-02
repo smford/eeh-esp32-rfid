@@ -328,24 +328,25 @@ void configureWebServer() {
     if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
       return request->requestAuthentication();
     }
-    const char* haveaccess = request->getParam("haveaccess")->value().c_str();
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + " " + request->url() + "?haveaccess=" + haveaccess;
+    const char* access = request->getParam("access")->value().c_str();
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + " " + request->url() + "?access=" + access;
     Serial.println(logmessage);
     syslog.log(logmessage);
-    String tempstring = config.serverurl + config.moduserpage + "?device=" + config.device + "&modrfid=" + String(currentRFIDcard) + "&api=" + config.apitoken + "&haveaccess=" + haveaccess;
-    char grantURL[tempstring.length() + 1];
-    tempstring.toCharArray(grantURL, tempstring.length() + 1);
+    String grantURL;
+    //tempstring.toCharArray(grantURL, tempstring.length() + 1);
     Serial.print("GrantURL: "); Serial.println(grantURL);
-    if (strcmp(haveaccess, "true") == 0) {
+    if (strcmp(access, "grant") == 0) {
       // granting access
+      grantURL = config.serverurl + config.moduserpage + "?device=" + config.device + "&modrfid=" + String(currentRFIDcard) + "&api=" + config.apitoken + "&access=true";
       logmessage = "Web Admin: Granting access for " + String(currentRFIDcard);
     } else {
-      // revoking access
+      // default fall back to revoking access
+      grantURL = config.serverurl + config.moduserpage + "?device=" + config.device + "&modrfid=" + String(currentRFIDcard) + "&api=" + config.apitoken + "&access=false";
       logmessage = "Web Admin: Revoking access for " + String(currentRFIDcard);
     }
     Serial.println(logmessage);
     syslog.log(logmessage);
-    request->send(200, "text/html", grantAccess(grantURL));
+    request->send(200, "text/html", grantAccess(grantURL.c_str()));
   });
 
   server->on("/ntprefresh", HTTP_GET, [](AsyncWebServerRequest * request) {
