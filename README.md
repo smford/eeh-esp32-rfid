@@ -39,9 +39,6 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 
 ## Coding Cleanup
 - Convert MFRC522 mfrc522[1]; to being MFRC522 *mfrc522; and mfrc522 = new MFRC522(config.mfrcslaveselectpin, config.mfrcresetpin) style
-- Remove /backlighton and /backlightoff
-- Change from LiquidCrystal_I2C.h to LiquidCrystalIO.h
-- Rather than lcdi2cadderss being an int, convert to a string ("0x27" for example) to allow easier configuration
 - Convert to a function: Serial.print(iteration); Serial.println(" Checking access");
 - Convert "if (!mfrc522.PICC_IsNewCardPresent()) {" to a function
 - Change button and slider code generation to sit within processor function
@@ -75,6 +72,8 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - If bootTime = Thursday, 01-Jan-1970 00:00:16 UTC, refresh it for the most current time
 
 ## Nice to have
+- Change from LiquidCrystal_I2C.h to LiquidCrystalIO.h
+- Rather than lcdi2cadderss being an int, convert to a string ("0x27" for example) to allow easier configuration
 - Cleanup the OTA webpage
 - Allow all settings to be updated via web admin
 - Allow flashing from default firmware, and then configuration via web admin
@@ -94,6 +93,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
+- Auth protect /backlighton and /backlightoff
 - Mask out secrets from all output
 - Cleanup PARAM_INPUT_1 and PARAM_INPUT_2
 - Make shipping metrics optional

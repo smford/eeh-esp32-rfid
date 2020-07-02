@@ -277,11 +277,17 @@ void configureWebServer() {
   });
 
   server->on("/backlighton", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
+      return request->requestAuthentication();
+    }
     lcd->backlight();
     request->send(200, "text/html", "backlight on");
   });
 
   server->on("/backlightoff", HTTP_GET, [](AsyncWebServerRequest * request) {
+    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
+      return request->requestAuthentication();
+    }
     lcd->noBacklight();
     request->send(200, "text/html", "backlight off");
   });
