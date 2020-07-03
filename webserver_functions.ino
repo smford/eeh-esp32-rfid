@@ -14,7 +14,6 @@ bool checkUserWebAuth(AsyncWebServerRequest * request) {
   bool isAuthenticated = false;
 
   if (request->hasParam("api") && (strcmp(request->getParam("api")->value().c_str(), config.httpapitoken.c_str()) == 0)) {
-    Serial.println("has api and token matches");
     isAuthenticated = true;
   }
 
@@ -295,14 +294,16 @@ void configureWebServer() {
 
   server->on("/backlighton", HTTP_GET, [](AsyncWebServerRequest * request) {
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-
     if (checkUserWebAuth(request)) {
-      Serial.println("LCD Backlight On");
+      logmessage += " Success";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
       lcd->backlight();
       request->send(200, "text/html", "LCD Backlight On");
     } else {
+      logmessage += " Failed Auth";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
       return request->requestAuthentication();
     }
   });
@@ -310,14 +311,16 @@ void configureWebServer() {
 
   server->on("/backlightoff", HTTP_GET, [](AsyncWebServerRequest * request) {
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-
     if (checkUserWebAuth(request)) {
-      Serial.println("LCD Backlight Off");
+      logmessage += " Success";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
       lcd->noBacklight();
       request->send(200, "text/html", "LCD Backlight Off");
     } else {
+      logmessage += " Failed Auth";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
       return request->requestAuthentication();
     }
   });
@@ -331,13 +334,17 @@ void configureWebServer() {
 
   server->on("/reboot", HTTP_GET, [](AsyncWebServerRequest * request) {
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
 
     if (checkUserWebAuth(request)) {
       request->send(200, "text/html", reboot_html);
+      logmessage += " Success";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
       shouldReboot = true;
     } else {
+      logmessage += " Failed Auth";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
       return request->requestAuthentication();
     }
   });
@@ -383,12 +390,16 @@ void configureWebServer() {
 
   server->on("/ntprefresh", HTTP_GET, [](AsyncWebServerRequest * request) {
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
     if (checkUserWebAuth(request)) {
+      logmessage += " Success";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
       updateNTP();
       request->send(200, "text/html", printTime());
     } else {
+      logmessage += " Failed Auth";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
       return request->requestAuthentication();
     }
   });
