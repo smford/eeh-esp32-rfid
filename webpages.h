@@ -30,6 +30,8 @@ const char index_html[] PROGMEM = R"rawliteral(
   <button onclick="displayConfig()">Display Running Config</button>
   <button onclick="showUploadButton()">Upload File - Simple</button>
   <button onclick="showUploadButtonFancy()">Upload File - Fancy</button>
+  <button onclick="changeBacklightButton('on')">LCD Backlight On</button>
+  <button onclick="changeBacklightButton('off')">LCD Backlight Off</button>
   <button onclick="listFilesButton()">List Files</button>
   <button onclick="refreshNTP()">Refresh NTP</button>
   <button onclick="logoutCurrentUserButton()">Logout Current User</button>
@@ -117,6 +119,15 @@ function revokeAccessButton() {
     document.getElementById("statusdetails").innerHTML = "Access Revoked";
     document.getElementById("userdetails").innerHTML = xhr.responseText;
   },5000);
+}
+function changeBacklightButton(state) {
+  document.getElementById("statusdetails").innerHTML = "Turning LCD Backlight " . state;
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "/backlight" + state, true);
+  xhr.send();
+  setTimeout(function(){
+    document.getElementById("statusdetails").innerHTML = "LCD Backlight " + state;
+  },2000);
 }
 function rebootButton() {
   document.getElementById("statusdetails").innerHTML = "Invoking Reboot ...";

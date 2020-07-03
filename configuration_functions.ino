@@ -87,10 +87,10 @@ void loadConfiguration(const char *filename, Config &config) {
     config.httppassword = default_httppassword;
   }
 
-  config.apitoken = doc["apitoken"].as<String>();
-  if (config.apitoken == "null") {
+  config.httpapitoken = doc["httpapitoken"].as<String>();
+  if (config.httpapitoken == "null") {
     initiatesave = true;
-    config.apitoken = default_apitoken;
+    config.httpapitoken = default_httpapitoken;
   }
 
   config.syslogserver = doc["syslogserver"].as<String>();
@@ -191,6 +191,12 @@ void loadConfiguration(const char *filename, Config &config) {
     config.serverurl = default_serverurl;
   }
 
+  config.serverapitoken = doc["serverapitoken"].as<String>();
+  if (config.serverapitoken == "null") {
+    initiatesave = true;
+    config.serverapitoken = default_serverapitoken;
+  }
+
   config.checkuserpage = doc["checkuserpage"].as<String>();
   if (config.checkuserpage == "null") {
     initiatesave = true;
@@ -266,7 +272,7 @@ void saveConfiguration(const char *filename, const Config &config) {
   doc["ledpin"] = config.ledpin;
   doc["httpuser"] = config.httpuser;
   doc["httppassword"] = config.httppassword;
-  doc["apitoken"] = config.apitoken;
+  doc["httpapitoken"] = config.httpapitoken;
   doc["syslogserver"] = config.syslogserver;
   doc["syslogport"] = config.syslogport;
   doc["inmaintenance"] = config.inmaintenance;
@@ -284,6 +290,7 @@ void saveConfiguration(const char *filename, const Config &config) {
   doc["webserverporthttps"] = config.webserverporthttps;
   doc["webapiwaittime"] = config.webapiwaittime;
   doc["serverurl"] = config.serverurl;
+  doc["serverapitoken"] = config.serverapitoken;
   doc["checkuserpage"] = config.checkuserpage;
   doc["getuserpage"] = config.getuserpage;
   doc["moduserpage"] = config.moduserpage;
@@ -328,14 +335,11 @@ void printConfig() {
   Serial.print("           appname: "); Serial.println(config.appname);
   Serial.print("              ssid: "); Serial.println(config.ssid);
   Serial.print("      wifipassword: "); Serial.println("**********");
-  //Serial.print("      wifipassword: "); Serial.println(config.wifipassword);
   Serial.print("          relaypin: "); Serial.println(config.relaypin);
   Serial.print("            ledpin: "); Serial.println(config.ledpin);
   Serial.print("          httpuser: "); Serial.println(config.httpuser);
   Serial.print("      httppassword: "); Serial.println("**********");
-  //Serial.print("      httppassword: "); Serial.println(config.httppassword);
-  Serial.print("          apitoken: "); Serial.println("**********");
-  //Serial.print("          apitoken: "); Serial.println(config.apitoken);
+  Serial.print("      httpapitoken: "); Serial.println("**********");
   Serial.print("      syslogserver: "); Serial.println(config.syslogserver);
   Serial.print("        syslogport: "); Serial.println(config.syslogport);
   Serial.print("     inmaintenance: "); Serial.println(config.inmaintenance);
@@ -353,6 +357,7 @@ void printConfig() {
   Serial.print("webserverporthttps: "); Serial.println(config.webserverporthttps);
   Serial.print("    webapiwaittime: "); Serial.println(config.webapiwaittime);
   Serial.print("         serverurl: "); Serial.println(config.serverurl);
+  Serial.print("    serverapitoken: "); Serial.println("**********");
   Serial.print("     checkuserpage: "); Serial.println(config.checkuserpage);
   Serial.print("       getuserpage: "); Serial.println(config.getuserpage);
   Serial.print("       moduserpage: "); Serial.println(config.moduserpage);

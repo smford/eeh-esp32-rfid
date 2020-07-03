@@ -9,6 +9,23 @@ String outputState(int PINCHECK) {
   return "";
 }
 
+// used by server.on functions to discern whether a user has the correct httpapitoken OR is authenticated by username and password
+bool checkUserWebAuth(AsyncWebServerRequest * request) {
+  bool isAuthenticated = false;
+
+  if (request->hasParam("api") && (strcmp(request->getParam("api")->value().c_str(), config.httpapitoken.c_str()) == 0)) {
+    Serial.println("has api and token matches");
+    isAuthenticated = true;
+  }
+
+  if (request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
+    Serial.println("is authenticated via username and password");
+    isAuthenticated = true;
+  }
+  return isAuthenticated;
+}
+
+
 // handles uploads to the filserver
 void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
   // make sure authenticated before allowing upload
@@ -277,19 +294,32 @@ void configureWebServer() {
   });
 
   server->on("/backlighton", HTTP_GET, [](AsyncWebServerRequest * request) {
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    Serial.println(logmessage);
+    syslog.log(logmessage);
+
+    if (checkUserWebAuth(request)) {
+      Serial.println("LCD Backlight On");
+      lcd->backlight();
+      request->send(200, "text/html", "LCD Backlight On");
+    } else {
       return request->requestAuthentication();
     }
-    lcd->backlight();
-    request->send(200, "text/html", "backlight on");
   });
 
+
   server->on("/backlightoff", HTTP_GET, [](AsyncWebServerRequest * request) {
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    Serial.println(logmessage);
+    syslog.log(logmessage);
+
+    if (checkUserWebAuth(request)) {
+      Serial.println("LCD Backlight Off");
+      lcd->noBacklight();
+      request->send(200, "text/html", "LCD Backlight Off");
+    } else {
       return request->requestAuthentication();
     }
-    lcd->noBacklight();
-    request->send(200, "text/html", "backlight off");
   });
 
   server->on("/logged-out", HTTP_GET, [](AsyncWebServerRequest * request) {
@@ -317,7 +347,7 @@ void configureWebServer() {
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
-    String tempstring = config.serverurl + config.getuserpage + "?device=" + config.device + "&rfid=" + String(currentRFIDcard) + "&api=" + config.apitoken;
+    String tempstring = config.serverurl + config.getuserpage + "?device=" + config.device + "&rfid=" + String(currentRFIDcard) + "&api=" + config.serverapitoken;
     char getUserURL[tempstring.length() + 1];
     tempstring.toCharArray(getUserURL, tempstring.length() + 1);
     Serial.print("GetUserURL: "); Serial.println(getUserURL);
@@ -337,11 +367,11 @@ void configureWebServer() {
     Serial.print("GrantURL: "); Serial.println(grantURL);
     if (strcmp(access, "grant") == 0) {
       // granting access
-      grantURL = config.serverurl + config.moduserpage + "?device=" + config.device + "&modrfid=" + String(currentRFIDcard) + "&api=" + config.apitoken + "&access=true";
+      grantURL = config.serverurl + config.moduserpage + "?device=" + config.device + "&modrfid=" + String(currentRFIDcard) + "&api=" + config.serverapitoken + "&access=true";
       logmessage = "Web Admin: Granting access for " + String(currentRFIDcard);
     } else {
       // default fall back to revoking access
-      grantURL = config.serverurl + config.moduserpage + "?device=" + config.device + "&modrfid=" + String(currentRFIDcard) + "&api=" + config.apitoken + "&access=false";
+      grantURL = config.serverurl + config.moduserpage + "?device=" + config.device + "&modrfid=" + String(currentRFIDcard) + "&api=" + config.serverapitoken + "&access=false";
       logmessage = "Web Admin: Revoking access for " + String(currentRFIDcard);
     }
     Serial.println(logmessage);

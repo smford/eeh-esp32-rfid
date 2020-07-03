@@ -24,7 +24,7 @@
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 
-#define FIRMWARE_VERSION "v1.5.9a-ota"
+#define FIRMWARE_VERSION "v1.6-ota"
 
 // configuration structure
 struct Config {
@@ -37,7 +37,7 @@ struct Config {
   int ledpin;              // led pin number
   String httpuser;         // username to access web admin
   String httppassword;     // password to access web admin
-  String apitoken;         // api token used to authenticate against the user management system
+  String httpapitoken;     // api token used to authenticate against the device
   String syslogserver;     // hostname or ip of the syslog server
   int syslogport;          // sylog port number
   bool inmaintenance;      // records whether the device is in maintenance mode between reboots
@@ -55,6 +55,7 @@ struct Config {
   int webserverporthttps;  // https port number for the web admin
   int webapiwaittime;      // forced delay in seconds between web api calls
   String serverurl;        // url of authentication server, e.g. "http://something.com/" or "https://192.168.20.60"
+  String serverapitoken;   // api token used to authenticate against the user management system
   String checkuserpage;    // check user webpage hosted on authentication server, e.g. "checkuser.php"
   String getuserpage;      // get user webpage hosted on authentication server, e.g. "getuser.php"
   String moduserpage;      // mod user webpage hosted on authentication server, e.g. "moduser.php"
@@ -211,6 +212,10 @@ void setup() {
   Serial.print("        NTP Server: "); Serial.println(config.ntpserver);
   Serial.print("     NTP Time Sync: "); Serial.println(config.ntpsynctime);
   Serial.print("     NTP Time Zone: "); Serial.println(config.ntptimezone);
+  Serial.print("        Server URL: "); Serial.println(config.serverurl);
+  Serial.print("   Check User Page: "); Serial.println(config.checkuserpage);
+  Serial.print("     Get User Page: "); Serial.println(config.getuserpage);
+  Serial.print("     Mod User Page: "); Serial.println(config.moduserpage);
   if (config.influxdbenable) {
     Serial.println("  InfluxDB Enabled: true");
     Serial.print("   InfluxDB Server: "); Serial.println(config.influxdbserver);
@@ -310,7 +315,7 @@ void dowebcall(const char *foundrfid) {
   if (WiFi.status() == WL_CONNECTED) {
     StaticJsonDocument<300> doc;
 
-    String tempstring = config.serverurl + config.checkuserpage + "?device=" + config.device + "&rfid=" + String(currentRFIDcard) + "&api=" + config.apitoken;
+    String tempstring = config.serverurl + config.checkuserpage + "?device=" + config.device + "&rfid=" + String(currentRFIDcard) + "&api=" + config.serverapitoken;
     char checkURL[tempstring.length() + 1];
     tempstring.toCharArray(checkURL, tempstring.length() + 1);
 
