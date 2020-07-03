@@ -250,19 +250,8 @@ void configureWebServer() {
     request->send(200, "text/plain", listFiles(true));
   });
 
+  // run handleUpload function when any file is uploaded
   server->onFileUpload(handleUpload);
-
-  /*
-  server->on("/upload", HTTP_GET, [](AsyncWebServerRequest * request) {
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
-      return request->requestAuthentication();
-    }
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-    request->send(200, "text/html", simpleupload_html);
-  });
-  */
 
   server->on("/maintenance", HTTP_GET, [](AsyncWebServerRequest * request) {
 
