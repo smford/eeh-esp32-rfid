@@ -265,31 +265,57 @@ void configureWebServer() {
   */
 
   server->on("/maintenance", HTTP_GET, [](AsyncWebServerRequest * request) {
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
+
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+
+    if (checkUserWebAuth(request)) {
+      logmessage += " Success";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
+
+      logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+
+      if (request->hasParam("state")) {
+        String returnText;
+
+        const char* selectState = request->getParam("state")->value().c_str();
+
+        if (strcmp(selectState, "enable") == 0) {
+          logmessage += " Enabling maintenance mode";
+          returnText = "MAINTENANCE MODE";
+
+          // if currently NOT in maintenance mode, toggle it on
+          if (!config.inmaintenance) {
+            gotoToggleMaintenance = true;
+          }
+
+        } else if (strcmp(selectState, "disable") == 0) {
+          logmessage += " Disabling maintenance mode";
+          returnText = "";
+
+          // if currently in maintenance mode, toggle it off
+          if (config.inmaintenance) {
+            gotoToggleMaintenance = true;
+          }
+        } else {
+          logmessage += " ERROR: invalid state sent to maintenance mode, ignoring: " + String(selectState);
+          returnText = "ERROR: invalid state sent to maintenance mode, ignoring: " + String(selectState);
+          gotoToggleMaintenance = false;
+        }
+
+        Serial.println(logmessage);
+        syslog.log(logmessage);
+        request->send(200, "text/html", returnText);
+      } else {
+        request->send(200, "text/html", "ERROR: state not defined");
+      }
+
+    } else {
+      logmessage += " Failed Auth";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
       return request->requestAuthentication();
     }
-
-    String returnText = "";
-    String logmessage = "";
-
-    const char* selectState = request->getParam("state")->value().c_str();
-
-    if (strcmp(selectState, "enable") == 0) {
-      logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url() + " Enabling maintenance mode";
-      returnText = "MAINTENANCE MODE";
-      gotoToggleMaintenance = true;
-    } else if (strcmp(selectState, "disable") == 0) {
-      logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url() + " Disabling maintenance mode";
-      returnText = "";
-      gotoToggleMaintenance = true;
-    } else {
-      logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url() + " ERROR: invalid state sent to maintenance mode, ignoring: " + String(selectState);
-      returnText = "ERROR: invalid state sent to maintenance mode, ignoring: " + String(selectState);
-      gotoToggleMaintenance = false;
-    }
-    request->send(200, "text/html", returnText);
-    Serial.println(logmessage);
-    syslog.log(logmessage);
   });
 
   server->on("/backlighton", HTTP_GET, [](AsyncWebServerRequest * request) {
