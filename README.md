@@ -45,7 +45,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 | no | /logout-current-user | Log out current user of device | | | | |
 | no | /maintenance | Enter/Exit maintenance mode | | | | |
 | no | /ntprefresh | Initiate a ntp time refresh | | | | |
-| no | /reboot | Initiate a reboot | | | | |
+| yes | /reboot | Initiate a reboot | | | | /reboot?api=xxx |
 | yes | /status | Simple status page | - | - | - | /status |
 | yes | /time | Display current time on device | - | - | - | /time |
 | no | /toggle | Turn LED or Relay on/off | | | | |

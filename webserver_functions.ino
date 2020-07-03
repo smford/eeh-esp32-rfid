@@ -330,14 +330,16 @@ void configureWebServer() {
   });
 
   server->on("/reboot", HTTP_GET, [](AsyncWebServerRequest * request) {
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
-      return request->requestAuthentication();
-    }
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
-    request->send(200, "text/html", reboot_html);
-    shouldReboot = true;
+
+    if (checkUserWebAuth(request)) {
+      request->send(200, "text/html", reboot_html);
+      shouldReboot = true;
+    } else {
+      return request->requestAuthentication();
+    }
   });
 
   server->on("/getuser", HTTP_GET, [](AsyncWebServerRequest * request) {
