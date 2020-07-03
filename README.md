@@ -48,7 +48,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 | yes | /reboot | Initiate a reboot | yes | yes | - | /reboot?api=xxx |
 | yes | /status | Simple status page | - | - | - | /status |
 | yes | /time | Display current time on device | - | - | - | /time |
-| no | /toggle | Turn LED or Relay on/off | | | | |
+| yes | /toggle | Turn LED or Relay on/off | yes | yes | pin=led&state=on  pin=relay&state=off| /toggle?api=xxx&pin=led&state=off |
 
 ## Electrical Stuff to do
 - the relay fires when writing the firmware

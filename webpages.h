@@ -51,7 +51,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 <script>
 function toggleCheckbox(element, pin) {
   var xhr = new XMLHttpRequest();
-  if(element.checked){ xhr.open("GET", "/toggle?state=1&pin="+pin, true); }
+  if(element.checked){ xhr.open("GET", "/toggle?state=on&pin="+pin, true); }
   else { xhr.open("GET", "/toggle?state=0&pin="+pin, true); }
   xhr.send();
 }

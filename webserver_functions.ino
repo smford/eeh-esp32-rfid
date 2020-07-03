@@ -488,43 +488,46 @@ void configureWebServer() {
 
   // called when slider has been toggled
   server->on("/toggle", HTTP_GET, [] (AsyncWebServerRequest * request) {
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
-      return request->requestAuthentication();
-    }
-    String inputMessage;
-    String inputPin;
-    if (request->hasParam("state") && request->hasParam("pin")) {
-      inputMessage = request->getParam("state")->value();
-      inputPin = request->getParam("pin")->value();
-
-      String logmessage = "Client:" + request->client()->remoteIP().toString() + " Toggle Slider" + inputMessage + ":" + inputPin + " " + request->url();
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    if (checkUserWebAuth(request)) {
+      logmessage += " Success";
       Serial.println(logmessage);
       syslog.log(logmessage);
-      logmessage = "";
+      if (request->hasParam("state") && request->hasParam("pin")) {
+        String newState = request->getParam("state")->value();
+        String inputPin = request->getParam("pin")->value();
 
-      if (inputPin == "relay") {
-        if (inputMessage.toInt() == 1) {
-          logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable Relay" + " " + request->url();
-          enableRelay(logmessage);
-        } else {
-          logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable Relay" + " " + request->url();
-          disableRelay(logmessage);
+        if (inputPin == "relay") {
+          if (strcmp(newState.c_str(), "on") == 0) {
+            logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable Relay" + " " + request->url();
+            enableRelay(logmessage);
+          } else {
+            logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable Relay" + " " + request->url();
+            disableRelay(logmessage);
+          }
         }
-      }
 
-      if (inputPin == "led") {
-        if (inputMessage.toInt() == 1) {
-          logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable LED" + " " + request->url();
-          enableLed(logmessage);
-        } else {
-          logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable LED" + " " + request->url();
-          disableLed(logmessage);
+        if (inputPin == "led") {
+          if (strcmp(newState.c_str(), "on") == 0) {
+            logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable LED" + " " + request->url();
+            enableLed(logmessage);
+          } else {
+            logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable LED" + " " + request->url();
+            disableLed(logmessage);
+          }
         }
+
+        request->send(200, "text/plain", logmessage);
+
+      } else {
+        request->send(200, "text/plain", "ERROR: state and pin parameters required");
       }
 
     } else {
-      inputMessage = "No message sent";
+      logmessage += " Failed Auth";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
+      return request->requestAuthentication();
     }
-    request->send(200, "text/plain", "OK");
   });
 }
