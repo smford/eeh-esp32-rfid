@@ -42,7 +42,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 | no | /grant | Grant/Revoke a users access | | | | |
 | yes | /health | Simple health response | - | - | - | /health |
 | no | /listfiles | List files on spiffs | | | | |
-| no | /logout-current-user | Log out current user of device | | | | |
+| yes | /logout-current-user | Log out current user of device | yes | yes | - | /logout-current-user?api=xxx |
 | yes | /maintenance | Enable or disable maintenance mode | yes | yes | state=enable state=disable | /maintenance?api=xxx&state=enable |
 | yes | /ntprefresh | Initiate a ntp time refresh | yes | yes | - | /ntprefresh?api=xxx |
 | yes | /reboot | Initiate a reboot | yes | yes | - | /reboot?api=xxx |
