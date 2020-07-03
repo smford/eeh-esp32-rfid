@@ -24,7 +24,7 @@
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 
-#define FIRMWARE_VERSION "v1.5.8-ota"
+#define FIRMWARE_VERSION "v1.5.9a-ota"
 
 // configuration structure
 struct Config {

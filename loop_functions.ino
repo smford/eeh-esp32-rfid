@@ -26,4 +26,7 @@ void loopBreakout(String message) {
       influxdbLastRunTime = millis();
     }
   }
+
+  // used by AsyncElegantOTA to detect when a reboot is required after an ota update
+  AsyncElegantOTA.loop();
 }
