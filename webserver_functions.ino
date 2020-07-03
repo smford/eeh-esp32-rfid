@@ -382,15 +382,15 @@ void configureWebServer() {
   });
 
   server->on("/ntprefresh", HTTP_GET, [](AsyncWebServerRequest * request) {
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
-      return request->requestAuthentication();
-    }
-    //request->send(200, "text/html", "ok");
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     Serial.println(logmessage);
     syslog.log(logmessage);
-    updateNTP();
-    request->send(200, "text/html", printTime());
+    if (checkUserWebAuth(request)) {
+      updateNTP();
+      request->send(200, "text/html", printTime());
+    } else {
+      return request->requestAuthentication();
+    }
   });
 
   server->on("/logout-current-user", HTTP_GET, [](AsyncWebServerRequest * request) {
