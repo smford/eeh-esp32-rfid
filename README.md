@@ -37,15 +37,15 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 | yes | /backlightoff | Turns LCD Backlight Off | yes | yes | - | /backlightoff?api=xxx |
 | yes | /backlighton | Turns LCD Backlight On | yes | yes | - | /backlighton?api=xxx |
 | no | /file | Delete or download a file from spiffs | | | | |
-| no | /fullstatus | Display full running configuration and data | | | | |
+| no | /fullstatus | Display full running configuration and data | yes | yes | - | /fullstatus?api=xxx |
 | no | /getuser | Get User Details | | | | |
 | no | /grant | Grant/Revoke a users access | | | | |
-| yes | /health | Simple health response | - | - | | |
+| yes | /health | Simple health response | - | - | - | /health |
 | no | /listfiles | List files on spiffs | | | | |
 | no | /logout-current-user | Log out current user of device | | | | |
 | no | /maintenance | Enter/Exit maintenance mode | | | | |
-| yes | /ntprefresh | Initiate a ntp time refresh | | | | /ntprefresh?api=xxx |
-| yes | /reboot | Initiate a reboot | | | | /reboot?api=xxx |
+| yes | /ntprefresh | Initiate a ntp time refresh | yes | yes | - | /ntprefresh?api=xxx |
+| yes | /reboot | Initiate a reboot | yes | yes | - | /reboot?api=xxx |
 | yes | /status | Simple status page | - | - | - | /status |
 | yes | /time | Display current time on device | - | - | - | /time |
 | no | /toggle | Turn LED or Relay on/off | | | | |

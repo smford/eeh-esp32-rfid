@@ -432,13 +432,18 @@ void configureWebServer() {
   });
 
   server->on("/fullstatus", HTTP_GET, [](AsyncWebServerRequest * request) {
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    if (checkUserWebAuth(request)) {
+      logmessage += " Success";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
+      request->send(200, "application/json", getFullStatus());
+    } else {
+      logmessage += " Failed Auth";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
       return request->requestAuthentication();
     }
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-    request->send(200, "application/json", getFullStatus());
   });
 
   server->on("/status", HTTP_GET, [](AsyncWebServerRequest * request) {
