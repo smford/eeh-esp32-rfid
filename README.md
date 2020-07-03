@@ -38,7 +38,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 | yes | /backlighton | Turns LCD Backlight On | yes | yes | - | /backlighton?api=xxx |
 | no | /file | Delete or download a file from spiffs | | | | |
 | yes | /fullstatus | Display full running configuration and data | yes | yes | - | /fullstatus?api=xxx |
-| no | /getuser | Get User Details | | | | |
+| yes | /getuser | Get currently presented cards user details | yes | yes | - | /getuser?api=xxx |
 | no | /grant | Grant/Revoke a users access | | | | |
 | yes | /health | Simple health response | - | - | - | /health |
 | no | /listfiles | List files on spiffs | | | | |

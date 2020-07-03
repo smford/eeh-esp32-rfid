@@ -376,17 +376,19 @@ void configureWebServer() {
   });
 
   server->on("/getuser", HTTP_GET, [](AsyncWebServerRequest * request) {
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    if (checkUserWebAuth(request)) {
+      logmessage += " Success";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
+      String getUserURL = config.serverurl + config.getuserpage + "?device=" + config.device + "&rfid=" + String(currentRFIDcard) + "&api=" + config.serverapitoken;
+      request->send(200, "text/html", getUserDetails(getUserURL.c_str()));
+    } else {
+      logmessage += " Failed Auth";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
       return request->requestAuthentication();
     }
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " RFID:" + String(currentRFIDcard) + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-    String tempstring = config.serverurl + config.getuserpage + "?device=" + config.device + "&rfid=" + String(currentRFIDcard) + "&api=" + config.serverapitoken;
-    char getUserURL[tempstring.length() + 1];
-    tempstring.toCharArray(getUserURL, tempstring.length() + 1);
-    Serial.print("GetUserURL: "); Serial.println(getUserURL);
-    request->send(200, "text/html", getUserDetails(getUserURL));
   });
 
   server->on("/grant", HTTP_GET, [](AsyncWebServerRequest * request) {
