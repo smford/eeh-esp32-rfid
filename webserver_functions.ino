@@ -241,13 +241,18 @@ void configureWebServer() {
 
   server->on("/listfiles", HTTP_GET, [](AsyncWebServerRequest * request)
   {
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    if (checkUserWebAuth(request)) {
+      logmessage += " Success";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
+      request->send(200, "text/plain", listFiles(true));
+    } else {
+      logmessage += " Failed Auth";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
       return request->requestAuthentication();
     }
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
-    request->send(200, "text/plain", listFiles(true));
   });
 
   // run handleUpload function when any file is uploaded
