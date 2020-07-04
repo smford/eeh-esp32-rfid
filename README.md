@@ -23,7 +23,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Informative LCD Display
 - Maintenance Mode where only specific users can get override access
 - Logging via syslog
-- Metrics collected in influxdb/telegraf: system temp, access granted, and actual device being used (still to come)
+- Metrics collected in influxdb/telegraf: system temp, access granted, wifi signal strength, and whether actual device being used (still to come)
 - NTP Time synchronisation
 - Support tls web api calls using json
 
@@ -117,6 +117,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
+- Rename influxdb* variable names to telegraf because that is more accurate
 - Make web admin web page delay time configurable
 - After OTA update, reboot
 - Change returnedJSON from global to local scope

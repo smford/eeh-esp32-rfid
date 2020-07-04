@@ -24,7 +24,7 @@
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 
-#define FIRMWARE_VERSION "v1.6.12-ota"
+#define FIRMWARE_VERSION "v1.6.13-ota"
 
 // configuration structure
 struct Config {
@@ -61,10 +61,10 @@ struct Config {
   String getuserpage;      // get user webpage hosted on authentication server, e.g. "getuser.php"
   String moduserpage;      // mod user webpage hosted on authentication server, e.g. "moduser.php"
   String overridecodes;    // list of rfid card numbers, seperated by commas, that have override access
-  bool influxdbenable;     // turns on or off shipping of metrics to influxdb
-  String influxdbserver;   // hostname or ip of influxdb server
-  int influxdbserverport;  // port number for influxdb
-  int influxdbshiptime;    // how often should we ship metrics to influxdb
+  bool telegrafenable;     // turns on or off shipping of metrics to telegraf
+  String telegrafserver;   // hostname or ip of telegraf server
+  int telegrafserverport;  // port number for telegraf
+  int telegrafshiptime;    // how often should we ship metrics to telegraf
 };
 
 String listFiles(bool ishtml = false);
@@ -78,7 +78,7 @@ Config config;
 unsigned long sinceLastRunTime = 0;
 
 // keeps track of the time when the last metrics were shipped for influxdb
-unsigned long influxdbLastRunTime = 0;
+unsigned long telegrafLastRunTime = 0;
 
 // used to track the status of card presented on the mfrc reader
 uint8_t control = 0x00;
@@ -216,11 +216,11 @@ void setup() {
   Serial.print("   Check User Page: "); Serial.println(config.checkuserpage);
   Serial.print("     Get User Page: "); Serial.println(config.getuserpage);
   Serial.print("     Mod User Page: "); Serial.println(config.moduserpage);
-  if (config.influxdbenable) {
-    Serial.println("  InfluxDB Enabled: true");
-    Serial.print("   InfluxDB Server: "); Serial.println(config.influxdbserver);
-    Serial.print("     InfluxDB Port: "); Serial.println(config.influxdbserverport);
-    Serial.print("InfluxDB Ship Time: "); Serial.println(config.influxdbshiptime);
+  if (config.telegrafenable) {
+    Serial.println("  Telegraf Enabled: true");
+    Serial.print("   Telegraf Server: "); Serial.println(config.telegrafserver);
+    Serial.print("     Telegraf Port: "); Serial.println(config.telegrafserverport);
+    Serial.print("Telegraf Ship Time: "); Serial.println(config.telegrafshiptime);
   }
 
   lcdPrint("Connecting Wifi...");
@@ -632,14 +632,14 @@ String getFullStatus() {
     fullStatusDoc["inOverrideMode"] = "false";
   }
 
-  if (config.influxdbenable) {
-    fullStatusDoc["InfluxDBEnable"] = "true";
+  if (config.telegrafenable) {
+    fullStatusDoc["TelegrafEnable"] = "true";
   } else {
-    fullStatusDoc["InfluxDBEnable"] = "false";
+    fullStatusDoc["TelegrafEnable"] = "false";
   }
-  fullStatusDoc["InfluxDBServer"] = config.influxdbserver;
-  fullStatusDoc["InfluxDBServerPort"] = config.influxdbserverport;
-  fullStatusDoc["InfluxDBShipTime"] = config.influxdbshiptime;
+  fullStatusDoc["TelegrafServer"] = config.telegrafserver;
+  fullStatusDoc["TelegrafServerPort"] = config.telegrafserverport;
+  fullStatusDoc["TelegrafShipTime"] = config.telegrafshiptime;
 
   String fullStatus = "";
   serializeJson(fullStatusDoc, fullStatus);
@@ -835,7 +835,7 @@ void shipTemp() {
 
   Serial.print("Shipping: "); Serial.println(line);
 
-  udpClient.beginPacket(config.influxdbserver.c_str(), config.influxdbserverport);
+  udpClient.beginPacket(config.telegrafserver.c_str(), config.telegrafserverport);
   udpClient.print(line);
   udpClient.endPacket();
 }
@@ -856,7 +856,7 @@ void shipUsage() {
 
   Serial.print("Shipping: "); Serial.println(line);
 
-  udpClient.beginPacket(config.influxdbserver.c_str(), config.influxdbserverport);
+  udpClient.beginPacket(config.telegrafserver.c_str(), config.telegrafserverport);
   udpClient.print(line);
   udpClient.endPacket();
 }
@@ -869,7 +869,7 @@ void shipWifiSignal() {
 
   Serial.print("Shipping: "); Serial.println(line);
 
-  udpClient.beginPacket(config.influxdbserver.c_str(), config.influxdbserverport);
+  udpClient.beginPacket(config.telegrafserver.c_str(), config.telegrafserverport);
   udpClient.print(line);
   udpClient.endPacket();
 }

@@ -234,29 +234,29 @@ void loadConfiguration(const char *filename, Config &config) {
     config.overridecodes = default_overridecodes;
   }
 
-  if (doc.containsKey("influxdbenable")) {
-    config.influxdbenable = doc["influxdbenable"].as<bool>();
+  if (doc.containsKey("telegrafenable")) {
+    config.telegrafenable = doc["telegrafenable"].as<bool>();
   } else {
     initiatesave = true;
-    config.influxdbenable = default_influxdbenable;
+    config.telegrafenable = default_telegrafenable;
   }
 
-  config.influxdbserver = doc["influxdbserver"].as<String>();
-  if (config.influxdbserver == "null") {
+  config.telegrafserver = doc["telegrafserver"].as<String>();
+  if (config.telegrafserver == "null") {
     initiatesave = true;
-    config.influxdbserver = default_influxdbserver;
+    config.telegrafserver = default_telegrafserver;
   }
 
-  config.influxdbserverport = doc["influxdbserverport"];
-  if (config.influxdbserverport == 0) {
+  config.telegrafserverport = doc["telegrafserverport"];
+  if (config.telegrafserverport == 0) {
     initiatesave = true;
-    config.influxdbserverport = default_influxdbserverport;
+    config.telegrafserverport = default_telegrafserverport;
   }
 
-  config.influxdbshiptime = doc["influxdbshiptime"];
-  if (config.influxdbshiptime == 0) {
+  config.telegrafshiptime = doc["telegrafshiptime"];
+  if (config.telegrafshiptime == 0) {
     initiatesave = true;
-    config.influxdbshiptime = default_influxdbshiptime;
+    config.telegrafshiptime = default_telegrafshiptime;
   }
 
   file.close();
@@ -314,10 +314,10 @@ void saveConfiguration(const char *filename, const Config &config) {
   doc["getuserpage"] = config.getuserpage;
   doc["moduserpage"] = config.moduserpage;
   doc["overridecodes"] = config.overridecodes;
-  doc["influxdbenable"] = config.influxdbenable;
-  doc["influxdbserver"] = config.influxdbserver;
-  doc["influxdbserverport"] = config.influxdbserverport;
-  doc["influxdbshiptime"] = config.influxdbshiptime;
+  doc["telegrafenable"] = config.telegrafenable;
+  doc["telegrafserver"] = config.telegrafserver;
+  doc["telegrafserverport"] = config.telegrafserverport;
+  doc["telegrafshiptime"] = config.telegrafshiptime;
 
   // Serialize JSON to file
   if (serializeJson(doc, file) == 0) {
@@ -382,8 +382,8 @@ void printConfig() {
   Serial.print("       getuserpage: "); Serial.println(config.getuserpage);
   Serial.print("       moduserpage: "); Serial.println(config.moduserpage);
   Serial.print("     overridecodes: "); Serial.println(config.overridecodes);
-  Serial.print("    influxdbenable: "); Serial.println(config.influxdbenable);
-  Serial.print("    influxdbserver: "); Serial.println(config.influxdbserver);
-  Serial.print("influxdbserverport: "); Serial.println(config.influxdbserverport);
-  Serial.print("  influxdbshiptime: "); Serial.println(config.influxdbshiptime);
+  Serial.print("    telegrafenable: "); Serial.println(config.telegrafenable);
+  Serial.print("    telegrafserver: "); Serial.println(config.telegrafserver);
+  Serial.print("telegrafserverport: "); Serial.println(config.telegrafserverport);
+  Serial.print("  telegrafshiptime: "); Serial.println(config.telegrafshiptime);
 }

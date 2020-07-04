@@ -15,15 +15,15 @@ void loopBreakout(String message) {
     logoutCurrentUser();
   }
 
-  if (config.influxdbenable) {
+  if (config.telegrafenable) {
     //unsigned long currentRunTime = millis();
 
     // do nothing and return if trying to ship metrics too fast
-    if ((millis() - influxdbLastRunTime) > (config.influxdbshiptime * 1000)) {
+    if ((millis() - telegrafLastRunTime) > (config.telegrafshiptime * 1000)) {
       shipUsage();
       shipTemp();
       shipWifiSignal();
-      influxdbLastRunTime = millis();
+      telegrafLastRunTime = millis();
     }
   }
 
