@@ -24,6 +24,12 @@ bool checkUserWebAuth(AsyncWebServerRequest * request) {
   return isAuthenticated;
 }
 
+void printWebAdminArgs(AsyncWebServerRequest * request) {
+  int args = request->args();
+  for (int i = 0; i < args; i++) {
+    Serial.printf("ARG[%s]: %s\n", request->argName(i).c_str(), request->arg(i).c_str());
+  }
+}
 
 // handles uploads to the filserver
 void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
@@ -222,10 +228,7 @@ void configureWebServer() {
     Serial.println(logmessage);
     syslog.log(logmessage);
 
-    int args = request->args();
-    for (int i = 0; i < args; i++) {
-      Serial.printf("ARG[%s]: %s\n", request->argName(i).c_str(), request->arg(i).c_str());
-    }
+    //printWebAdminArgs(request);
 
     const char *fileName = request->getParam("name")->value().c_str();
     const char *fileAction = request->getParam("action")->value().c_str();

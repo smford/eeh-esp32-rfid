@@ -117,6 +117,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
+- Make function to print web admin args for debugging
 - Rename influxdb* variable names to telegraf because that is more accurate
 - Make web admin web page delay time configurable
 - After OTA update, reboot
