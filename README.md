@@ -65,6 +65,8 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Adjust the timeout on setTimeout(function(){, 5000 might be too generous and it makes web interface seen a bit unresponsive.  WebSockets will superceed this if implemented.
 - Make while (true) loop better and more logical, while (true) loop + break is for when an already existing card is still present
 - Creat a generic shipMetric(String metricname, String metricvalue) function rather than individual ship* functions
+- Make the api call responses cleaner, maybe json or plain text, some are currently html
+- Change from using Strings library to standard strings
 
 ## Things to do
 - If wifi is disconnected, update LCD to alert user and put in to maintenance mode
@@ -79,7 +81,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Figure out sizing for JSON doc
 - Figure out sizing of variable for url
 - Regularly pull down user list from server and store in spiffs
-- Add a sensor to detect whether the laser is actually firing and ship somewhere
+- Add a sensor to detect whether the device is actually firing and ship somewhere
 - API token implementation for laptop to esp32
 - If no card present, grant and revoke access buttons are disabled, but when a card is presented and card details are refreshed, if a card is found the buttons should be enabled
 - Standardise time format: https://github.com/ropg/ezTime#built-in-date-and-time-formats
