@@ -105,7 +105,12 @@ void loadConfiguration(const char *filename, Config &config) {
     config.syslogport = default_syslogport;
   }
 
-  config.inmaintenance = doc["inmaintenance"] | default_inmaintenance;
+  if (doc.containsKey("inmaintenance")) {
+    config.inmaintenance = doc["inmaintenance"].as<bool>();
+  } else {
+    initiatesave = true;
+    config.inmaintenance = default_inmaintenance;
+  }
 
   config.ntptimezone = doc["ntptimezone"].as<String>();
   if (config.ntptimezone == "null") {
@@ -221,7 +226,12 @@ void loadConfiguration(const char *filename, Config &config) {
     config.overridecodes = default_overridecodes;
   }
 
-  config.influxdbenable = doc["influxdbenable"] | default_influxdbenable;
+  if (doc.containsKey("influxdbenable")) {
+    config.influxdbenable = doc["influxdbenable"].as<bool>();
+  } else {
+    initiatesave = true;
+    config.influxdbenable = default_influxdbenable;
+  }
 
   config.influxdbserver = doc["influxdbserver"].as<String>();
   if (config.influxdbserver == "null") {

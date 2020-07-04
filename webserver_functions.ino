@@ -275,22 +275,31 @@ void configureWebServer() {
         const char* selectState = request->getParam("state")->value().c_str();
 
         if (strcmp(selectState, "enable") == 0) {
-          logmessage += " Enabling maintenance mode";
-          returnText = "MAINTENANCE MODE";
-
           // if currently NOT in maintenance mode, toggle it on
           if (!config.inmaintenance) {
+            logmessage += " Enabling maintenance mode";
+            returnText = "MAINTENANCE MODE";
+            config.inmaintenance = true;
+            saveConfiguration(filename, config);
             gotoToggleMaintenance = true;
+          } else {
+            logmessage += " Already in maintenance mode";
+            returnText = "MAINTENANCE MODE";
           }
 
         } else if (strcmp(selectState, "disable") == 0) {
-          logmessage += " Disabling maintenance mode";
-          returnText = "";
-
           // if currently in maintenance mode, toggle it off
           if (config.inmaintenance) {
+            logmessage += " Disabling maintenance mode";
+            returnText = "";
+            config.inmaintenance = false;
+            saveConfiguration(filename, config);
             gotoToggleMaintenance = true;
+          } else {
+            logmessage += " Already not in maintenance mode";
+            returnText = "";
           }
+
         } else {
           logmessage += " ERROR: invalid state sent to maintenance mode, ignoring: " + String(selectState);
           returnText = "ERROR: invalid state sent to maintenance mode, ignoring: " + String(selectState);

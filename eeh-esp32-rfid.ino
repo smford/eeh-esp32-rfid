@@ -24,7 +24,7 @@
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 
-#define FIRMWARE_VERSION "v1.6.10-ota"
+#define FIRMWARE_VERSION "v1.6.11-ota"
 
 // configuration structure
 struct Config {
@@ -95,8 +95,7 @@ bool gotoToggleMaintenance = false;  // enter maintenance mode
 bool gotoLogoutCurrentUser = false;  // log out current user
 bool shouldReboot = false;           // schedule a reboot
 
-// maintenance and override modes
-bool inMaintenanceMode = false;
+// override modes
 bool inOverrideMode = false;
 
 // should i reset configuration to default?
@@ -755,12 +754,6 @@ void lcdPrint(String line1, String line2, String line3, String line4) {
 void toggleMaintenance() {
   // only run toggle once
   gotoToggleMaintenance = false;
-
-  // toggle maintenance mode
-  config.inmaintenance = !config.inmaintenance;
-
-  Serial.println(F("Storing inMaintenance configuration..."));
-  saveConfiguration(filename, config);
 
   if (config.inmaintenance) {
     syslog.logf("Enabling Maintenance Mode");
