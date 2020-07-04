@@ -24,6 +24,7 @@ const int default_lcdheight = 4;
 const int default_webserverporthttp = 80;
 const int default_webserverporthttps = 443;
 const int default_webapiwaittime = 2;
+const int default_webpagedelay = 1; // minimum should really be 1 second, if set to 0 the webadmin page often refreshes before action has completed
 const String default_serverurl = "http://192.168.10.21:8180";
 const String default_serverapitoken = "abcde";
 const String default_checkuserpage = "/check.php";

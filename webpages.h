@@ -70,13 +70,13 @@ function toggleMaintenance(element) {
   setTimeout(function(){
     document.getElementById("maintenancemode").innerHTML = xhr.responseText;
     document.getElementById("statusdetails").innerHTML = "Toggled Maintenance Mode";
-  },5000);
+  },%WEBPAGEDELAY%);
 }
 function logoutButton() {
   var xhr = new XMLHttpRequest();
   xhr.open("GET", "/logout", true);
   xhr.send();
-  setTimeout(function(){ window.open("/logged-out","_self"); }, 1000);
+  setTimeout(function(){ window.open("/logged-out","_self"); }, %WEBPAGEDELAY%);
 }
 function logoutCurrentUserButton() {
   document.getElementById("statusdetails").innerHTML = "Logging Out Current User ...";
@@ -88,7 +88,7 @@ function logoutCurrentUserButton() {
     document.getElementById("ledslider").checked = false;
     document.getElementById("statusdetails").innerHTML = "Logged Out User";
     document.getElementById("userdetails").innerHTML = xhr.responseText;
-  },5000);
+  },%WEBPAGEDELAY%);
 }
 function getUserDetailsButton() {
   document.getElementById("statusdetails").innerHTML = "Getting User Details ...";
@@ -98,7 +98,7 @@ function getUserDetailsButton() {
   setTimeout(function(){
     document.getElementById("statusdetails").innerHTML = "Refreshed User Details";
     document.getElementById("userdetails").innerHTML = xhr.responseText;
-  },5000);
+  },%WEBPAGEDELAY%);
 }
 function grantAccessButton() {
   document.getElementById("statusdetails").innerHTML = "Granting Access ...";
@@ -108,7 +108,7 @@ function grantAccessButton() {
   setTimeout(function(){
     document.getElementById("statusdetails").innerHTML = "Access Granted";
     document.getElementById("userdetails").innerHTML = xhr.responseText;
-  },5000);
+  },%WEBPAGEDELAY%);
 }
 function revokeAccessButton() {
   document.getElementById("statusdetails").innerHTML = "Revoking access ...";
@@ -118,7 +118,7 @@ function revokeAccessButton() {
   setTimeout(function(){
     document.getElementById("statusdetails").innerHTML = "Access Revoked";
     document.getElementById("userdetails").innerHTML = xhr.responseText;
-  },5000);
+  },%WEBPAGEDELAY%);
 }
 function changeBacklightButton(state) {
   document.getElementById("statusdetails").innerHTML = "Turning LCD Backlight " . state;
@@ -127,7 +127,7 @@ function changeBacklightButton(state) {
   xhr.send();
   setTimeout(function(){
     document.getElementById("statusdetails").innerHTML = "LCD Backlight " + state;
-  },2000);
+  },%WEBPAGEDELAY%);
 }
 function rebootButton() {
   document.getElementById("statusdetails").innerHTML = "Invoking Reboot ...";
@@ -145,7 +145,7 @@ function refreshNTP() {
   setTimeout(function(){
     document.getElementById("statusdetails").innerHTML = "Refreshed NTP";
     document.getElementById("ntptime").innerHTML = xhr.responseText;
-  },5000);
+  },%WEBPAGEDELAY%);
 }
 function displayConfig() {
   document.getElementById("statusdetails").innerHTML = "Loading Configuration ...";

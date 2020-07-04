@@ -184,10 +184,18 @@ void loadConfiguration(const char *filename, Config &config) {
     config.webserverporthttps = default_webserverporthttps;
   }
 
-  config.webapiwaittime = doc["webapiwaittime"];
-  if (config.webapiwaittime == 0) {
+  if (doc.containsKey("webapiwaittime")) {
+    config.webapiwaittime = doc["webapiwaittime"].as<int>();
+  } else {
     initiatesave = true;
     config.webapiwaittime = default_webapiwaittime;
+  }
+
+  if (doc.containsKey("webpagedelay")) {
+    config.webpagedelay = doc["webpagedelay"].as<int>();
+  } else {
+    initiatesave = true;
+    config.webpagedelay = default_webpagedelay;
   }
 
   config.serverurl = doc["serverurl"].as<String>();
@@ -299,6 +307,7 @@ void saveConfiguration(const char *filename, const Config &config) {
   doc["webserverporthttp"] = config.webserverporthttp;
   doc["webserverporthttps"] = config.webserverporthttps;
   doc["webapiwaittime"] = config.webapiwaittime;
+  doc["webpagedelay"] = config.webpagedelay;
   doc["serverurl"] = config.serverurl;
   doc["serverapitoken"] = config.serverapitoken;
   doc["checkuserpage"] = config.checkuserpage;
@@ -366,6 +375,7 @@ void printConfig() {
   Serial.print(" webserverporthttp: "); Serial.println(config.webserverporthttp);
   Serial.print("webserverporthttps: "); Serial.println(config.webserverporthttps);
   Serial.print("    webapiwaittime: "); Serial.println(config.webapiwaittime);
+  Serial.print("      webpagedelay: "); Serial.println(config.webpagedelay);
   Serial.print("         serverurl: "); Serial.println(config.serverurl);
   Serial.print("    serverapitoken: "); Serial.println("**********");
   Serial.print("     checkuserpage: "); Serial.println(config.checkuserpage);

@@ -168,6 +168,10 @@ String processor(const String& var) {
     return printTime();
   }
 
+  if (var == "WEBPAGEDELAY") {
+    return String(config.webpagedelay * 1000);
+  }
+
   return String();
 }
 

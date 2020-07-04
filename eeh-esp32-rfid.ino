@@ -24,7 +24,7 @@
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 
-#define FIRMWARE_VERSION "v1.6.11-ota"
+#define FIRMWARE_VERSION "v1.6.12-ota"
 
 // configuration structure
 struct Config {
@@ -54,6 +54,7 @@ struct Config {
   int webserverporthttp;   // http port number for web admin
   int webserverporthttps;  // https port number for the web admin
   int webapiwaittime;      // forced delay in seconds between web api calls
+  int webpagedelay;        // delay in seconds to wait the webadmin page to wait for a response before updating webpage
   String serverurl;        // url of authentication server, e.g. "http://something.com/" or "https://192.168.20.60"
   String serverapitoken;   // api token used to authenticate against the user management system
   String checkuserpage;    // check user webpage hosted on authentication server, e.g. "checkuser.php"
@@ -561,6 +562,7 @@ String getFullStatus() {
   fullStatusDoc["NTPWaitSynctime"] = config.ntpwaitsynctime;
   fullStatusDoc["NTPSyncStatus"] = getTimeStatus();
   fullStatusDoc["WebAPIWaitTime"] = config.webapiwaittime;
+  fullStatusDoc["WebPageDelay"] = config.webpagedelay;
   fullStatusDoc["ShouldReboot"] = shouldReboot;
   fullStatusDoc["WebServerPortHTTP"] = config.webserverporthttp;
   fullStatusDoc["WebServerPortHTTPS"] = config.webserverporthttps;
