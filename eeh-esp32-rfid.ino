@@ -23,8 +23,9 @@
 // liquidcrystal_i2c library: https://github.com/johnrickman/LiquidCrystal_I2C
 // asyncelegantota library https://github.com/ayushsharma82/AsyncElegantOTA
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
+// wifi scanning based upon https://github.com/me-no-dev/ESPAsyncWebServer#scanning-for-available-wifi-networks
 
-#define FIRMWARE_VERSION "v1.6.14-ota"
+#define FIRMWARE_VERSION "v1.7-ota"
 
 // configuration structure
 struct Config {

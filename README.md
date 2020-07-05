@@ -46,6 +46,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 | yes | /maintenance | Enable or disable maintenance mode | yes | yes | state=enable state=disable | /maintenance?api=xxx&state=enable |
 | yes | /ntprefresh | Initiate a ntp time refresh | yes | yes | - | /ntprefresh?api=xxx |
 | yes | /reboot | Initiate a reboot | yes | yes | - | /reboot?api=xxx |
+| yes | /scanwifi | Display available wifi networks | yes | yes | - | /scanwifi?api=xxx |
 | yes | /status | Simple status page | - | - | - | /status |
 | yes | /time | Display current time on device | - | - | - | /time |
 | yes | /toggle | Turn LED or Relay on/off | yes | yes | pin=led&state=on  pin=relay&state=off| /toggle?api=xxx&pin=led&state=off |
@@ -103,7 +104,6 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Allow flashing from default firmware, and then configuration via web admin
 - Use wifimanager or IotWebConf to make configuration easier
 - Enforce windows of operation
-- Display available wifi networks: https://github.com/me-no-dev/ESPAsyncWebServer#scanning-for-available-wifi-networks
 - Add a debugging mode
 - Scheduled reboots
 - When a card is removed or presented, auto refresh the web admin page
@@ -117,6 +117,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
+- Display available wifi networks: https://github.com/me-no-dev/ESPAsyncWebServer#scanning-for-available-wifi-networks
 - Make function to print web admin args for debugging
 - Rename influxdb* variable names to telegraf because that is more accurate
 - Make web admin web page delay time configurable
