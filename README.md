@@ -67,7 +67,6 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Make while (true) loop better and more logical, while (true) loop + break is for when an already existing card is still present
 - Creat a generic shipMetric(String metricname, String metricvalue) function rather than individual ship* functions
 - Make the api call responses cleaner, maybe json or plain text, some are currently html
-- Change from using Strings library to standard strings
 - Make parsing of json data presented in to the web interface safer: https://www.w3schools.com/js/js_json_parse.asp
 - Merge /backlighton and /backlightoff into /backlight?state=on/off
 
@@ -78,7 +77,6 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Change the api token to be a hash
 - Change password for OTA webpage to be a hash
 - Convert Web Admin to using websockets
-- If no settings file, set default, and go in to programming mode
 - Add status light to signify when it is checking access, in trainer mode, locked, unlocked, etc
 - Enable active checking of access, regularly poll and check whether card still has access
 - Figure out sizing for JSON doc
@@ -103,7 +101,6 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Cleanup the OTA webpage
 - Allow all settings to be updated via web admin
 - Allow flashing from default firmware, and then configuration via web admin
-- Use wifimanager or IotWebConf to make configuration easier
 - Enforce windows of operation
 - Add a debugging mode
 - Scheduled reboots
@@ -116,8 +113,10 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
 - When revoking access, disable led and relay, access in web admin, and in full status.  To do the same effect, revoke access then log out user.
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
+- Use wifimanager or IotWebConf to make configuration easier
 
 ## Done
+- If no settings file, set default from defaults.h
 - API token implementation for laptop to esp32
 - Clean up Authentication success or failed messages
 - Display available wifi networks: https://github.com/me-no-dev/ESPAsyncWebServer#scanning-for-available-wifi-networks
