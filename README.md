@@ -32,24 +32,24 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 
 ## API Calls Supported
 
-| Done | API Endpoint | Description | Auth:API | Auth:User/Pass | Parameters | Example |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| yes | /backlightoff | Turns LCD Backlight Off | yes | yes | - | /backlightoff?api=xxx |
-| yes | /backlighton | Turns LCD Backlight On | yes | yes | - | /backlighton?api=xxx |
-| no | /file | Delete or download a file from spiffs | | | | |
-| yes | /fullstatus | Display full running configuration and data | yes | yes | - | /fullstatus?api=xxx |
-| yes | /getuser | Get currently presented cards user details | yes | yes | - | /getuser?api=xxx |
-| yes | /grant | Grant/Revoke a users access | yes | yes | access=grant access=revoke | /grant?api=xxx&access=grant |
-| yes | /health | Simple health response | - | - | - | /health |
-| yes | /listfiles | List files on spiffs | yes | yes | - | /listfiles?api=xxx |
-| yes | /logout-current-user | Log out current user of device | yes | yes | - | /logout-current-user?api=xxx |
-| yes | /maintenance | Enable or disable maintenance mode | yes | yes | state=enable state=disable | /maintenance?api=xxx&state=enable |
-| yes | /ntprefresh | Initiate a ntp time refresh | yes | yes | - | /ntprefresh?api=xxx |
-| yes | /reboot | Initiate a reboot | yes | yes | - | /reboot?api=xxx |
-| yes | /scanwifi | Display available wifi networks | yes | yes | - | /scanwifi?api=xxx |
-| yes | /status | Simple status page | - | - | - | /status |
-| yes | /time | Display current time on device | - | - | - | /time |
-| yes | /toggle | Turn LED or Relay on/off | yes | yes | pin=led&state=on  pin=relay&state=off| /toggle?api=xxx&pin=led&state=off |
+| API Endpoint | Description | Auth:API | Auth:User/Pass | Parameters | Example |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| /backlightoff | Turns LCD Backlight Off | yes | yes | - | /backlightoff?api=xxx |
+| /backlighton | Turns LCD Backlight On | yes | yes | - | /backlighton?api=xxx |
+| /file | Delete or download a file from spiffs | yes | yes | name=/something.txt&action=delete name=/something.txt&action=download | /file?api=xxx&ame=/something.txt&action=delete |
+| /fullstatus | Display full running configuration and data | yes | yes | - | /fullstatus?api=xxx |
+| /getuser | Get currently presented cards user details | yes | yes | - | /getuser?api=xxx |
+| /grant | Grant/Revoke a users access | yes | yes | access=grant access=revoke | /grant?api=xxx&access=grant |
+| /health | Simple health response | - | - | - | /health |
+| /listfiles | List files on spiffs | yes | yes | - | /listfiles?api=xxx |
+| /logout-current-user | Log out current user of device | yes | yes | - | /logout-current-user?api=xxx |
+| /maintenance | Enable or disable maintenance mode | yes | yes | state=enable state=disable | /maintenance?api=xxx&state=enable |
+| /ntprefresh | Initiate a ntp time refresh | yes | yes | - | /ntprefresh?api=xxx |
+| /reboot | Initiate a reboot | yes | yes | - | /reboot?api=xxx |
+| /scanwifi | Display available wifi networks | yes | yes | - | /scanwifi?api=xxx |
+| /status | Simple status page | - | - | - | /status |
+| /time | Display current time on device | - | - | - | /time |
+| /toggle | Turn LED or Relay on/off | yes | yes | pin=led&state=on  pin=relay&state=off| /toggle?api=xxx&pin=led&state=off |
 
 ## Electrical Stuff to do
 - the relay fires when writing the firmware
@@ -85,7 +85,6 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Figure out sizing of variable for url
 - Regularly pull down user list from server and store in spiffs
 - Add a sensor to detect whether the device is actually firing and ship somewhere
-- API token implementation for laptop to esp32
 - If no card present, grant and revoke access buttons are disabled, but when a card is presented and card details are refreshed, if a card is found the buttons should be enabled
 - Standardise time format: https://github.com/ropg/ezTime#built-in-date-and-time-formats
 - Upon boot, pull time from server, then start using ntp
@@ -119,6 +118,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
+- API token implementation for laptop to esp32
 - Clean up Authentication success or failed messages
 - Display available wifi networks: https://github.com/me-no-dev/ESPAsyncWebServer#scanning-for-available-wifi-networks
 - Make function to print web admin args for debugging

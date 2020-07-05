@@ -221,28 +221,49 @@ void configureWebServer() {
   });
 
   server->on("/file", HTTP_GET, [](AsyncWebServerRequest * request) {
-    if (!request->authenticate(config.httpuser.c_str(), config.httppassword.c_str())) {
-      return request->requestAuthentication();
-    }
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    Serial.println(logmessage);
-    syslog.log(logmessage);
+    if (checkUserWebAuth(request)) {
+      logmessage += " Auth: Success";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
 
-    //printWebAdminArgs(request);
+      //printWebAdminArgs(request);
 
-    const char *fileName = request->getParam("name")->value().c_str();
-    const char *fileAction = request->getParam("action")->value().c_str();
+      if (request->hasParam("name") && request->hasParam("action")) {
+        const char *fileName = request->getParam("name")->value().c_str();
+        const char *fileAction = request->getParam("action")->value().c_str();
 
-    if (!SPIFFS.exists(fileName)) {
-      request->send(200, "text/plain", "ERROR");
+        logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url() + "?name=" + String(fileName) + "&action=" + String(fileAction);
+
+        if (!SPIFFS.exists(fileName)) {
+          Serial.println(logmessage + " ERROR: file does not exist");
+          syslog.log(logmessage + " ERROR: file does not exist");
+          request->send(400, "text/plain", "ERROR: file does not exist");
+        } else {
+          Serial.println(logmessage + " file exists");
+          syslog.log(logmessage + " file exists");
+          if (strcmp(fileAction, "download") == 0) {
+            logmessage += " downloaded";
+            request->send(SPIFFS, fileName, "application/octet-stream");
+          } else if (strcmp(fileAction, "delete") == 0) {
+            logmessage += " deleted";
+            SPIFFS.remove(fileName);
+            request->send(200, "text/plain", "Deleted File: " + String(fileName));
+          } else {
+            logmessage += " ERROR: invalid action param supplied";
+            request->send(400, "text/plain", "ERROR: invalid action param supplied");
+          }
+          Serial.println(logmessage);
+          syslog.log(logmessage);
+        }
+      } else {
+        request->send(400, "text/plain", "ERROR: name and action params required");
+      }
     } else {
-      if (strcmp(fileAction, "download") == 0) {
-        request->send(SPIFFS, fileName, "application/octet-stream");
-      }
-      if (strcmp(fileAction, "delete") == 0) {
-        SPIFFS.remove(fileName);
-        request->send(200, "text/plain", "Deleted File: " + String(fileName));
-      }
+      logmessage += " Auth: Failed";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
+      return request->requestAuthentication();
     }
   });
 
@@ -433,165 +454,165 @@ void configureWebServer() {
       syslog.log(logmessage);
       return request->requestAuthentication();
     }
-    });
+  });
 
-    server->on("/ntprefresh", HTTP_GET, [](AsyncWebServerRequest * request) {
-      String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-      if (checkUserWebAuth(request)) {
-        logmessage += " Auth: Success";
-        Serial.println(logmessage);
-        syslog.log(logmessage);
-        updateNTP();
-        request->send(200, "text/html", printTime());
-      } else {
-        logmessage += " Auth: Failed";
-        Serial.println(logmessage);
-        syslog.log(logmessage);
-        return request->requestAuthentication();
-      }
-    });
-
-    server->on("/logout-current-user", HTTP_GET, [](AsyncWebServerRequest * request) {
-      String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-      if (checkUserWebAuth(request)) {
-        logmessage += " Auth: Success";
-        Serial.println(logmessage);
-        syslog.log(logmessage);
-        gotoLogoutCurrentUser = true;
-        String returnText = "<table>";
-        returnText += "<tr><td align='left'><b>Name:</b></td><td align='left'>" + currentRFIDFirstNameStr + " " + currentRFIDSurnameStr + "</td></tr>";
-        returnText += "<tr><td align='left'><b>User ID:</b></td><td align='left'>" + currentRFIDUserIDStr + "</td></tr>";
-        returnText += "<tr><td align='left'><b>RFID:</b></td><td align='left'>" + String(currentRFIDcard) + "</td></tr>";
-        returnText += "<tr><td align='left'><b>Device:</b></td><td align='left'>" + config.device + "</td></tr>";
-        returnText += "<tr><td align='left'><b>Access:</b></td><td align='left'>Web Admin Logged Out</td></tr>";
-        returnText += "</table>";
-        request->send(200, "text/html", returnText);
-      } else {
-        logmessage += " Auth: Failed";
-        Serial.println(logmessage);
-        syslog.log(logmessage);
-        return request->requestAuthentication();
-      }
-    });
-
-    server->on("/health", HTTP_GET, [](AsyncWebServerRequest * request) {
-      String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+  server->on("/ntprefresh", HTTP_GET, [](AsyncWebServerRequest * request) {
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    if (checkUserWebAuth(request)) {
+      logmessage += " Auth: Success";
       Serial.println(logmessage);
       syslog.log(logmessage);
-      request->send(200, "text/plain", "OK");
-    });
-
-    server->on("/fullstatus", HTTP_GET, [](AsyncWebServerRequest * request) {
-      String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-      if (checkUserWebAuth(request)) {
-        logmessage += " Auth: Success";
-        Serial.println(logmessage);
-        syslog.log(logmessage);
-        request->send(200, "application/json", getFullStatus());
-      } else {
-        logmessage += " Auth: Failed";
-        Serial.println(logmessage);
-        syslog.log(logmessage);
-        return request->requestAuthentication();
-      }
-    });
-
-    server->on("/status", HTTP_GET, [](AsyncWebServerRequest * request) {
-      String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+      updateNTP();
+      request->send(200, "text/html", printTime());
+    } else {
+      logmessage += " Auth: Failed";
       Serial.println(logmessage);
       syslog.log(logmessage);
-      request->send(200, "application/json", getStatus());
-    });
+      return request->requestAuthentication();
+    }
+  });
 
-    // used for checking whether time is sync
-    server->on("/time", HTTP_GET, [](AsyncWebServerRequest * request) {
-      String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+  server->on("/logout-current-user", HTTP_GET, [](AsyncWebServerRequest * request) {
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    if (checkUserWebAuth(request)) {
+      logmessage += " Auth: Success";
       Serial.println(logmessage);
       syslog.log(logmessage);
-      request->send(200, "text/plain", printTime());
-    });
+      gotoLogoutCurrentUser = true;
+      String returnText = "<table>";
+      returnText += "<tr><td align='left'><b>Name:</b></td><td align='left'>" + currentRFIDFirstNameStr + " " + currentRFIDSurnameStr + "</td></tr>";
+      returnText += "<tr><td align='left'><b>User ID:</b></td><td align='left'>" + currentRFIDUserIDStr + "</td></tr>";
+      returnText += "<tr><td align='left'><b>RFID:</b></td><td align='left'>" + String(currentRFIDcard) + "</td></tr>";
+      returnText += "<tr><td align='left'><b>Device:</b></td><td align='left'>" + config.device + "</td></tr>";
+      returnText += "<tr><td align='left'><b>Access:</b></td><td align='left'>Web Admin Logged Out</td></tr>";
+      returnText += "</table>";
+      request->send(200, "text/html", returnText);
+    } else {
+      logmessage += " Auth: Failed";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
+      return request->requestAuthentication();
+    }
+  });
 
-    // called when slider has been toggled
-    server->on("/toggle", HTTP_GET, [] (AsyncWebServerRequest * request) {
-      String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-      if (checkUserWebAuth(request)) {
-        logmessage += " Auth: Success";
-        Serial.println(logmessage);
-        syslog.log(logmessage);
-        if (request->hasParam("state") && request->hasParam("pin")) {
-          String newState = request->getParam("state")->value();
-          String inputPin = request->getParam("pin")->value();
+  server->on("/health", HTTP_GET, [](AsyncWebServerRequest * request) {
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    Serial.println(logmessage);
+    syslog.log(logmessage);
+    request->send(200, "text/plain", "OK");
+  });
 
-          if (inputPin == "relay") {
-            if (strcmp(newState.c_str(), "on") == 0) {
-              logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable Relay" + " " + request->url();
-              enableRelay(logmessage);
-            } else {
-              logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable Relay" + " " + request->url();
-              disableRelay(logmessage);
-            }
+  server->on("/fullstatus", HTTP_GET, [](AsyncWebServerRequest * request) {
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    if (checkUserWebAuth(request)) {
+      logmessage += " Auth: Success";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
+      request->send(200, "application/json", getFullStatus());
+    } else {
+      logmessage += " Auth: Failed";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
+      return request->requestAuthentication();
+    }
+  });
+
+  server->on("/status", HTTP_GET, [](AsyncWebServerRequest * request) {
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    Serial.println(logmessage);
+    syslog.log(logmessage);
+    request->send(200, "application/json", getStatus());
+  });
+
+  // used for checking whether time is sync
+  server->on("/time", HTTP_GET, [](AsyncWebServerRequest * request) {
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    Serial.println(logmessage);
+    syslog.log(logmessage);
+    request->send(200, "text/plain", printTime());
+  });
+
+  // called when slider has been toggled
+  server->on("/toggle", HTTP_GET, [] (AsyncWebServerRequest * request) {
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    if (checkUserWebAuth(request)) {
+      logmessage += " Auth: Success";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
+      if (request->hasParam("state") && request->hasParam("pin")) {
+        String newState = request->getParam("state")->value();
+        String inputPin = request->getParam("pin")->value();
+
+        if (inputPin == "relay") {
+          if (strcmp(newState.c_str(), "on") == 0) {
+            logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable Relay" + " " + request->url();
+            enableRelay(logmessage);
+          } else {
+            logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable Relay" + " " + request->url();
+            disableRelay(logmessage);
           }
-
-          if (inputPin == "led") {
-            if (strcmp(newState.c_str(), "on") == 0) {
-              logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable LED" + " " + request->url();
-              enableLed(logmessage);
-            } else {
-              logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable LED" + " " + request->url();
-              disableLed(logmessage);
-            }
-          }
-
-          request->send(200, "text/plain", logmessage);
-
-        } else {
-          request->send(200, "text/plain", "ERROR: state and pin parameters required");
         }
 
-      } else {
-        logmessage += " Auth: Failed";
-        Serial.println(logmessage);
-        syslog.log(logmessage);
-        return request->requestAuthentication();
-      }
-    });
+        if (inputPin == "led") {
+          if (strcmp(newState.c_str(), "on") == 0) {
+            logmessage = "Client:" + request->client()->remoteIP().toString() + " Enable LED" + " " + request->url();
+            enableLed(logmessage);
+          } else {
+            logmessage = "Client:" + request->client()->remoteIP().toString() + " Disable LED" + " " + request->url();
+            disableLed(logmessage);
+          }
+        }
 
-    // based upon
-    server->on("/scanwifi", HTTP_GET, [](AsyncWebServerRequest * request) {
-      String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-      if (checkUserWebAuth(request)) {
-        logmessage += " Auth: Success";
-        Serial.println(logmessage);
-        syslog.log(logmessage);
-        String json = "[";
-        int n = WiFi.scanComplete();
-        if (n == -2) {
+        request->send(200, "text/plain", logmessage);
+
+      } else {
+        request->send(200, "text/plain", "ERROR: state and pin parameters required");
+      }
+
+    } else {
+      logmessage += " Auth: Failed";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
+      return request->requestAuthentication();
+    }
+  });
+
+  // based upon
+  server->on("/scanwifi", HTTP_GET, [](AsyncWebServerRequest * request) {
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    if (checkUserWebAuth(request)) {
+      logmessage += " Auth: Success";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
+      String json = "[";
+      int n = WiFi.scanComplete();
+      if (n == -2) {
+        WiFi.scanNetworks(true);
+      } else if (n) {
+        for (int i = 0; i < n; ++i) {
+          if (i) json += ",";
+          json += "{";
+          json += "\"rssi\":" + String(WiFi.RSSI(i));
+          json += ",\"ssid\":\"" + WiFi.SSID(i) + "\"";
+          json += ",\"bssid\":\"" + WiFi.BSSIDstr(i) + "\"";
+          json += ",\"channel\":" + String(WiFi.channel(i));
+          json += ",\"secure\":" + String(WiFi.encryptionType(i));
+          //json += ",\"hidden\":" + String(WiFi.isHidden(i) ? "true" : "false");
+          json += "}";
+        }
+        WiFi.scanDelete();
+        if (WiFi.scanComplete() == -2) {
           WiFi.scanNetworks(true);
-        } else if (n) {
-          for (int i = 0; i < n; ++i) {
-            if (i) json += ",";
-            json += "{";
-            json += "\"rssi\":" + String(WiFi.RSSI(i));
-            json += ",\"ssid\":\"" + WiFi.SSID(i) + "\"";
-            json += ",\"bssid\":\"" + WiFi.BSSIDstr(i) + "\"";
-            json += ",\"channel\":" + String(WiFi.channel(i));
-            json += ",\"secure\":" + String(WiFi.encryptionType(i));
-            //json += ",\"hidden\":" + String(WiFi.isHidden(i) ? "true" : "false");
-            json += "}";
-          }
-          WiFi.scanDelete();
-          if (WiFi.scanComplete() == -2) {
-            WiFi.scanNetworks(true);
-          }
         }
-        json += "]";
-        request->send(200, "application/json", json);
-        json = String();
-      } else {
-        logmessage += " Auth: Failed";
-        Serial.println(logmessage);
-        syslog.log(logmessage);
-        return request->requestAuthentication();
       }
-    });
-  }
+      json += "]";
+      request->send(200, "application/json", json);
+      json = String();
+    } else {
+      logmessage += " Auth: Failed";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
+      return request->requestAuthentication();
+    }
+  });
+}
