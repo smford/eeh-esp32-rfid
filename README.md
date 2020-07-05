@@ -114,6 +114,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Create a generic shipMetric(String metricname, String metricvalue) function rather than individual ship* functions. Why: Too messy.
 
 ## Done
+- Display spiffs storage details
 - Web Admin: Scan i2c devices and print out
 - Merge /backlighton and /backlightoff into /backlight?state=on/off
 - If no settings file, set default from defaults.h

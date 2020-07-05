@@ -23,6 +23,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   <h2>%EEH_HOSTNAME%</h2>
   <h3 id="maintenancemode">%MAINTENANCEMODE%</h3>
   <p>Device Time: <span id="ntptime">%DEVICETIME%</span> | Firmware Version: %FIRMWARE%</p>
+  <p>Free Storage: <span id="freespiffs">%FREESPIFFS%</span> | Used Storage: <span id="usedspiffs">%USEDSPIFFS%</span> | Total Storage: <span id="totalspiffs">%TOTALSPIFFS%</span></p>
   <button onclick="logoutButton()">Logout Web Admin</button>
   <button onclick="getUserDetailsButton()">Refresh Current Card User Details</button>
   <button onclick="grantAccessButton()" %GRANTBUTTONENABLE%>Grant Access to Current Card</button>

@@ -178,6 +178,18 @@ String processor(const String& var) {
     return String(config.webpagedelay * 1000);
   }
 
+  if (var == "FREESPIFFS") {
+    return humanReadableSize((SPIFFS.totalBytes() - SPIFFS.usedBytes()));
+  }
+
+  if (var == "USEDSPIFFS") {
+    return humanReadableSize(SPIFFS.usedBytes());
+  }
+
+  if (var == "TOTALSPIFFS") {
+    return humanReadableSize(SPIFFS.totalBytes());
+  }
+
   return String();
 }
 

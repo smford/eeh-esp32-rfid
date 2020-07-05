@@ -25,7 +25,7 @@
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 // wifi scanning based upon https://github.com/me-no-dev/ESPAsyncWebServer#scanning-for-available-wifi-networks
 
-#define FIRMWARE_VERSION "v1.7.6-ota"
+#define FIRMWARE_VERSION "v1.7.7-ota"
 
 // configuration structure
 struct Config {
@@ -155,6 +155,10 @@ void setup() {
     Serial.println("Resetting Configuration to Default");
     SPIFFS.remove(filename);
   }
+
+  Serial.print("SPIFFS Free: "); Serial.println(humanReadableSize((SPIFFS.totalBytes() - SPIFFS.usedBytes())));
+  Serial.print("SPIFFS Used: "); Serial.println(humanReadableSize(SPIFFS.usedBytes()));
+  Serial.print("SPIFFS Total: "); Serial.println(humanReadableSize(SPIFFS.totalBytes()));
 
   Serial.println(listFiles());
 
@@ -642,6 +646,9 @@ String getFullStatus() {
   fullStatusDoc["TelegrafServer"] = config.telegrafserver;
   fullStatusDoc["TelegrafServerPort"] = config.telegrafserverport;
   fullStatusDoc["TelegrafShipTime"] = config.telegrafshiptime;
+  fullStatusDoc["SPIFFSFree"] = (SPIFFS.totalBytes() - SPIFFS.usedBytes());
+  fullStatusDoc["SPIFFSUsed"] = SPIFFS.usedBytes();
+  fullStatusDoc["SPIFFSTotal"] = SPIFFS.totalBytes();
 
   String fullStatus = "";
   serializeJson(fullStatusDoc, fullStatus);
