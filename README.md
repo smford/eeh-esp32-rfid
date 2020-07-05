@@ -68,6 +68,8 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Creat a generic shipMetric(String metricname, String metricvalue) function rather than individual ship* functions
 - Make the api call responses cleaner, maybe json or plain text, some are currently html
 - Change from using Strings library to standard strings
+- Make parsing of json data presented in to the web interface safer: https://www.w3schools.com/js/js_json_parse.asp
+- Merge /backlighton and /backlightoff into /backlight?state=on/off
 
 ## Things to do
 - If wifi is disconnected, update LCD to alert user and put in to maintenance mode
