@@ -117,6 +117,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
 
 ## Done
+- Clean up Authentication success or failed messages
 - Display available wifi networks: https://github.com/me-no-dev/ESPAsyncWebServer#scanning-for-available-wifi-networks
 - Make function to print web admin args for debugging
 - Rename influxdb* variable names to telegraf because that is more accurate
