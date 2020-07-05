@@ -39,7 +39,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 | no | /file | Delete or download a file from spiffs | | | | |
 | yes | /fullstatus | Display full running configuration and data | yes | yes | - | /fullstatus?api=xxx |
 | yes | /getuser | Get currently presented cards user details | yes | yes | - | /getuser?api=xxx |
-| no | /grant | Grant/Revoke a users access | | | | |
+| yes | /grant | Grant/Revoke a users access | yes | yes | access=grant access=revoke | /grant?api=xxx&access=grant |
 | yes | /health | Simple health response | - | - | - | /health |
 | yes | /listfiles | List files on spiffs | yes | yes | - | /listfiles?api=xxx |
 | yes | /logout-current-user | Log out current user of device | yes | yes | - | /logout-current-user?api=xxx |
