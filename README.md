@@ -65,7 +65,6 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - change grantUser() and getUserDetails() in to a generic function
 - Adjust the timeout on setTimeout(function(){, 5000 might be too generous and it makes web interface seen a bit unresponsive.  WebSockets will superceed this if implemented.
 - Make while (true) loop better and more logical, while (true) loop + break is for when an already existing card is still present
-- Creat a generic shipMetric(String metricname, String metricvalue) function rather than individual ship* functions
 - Make the api call responses cleaner, maybe json or plain text, some are currently html
 - Make parsing of json data presented in to the web interface safer: https://www.w3schools.com/js/js_json_parse.asp
 
@@ -108,10 +107,11 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Enable https on device
 
 ## Abandoned
-- Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
-- When revoking access, disable led and relay, access in web admin, and in full status.  To do the same effect, revoke access then log out user.
-- Make override codes be stored as a nested array within the config struct and in json.  Hard to arrange, instead used simple csv method
-- Use wifimanager or IotWebConf to make configuration easier
+- Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database. Why: Implemented another way.
+- When revoking access, disable led and relay, access in web admin, and in full status. Why: To do the same effect simply revoke access then log out user.
+- Make override codes be stored as a nested array within the config struct and in json. Why: Hard to arrange, instead used simple csv method
+- Use wifimanager or IotWebConf to make configuration easier. Why: Implemented needed functionality another way.
+- Create a generic shipMetric(String metricname, String metricvalue) function rather than individual ship* functions. Why: Too messy.
 
 ## Done
 - Web Admin: Scan i2c devices and print out

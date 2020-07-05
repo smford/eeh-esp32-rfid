@@ -25,7 +25,7 @@
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 // wifi scanning based upon https://github.com/me-no-dev/ESPAsyncWebServer#scanning-for-available-wifi-networks
 
-#define FIRMWARE_VERSION "v1.7.5-ota"
+#define FIRMWARE_VERSION "v1.7.6-ota"
 
 // configuration structure
 struct Config {
@@ -831,12 +831,8 @@ String humanReadableSize(const size_t bytes) {
 
 // ship core esp32 temp metrics to influxdb/telegraf
 void shipTemp() {
-  unsigned long currentRunTime = millis();
-
   String line = config.device + "-temp value=" + String(((temprature_sens_read() - 32) / 1.8), 2);
-
   Serial.print("Shipping: "); Serial.println(line);
-
   udpClient.beginPacket(config.telegrafserver.c_str(), config.telegrafserverport);
   udpClient.print(line);
   udpClient.endPacket();
@@ -844,20 +840,14 @@ void shipTemp() {
 
 // ship usage metrics (device enabled or disabled) to influxdb/telegraf
 void shipUsage() {
-  unsigned long currentRunTime = millis();
   String line;
-
   // this is needed because the relay pin is naturally high when un-fired
   if (digitalRead(config.relaypin)) {
     line = config.device + "-usage value=0"; // shows NOT in use
   } else {
     line = config.device + "-usage value=1"; // shows WHEN in use
   }
-
-  //line = config.device + "-usage value=" + String(digitalRead(config.relaypin));
-
   Serial.print("Shipping: "); Serial.println(line);
-
   udpClient.beginPacket(config.telegrafserver.c_str(), config.telegrafserverport);
   udpClient.print(line);
   udpClient.endPacket();
@@ -865,12 +855,8 @@ void shipUsage() {
 
 // ship wifi signal strength metrics to influxdb/telegraf
 void shipWifiSignal() {
-  unsigned long currentRunTime = millis();
-
   String line = config.device + "-wifisignal value=" + String(WiFi.RSSI());
-
   Serial.print("Shipping: "); Serial.println(line);
-
   udpClient.beginPacket(config.telegrafserver.c_str(), config.telegrafserverport);
   udpClient.print(line);
   udpClient.endPacket();
