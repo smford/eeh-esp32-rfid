@@ -349,31 +349,39 @@ void configureWebServer() {
     }
   });
 
-  server->on("/backlighton", HTTP_GET, [](AsyncWebServerRequest * request) {
+  server->on("/backlight", HTTP_GET, [](AsyncWebServerRequest * request) {
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     if (checkUserWebAuth(request)) {
-      logmessage += " Auth: Success";
-      Serial.println(logmessage);
-      syslog.log(logmessage);
-      lcd->backlight();
-      request->send(200, "text/html", "LCD Backlight On");
-    } else {
-      logmessage += " Auth: Failed";
-      Serial.println(logmessage);
-      syslog.log(logmessage);
-      return request->requestAuthentication();
-    }
-  });
+      String returnText;
+      int returnCode;
+      if (request->hasParam("state")) {
+        const char* selectState = request->getParam("state")->value().c_str();
 
+        logmessage += " Auth: Success";
 
-  server->on("/backlightoff", HTTP_GET, [](AsyncWebServerRequest * request) {
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-    if (checkUserWebAuth(request)) {
-      logmessage += " Auth: Success";
+        if (strcmp(selectState, "on") == 0) {
+          lcd->backlight();
+          returnText = "LCD Backlight On";
+          logmessage = logmessage + " " + returnText;
+          returnCode = 200;
+        } else if (strcmp(selectState, "off") == 0) {
+          lcd->noBacklight();
+          returnText = "LCD Backlight Off";
+          logmessage = logmessage + " " + returnText;
+          returnCode = 200;
+        } else {
+          returnText = "ERROR: bad state param supplied";
+          logmessage = logmessage + " " + returnText;
+          returnCode = 400;
+        }
+      } else {
+        returnText = "ERROR: state param required";
+        logmessage = logmessage + " " + returnText;
+        returnCode = 400;
+      }
       Serial.println(logmessage);
       syslog.log(logmessage);
-      lcd->noBacklight();
-      request->send(200, "text/html", "LCD Backlight Off");
+      request->send(returnCode, "text/html", returnText);
     } else {
       logmessage += " Auth: Failed";
       Serial.println(logmessage);

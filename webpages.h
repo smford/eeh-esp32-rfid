@@ -124,7 +124,7 @@ function revokeAccessButton() {
 function changeBacklightButton(state) {
   document.getElementById("statusdetails").innerHTML = "Turning LCD Backlight " . state;
   var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/backlight" + state, true);
+  xhr.open("GET", "/backlight?state=" + state, true);
   xhr.send();
   setTimeout(function(){
     document.getElementById("statusdetails").innerHTML = "LCD Backlight " + state;

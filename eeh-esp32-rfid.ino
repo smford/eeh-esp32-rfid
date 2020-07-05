@@ -25,7 +25,7 @@
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 // wifi scanning based upon https://github.com/me-no-dev/ESPAsyncWebServer#scanning-for-available-wifi-networks
 
-#define FIRMWARE_VERSION "v1.7.3-ota"
+#define FIRMWARE_VERSION "v1.7.4-ota"
 
 // configuration structure
 struct Config {

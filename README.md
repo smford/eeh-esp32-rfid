@@ -32,10 +32,9 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 
 ## API Calls Supported
 
-| API Endpoint | Description | Auth:API | Auth:User/Pass | Parameters | Example |
+| API | Description | Auth:API | User/Pass | Params | Example |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| /backlightoff | Turns LCD Backlight Off | yes | yes | - | /backlightoff?api=xxx |
-| /backlighton | Turns LCD Backlight On | yes | yes | - | /backlighton?api=xxx |
+| /backlight | Turns LCD Backlight On or Off | yes | yes | state=on state=off | /backlightoff?api=xxx&state=off |
 | /file | Delete or download a file from spiffs | yes | yes | name=/something.txt&action=delete name=/something.txt&action=download | /file?api=xxx&ame=/something.txt&action=delete |
 | /fullstatus | Display full running configuration and data | yes | yes | - | /fullstatus?api=xxx |
 | /getuser | Get currently presented cards user details | yes | yes | - | /getuser?api=xxx |
@@ -68,7 +67,6 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Creat a generic shipMetric(String metricname, String metricvalue) function rather than individual ship* functions
 - Make the api call responses cleaner, maybe json or plain text, some are currently html
 - Make parsing of json data presented in to the web interface safer: https://www.w3schools.com/js/js_json_parse.asp
-- Merge /backlighton and /backlightoff into /backlight?state=on/off
 
 ## Things to do
 - If wifi is disconnected, update LCD to alert user and put in to maintenance mode
@@ -116,6 +114,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Use wifimanager or IotWebConf to make configuration easier
 
 ## Done
+- Merge /backlighton and /backlightoff into /backlight?state=on/off
 - If no settings file, set default from defaults.h
 - API token implementation for laptop to esp32
 - Clean up Authentication success or failed messages
