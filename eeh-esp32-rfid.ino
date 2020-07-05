@@ -25,7 +25,7 @@
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 // wifi scanning based upon https://github.com/me-no-dev/ESPAsyncWebServer#scanning-for-available-wifi-networks
 
-#define FIRMWARE_VERSION "v1.7.4-ota"
+#define FIRMWARE_VERSION "v1.7.5-ota"
 
 // configuration structure
 struct Config {
@@ -577,7 +577,8 @@ String getFullStatus() {
   fullStatusDoc["DNS1"] = WiFi.dnsIP(0).toString();
   fullStatusDoc["DNS2"] = WiFi.dnsIP(1).toString();
   fullStatusDoc["DNS3"] = WiFi.dnsIP(2).toString();
-  fullStatusDoc["LCDI2CAddress"] = "0x" + String(config.lcdi2caddress, HEX);
+  fullStatusDoc["LCDI2CAddress"] = config.lcdi2caddress;
+  //fullStatusDoc["LCDI2CAddress"] = "0x" + String(config.lcdi2caddress, HEX);
   fullStatusDoc["LCDWidth"] = config.lcdwidth;
   fullStatusDoc["LCDHeight"] = config.lcdheight;
 
@@ -873,4 +874,40 @@ void shipWifiSignal() {
   udpClient.beginPacket(config.telegrafserver.c_str(), config.telegrafserverport);
   udpClient.print(line);
   udpClient.endPacket();
+}
+
+String i2cScanner() {
+  byte error, address;
+  String returnText = "[";
+  Serial.println("Scanning I2C");
+  syslog.log("Scanning I2C");
+  for (address = 1; address < 127; address++ ) {
+    Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+    if (error == 0) {
+      if (returnText.length() > 1) returnText += ",";
+      returnText += "{";
+      returnText += "\"int\":" + String(address);
+      if (address < 16) {
+        returnText += ",\"hex\":\"0x00\"";
+      } else {
+        returnText += ",\"hex\":\"0x" + String(address, HEX) + "\"";
+      }
+      returnText += ",\"error\":\"none\"";
+      returnText += "}";
+    } else if (error == 4) {
+      if (returnText.length() > 1) returnText += ",";
+      returnText += "{";
+      returnText += "\"int\":" + String(address);
+      if (address < 16) {
+        returnText += ",\"hex\":\"0x00\"";
+      } else {
+        returnText += ",\"hex\":\"0x" + String(address, HEX) + "\"";
+      }
+      returnText += ",\"error\":\"unknown error\"";
+      returnText += "}";
+    }
+  }
+  returnText += "]";
+  return returnText;
 }

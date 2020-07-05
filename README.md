@@ -45,6 +45,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 | /maintenance | Enable or disable maintenance mode | yes | yes | state=enable state=disable | /maintenance?api=xxx&state=enable |
 | /ntprefresh | Initiate a ntp time refresh | yes | yes | - | /ntprefresh?api=xxx |
 | /reboot | Initiate a reboot | yes | yes | - | /reboot?api=xxx |
+| /scani2c | Displays details of connected I2C devices | yes | yes | - | /scani2c?api=xxx |
 | /scanwifi | Display available wifi networks | yes | yes | - | /scanwifi?api=xxx |
 | /status | Simple status page | - | - | - | /status |
 | /time | Display current time on device | - | - | - | /time |
@@ -105,7 +106,6 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - When a card is removed or presented, auto refresh the web admin page
 - Sort out logging levels info or info+error
 - Enable https on device
-- Web Admin: Scan i2c devices and print out
 
 ## Abandoned
 - Add ability to add users: trainer beeps card, then beeps newly trained users card, eeh-esp32-rfid then posts to API and updates user database
@@ -114,6 +114,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Use wifimanager or IotWebConf to make configuration easier
 
 ## Done
+- Web Admin: Scan i2c devices and print out
 - Merge /backlighton and /backlightoff into /backlight?state=on/off
 - If no settings file, set default from defaults.h
 - API token implementation for laptop to esp32

@@ -414,6 +414,21 @@ void configureWebServer() {
     }
   });
 
+  server->on("/scani2c", HTTP_GET, [](AsyncWebServerRequest * request) {
+    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    if (checkUserWebAuth(request)) {
+      logmessage += " Auth: Success";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
+      request->send(200, "application/json", i2cScanner());
+    } else {
+      logmessage += " Auth: Failed";
+      Serial.println(logmessage);
+      syslog.log(logmessage);
+      return request->requestAuthentication();
+    }
+  });
+
   server->on("/getuser", HTTP_GET, [](AsyncWebServerRequest * request) {
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     if (checkUserWebAuth(request)) {

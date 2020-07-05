@@ -29,6 +29,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   <button onclick="revokeAccessButton()" %GRANTBUTTONENABLE%>Revoke Access to Current Card</button>
   <button onclick="displayConfig()">Display Running Config</button>
   <button onclick="displayWifi()">Display WiFi Networks</button>
+  <button onclick="scani2c()">Scan I2C Devices</button>
   <button onclick="showUploadButton()">Upload File - Simple</button>
   <button onclick="showUploadButtonFancy()">Upload File - Fancy</button>
   <button onclick="changeBacklightButton('on')">LCD Backlight On</button>
@@ -172,10 +173,26 @@ function displayWifi() {
   var mydata = JSON.parse(xmlhttp.responseText);
   var displaydata = "<table><tr><th align='left'>SSID</th><th align='left'>BSSID</th><th align='left'>RSSI</th><th align='left'>Channel</th><th align='left'>Secure</th></tr>";
   for (var key of Object.keys(mydata)) {
-    displaydata = displaydata + "<tr><td align='left'>" + mydata[key]["ssid"] + "</td><td align='left'>" + mydata[key]["bssid"] + "</td><td align='left'>" + mydata[key]["rssi"] + "</td><td align='left'>" + mydata[key]["channel"] + "</td><td align='left'>"+ mydata[key]["secure"] + "</td>"+ "</tr>";
+    displaydata = displaydata + "<tr><td align='left'>" + mydata[key]["ssid"] + "</td><td align='left'>" + mydata[key]["bssid"] + "</td><td align='left'>" + mydata[key]["rssi"] + "</td><td align='left'>" + mydata[key]["channel"] + "</td><td align='left'>"+ mydata[key]["secure"] + "</td></tr>";
   }
   displaydata = displaydata + "</table>";
   document.getElementById("statusdetails").innerHTML = "WiFi Networks Scanned";
+  document.getElementById("configdetails").innerHTML = displaydata;
+}
+function scani2c() {
+  document.getElementById("statusdetails").innerHTML = "Scanning for I2C Devices";
+  document.getElementById("configheader").innerHTML = "<h3>Available I2C Devices<h3>";
+  xmlhttp=new XMLHttpRequest();
+  xmlhttp.open("GET", "/scani2c", false);
+  xmlhttp.send();
+  var mydata = JSON.parse(xmlhttp.responseText);
+  var displaydata = "<table><tr><th align='left'>Int</th><th align='left'>Hex</th><th align='left'>Error</th></tr>";
+  for (var key of Object.keys(mydata)) {
+    displaydata = displaydata + "<tr><td align='left'>" + mydata[key]["int"] + "</td><td align='left'>" + mydata[key]["hex"] + "</td><td align='left'>" + mydata[key]["error"] + "</td></tr>";
+  }
+  displaydata = displaydata + "</table>";
+  document.getElementById("statusdetails").innerHTML = "I2C Devices Scanned";
+  document.getElementById("configheader").innerHTML = "<h3>I2C Devices<h3>";
   document.getElementById("configdetails").innerHTML = displaydata;
 }
 function listFilesButton() {
