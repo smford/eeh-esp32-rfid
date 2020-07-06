@@ -25,7 +25,7 @@
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 // wifi scanning based upon https://github.com/me-no-dev/ESPAsyncWebServer#scanning-for-available-wifi-networks
 
-#define FIRMWARE_VERSION "v1.7.7-ota"
+#define FIRMWARE_VERSION "v1.7.8-ota"
 
 // configuration structure
 struct Config {
@@ -288,6 +288,9 @@ void setup() {
   bootTime = printTime();
   Serial.print("Booted at: "); Serial.println(bootTime);
   syslog.logf("Booted");
+
+  // need to do a scan here, else first scan will fail.  Bug in scanNetworks
+  WiFi.scanNetworks(true, true);
 
   // since everything is now loaded, update lcd in the appropriate mode
   if (config.inmaintenance) {

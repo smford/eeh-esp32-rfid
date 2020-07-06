@@ -622,7 +622,7 @@ void configureWebServer() {
       String json = "[";
       int n = WiFi.scanComplete();
       if (n == -2) {
-        WiFi.scanNetworks(true);
+        WiFi.scanNetworks(true, true);
       } else if (n) {
         for (int i = 0; i < n; ++i) {
           if (i) json += ",";
