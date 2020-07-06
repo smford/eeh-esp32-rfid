@@ -25,7 +25,7 @@
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 // wifi scanning based upon https://github.com/me-no-dev/ESPAsyncWebServer#scanning-for-available-wifi-networks
 
-#define FIRMWARE_VERSION "v1.7.8-ota"
+#define FIRMWARE_VERSION "v1.7.9-ota"
 
 // configuration structure
 struct Config {
@@ -548,7 +548,7 @@ String getFullStatus() {
   fullStatusDoc["Hostname"] = config.hostname;
   fullStatusDoc["BootTime"] = bootTime;
   fullStatusDoc["AppName"] = config.appname;
-  fullStatusDoc["EEHDevice"] = config.device;
+  fullStatusDoc["Device"] = config.device;
   fullStatusDoc["OverrideUsers"] = config.overridecodes;
   fullStatusDoc["SyslogServer"] = config.syslogserver;
   fullStatusDoc["SyslogPort"] = config.syslogport;
@@ -664,12 +664,13 @@ String getStatus() {
   StaticJsonDocument<200> shortStatusDoc;
   shortStatusDoc["Timestamp"] = printTime();
   shortStatusDoc["Hostname"] = config.hostname;
+  shortStatusDoc["Device"] = config.device;
 
   // note this is the opposite of what is expected due to the way the relay works
   if (digitalRead(config.relaypin)) {
-    shortStatusDoc[config.device] = "off";
+    shortStatusDoc["State"] = "off";
   } else {
-    shortStatusDoc[config.device] = "on";
+    shortStatusDoc["State"] = "on";
   }
 
   if (config.inmaintenance) {
