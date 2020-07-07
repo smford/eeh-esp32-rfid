@@ -322,6 +322,13 @@ void configureWebServer() {
             config.inmaintenance = true;
             saveConfiguration(filename, config);
             gotoToggleMaintenance = true;
+            if (config.discordproxyenable) {
+              HTTPClient http;
+              String deviceurl = config.discordproxyserver + "/" + config.device + "?api=" + config.discordproxyapitoken + "&action=maintenanceon";
+              http.begin(deviceurl);
+              int httpResponseCode = http.GET();
+              Serial.println("getting " + deviceurl);
+            }
           } else {
             logmessage += " Already in maintenance mode";
             returnText = "MAINTENANCE MODE";
@@ -335,6 +342,13 @@ void configureWebServer() {
             config.inmaintenance = false;
             saveConfiguration(filename, config);
             gotoToggleMaintenance = true;
+            if (config.discordproxyenable) {
+              HTTPClient http;
+              String deviceurl = config.discordproxyserver + "/" + config.device + "?api=" + config.discordproxyapitoken + "&action=off";
+              http.begin(deviceurl);
+              int httpResponseCode = http.GET();
+              Serial.println("getting " + deviceurl);
+            }
           } else {
             logmessage += " Already not in maintenance mode";
             returnText = "";

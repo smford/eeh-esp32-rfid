@@ -35,3 +35,6 @@ const bool default_telegrafenable = true;
 const String default_telegrafserver = "192.168.10.21";
 const int default_telegrafserverport = 8094;
 const int default_telegrafshiptime = 30;
+const bool default_discordproxyenable = true;
+const String default_discordproxyserver = "http://192.168.10.21:57000";
+const String default_discordproxyapitoken = "sometoken";

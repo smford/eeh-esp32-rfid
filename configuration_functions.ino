@@ -259,6 +259,25 @@ void loadConfiguration(const char *filename, Config &config) {
     config.telegrafshiptime = default_telegrafshiptime;
   }
 
+  if (doc.containsKey("discordproxyenable")) {
+    config.discordproxyenable = doc["discordproxyenable"].as<bool>();
+  } else {
+    initiatesave = true;
+    config.discordproxyenable = default_discordproxyenable;
+  }
+
+  config.discordproxyserver = doc["discordproxyserver"].as<String>();
+  if (config.discordproxyserver == "null") {
+    initiatesave = true;
+    config.discordproxyserver = default_discordproxyserver;
+  }
+
+  config.discordproxyapitoken = doc["discordproxyapitoken"].as<String>();
+  if (config.discordproxyapitoken == "null") {
+    initiatesave = true;
+    config.discordproxyapitoken = default_discordproxyapitoken;
+  }
+
   file.close();
 
   if (initiatesave) {
@@ -318,6 +337,9 @@ void saveConfiguration(const char *filename, const Config &config) {
   doc["telegrafserver"] = config.telegrafserver;
   doc["telegrafserverport"] = config.telegrafserverport;
   doc["telegrafshiptime"] = config.telegrafshiptime;
+  doc["discordproxyenable"] = config.discordproxyenable;
+  doc["discordproxyserver"] = config.discordproxyserver;
+  doc["discordproxyapitoken"] = config.discordproxyapitoken;
 
   // Serialize JSON to file
   if (serializeJson(doc, file) == 0) {
@@ -349,41 +371,44 @@ void printFile(const char *filename) {
 }
 
 void printConfig() {
-  Serial.print("          hostname: "); Serial.println(config.hostname);
-  Serial.print("            device: "); Serial.println(config.device);
-  Serial.print("           appname: "); Serial.println(config.appname);
-  Serial.print("              ssid: "); Serial.println(config.ssid);
-  Serial.print("      wifipassword: "); Serial.println("**********");
-  Serial.print("          relaypin: "); Serial.println(config.relaypin);
-  Serial.print("            ledpin: "); Serial.println(config.ledpin);
-  Serial.print("          httpuser: "); Serial.println(config.httpuser);
-  Serial.print("      httppassword: "); Serial.println("**********");
-  Serial.print("      httpapitoken: "); Serial.println("**********");
-  Serial.print("      syslogserver: "); Serial.println(config.syslogserver);
-  Serial.print("        syslogport: "); Serial.println(config.syslogport);
-  Serial.print("     inmaintenance: "); Serial.println(config.inmaintenance);
-  Serial.print("       ntptimezone: "); Serial.println(config.ntptimezone);
-  Serial.print("       ntpsynctime: "); Serial.println(config.ntpsynctime);
-  Serial.print("   ntpwaitsynctime: "); Serial.println(config.ntpwaitsynctime);
-  Serial.print("         ntpserver: "); Serial.println(config.ntpserver);
-  Serial.print("mfrcslaveselectpin: "); Serial.println(config.mfrcslaveselectpin);
-  Serial.print("      mfrcresetpin: "); Serial.println(config.mfrcresetpin);
-  Serial.print("  mfrccardwaittime: "); Serial.println(config.mfrccardwaittime);
-  Serial.print("     lcdi2caddress: "); Serial.println(config.lcdi2caddress);
-  Serial.print("          lcdwidth: "); Serial.println(config.lcdwidth);
-  Serial.print("         lcdheight: "); Serial.println(config.lcdheight);
-  Serial.print(" webserverporthttp: "); Serial.println(config.webserverporthttp);
-  Serial.print("webserverporthttps: "); Serial.println(config.webserverporthttps);
-  Serial.print("    webapiwaittime: "); Serial.println(config.webapiwaittime);
-  Serial.print("      webpagedelay: "); Serial.println(config.webpagedelay);
-  Serial.print("         serverurl: "); Serial.println(config.serverurl);
-  Serial.print("    serverapitoken: "); Serial.println("**********");
-  Serial.print("     checkuserpage: "); Serial.println(config.checkuserpage);
-  Serial.print("       getuserpage: "); Serial.println(config.getuserpage);
-  Serial.print("       moduserpage: "); Serial.println(config.moduserpage);
-  Serial.print("     overridecodes: "); Serial.println(config.overridecodes);
-  Serial.print("    telegrafenable: "); Serial.println(config.telegrafenable);
-  Serial.print("    telegrafserver: "); Serial.println(config.telegrafserver);
-  Serial.print("telegrafserverport: "); Serial.println(config.telegrafserverport);
-  Serial.print("  telegrafshiptime: "); Serial.println(config.telegrafshiptime);
+  Serial.print("            hostname: "); Serial.println(config.hostname);
+  Serial.print("              device: "); Serial.println(config.device);
+  Serial.print("             appname: "); Serial.println(config.appname);
+  Serial.print("                ssid: "); Serial.println(config.ssid);
+  Serial.print("        wifipassword: "); Serial.println("**********");
+  Serial.print("            relaypin: "); Serial.println(config.relaypin);
+  Serial.print("              ledpin: "); Serial.println(config.ledpin);
+  Serial.print("            httpuser: "); Serial.println(config.httpuser);
+  Serial.print("        httppassword: "); Serial.println("**********");
+  Serial.print("        httpapitoken: "); Serial.println("**********");
+  Serial.print("        syslogserver: "); Serial.println(config.syslogserver);
+  Serial.print("          syslogport: "); Serial.println(config.syslogport);
+  Serial.print("       inmaintenance: "); Serial.println(config.inmaintenance);
+  Serial.print("         ntptimezone: "); Serial.println(config.ntptimezone);
+  Serial.print("         ntpsynctime: "); Serial.println(config.ntpsynctime);
+  Serial.print("     ntpwaitsynctime: "); Serial.println(config.ntpwaitsynctime);
+  Serial.print("           ntpserver: "); Serial.println(config.ntpserver);
+  Serial.print("  mfrcslaveselectpin: "); Serial.println(config.mfrcslaveselectpin);
+  Serial.print("        mfrcresetpin: "); Serial.println(config.mfrcresetpin);
+  Serial.print("    mfrccardwaittime: "); Serial.println(config.mfrccardwaittime);
+  Serial.print("       lcdi2caddress: "); Serial.println(config.lcdi2caddress);
+  Serial.print("            lcdwidth: "); Serial.println(config.lcdwidth);
+  Serial.print("           lcdheight: "); Serial.println(config.lcdheight);
+  Serial.print("   webserverporthttp: "); Serial.println(config.webserverporthttp);
+  Serial.print("  webserverporthttps: "); Serial.println(config.webserverporthttps);
+  Serial.print("      webapiwaittime: "); Serial.println(config.webapiwaittime);
+  Serial.print("        webpagedelay: "); Serial.println(config.webpagedelay);
+  Serial.print("           serverurl: "); Serial.println(config.serverurl);
+  Serial.print("      serverapitoken: "); Serial.println("**********");
+  Serial.print("       checkuserpage: "); Serial.println(config.checkuserpage);
+  Serial.print("         getuserpage: "); Serial.println(config.getuserpage);
+  Serial.print("         moduserpage: "); Serial.println(config.moduserpage);
+  Serial.print("       overridecodes: "); Serial.println(config.overridecodes);
+  Serial.print("      telegrafenable: "); Serial.println(config.telegrafenable);
+  Serial.print("      telegrafserver: "); Serial.println(config.telegrafserver);
+  Serial.print("  telegrafserverport: "); Serial.println(config.telegrafserverport);
+  Serial.print("    telegrafshiptime: "); Serial.println(config.telegrafshiptime);
+  Serial.print("  discordproxyenable: "); Serial.println(config.discordproxyenable);
+  Serial.print("  discordproxyserver: "); Serial.println(config.discordproxyserver);
+  Serial.print("discordproxyapitoken: "); Serial.println("**********");
 }

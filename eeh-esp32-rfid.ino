@@ -25,47 +25,50 @@
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 // wifi scanning based upon https://github.com/me-no-dev/ESPAsyncWebServer#scanning-for-available-wifi-networks
 
-#define FIRMWARE_VERSION "v1.7.9-ota"
+#define FIRMWARE_VERSION "v1.8.1-ota"
 
 // configuration structure
 struct Config {
-  String hostname;         // hostname of device
-  String device;           // device name
-  String appname;          // application name
-  String ssid;             // wifi ssid
-  String wifipassword;     // wifi password
-  int relaypin;            // relay pin number
-  int ledpin;              // led pin number
-  String httpuser;         // username to access web admin
-  String httppassword;     // password to access web admin
-  String httpapitoken;     // api token used to authenticate against the device
-  String syslogserver;     // hostname or ip of the syslog server
-  int syslogport;          // sylog port number
-  bool inmaintenance;      // records whether the device is in maintenance mode between reboots
-  String ntptimezone;      // ntp time zone to use, use the TZ database name from https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-  int ntpsynctime;         // how frequently to schedule the regular syncing of ntp time
-  int ntpwaitsynctime;     // upon boot, wait these many seconds to get ntp time from server
-  String ntpserver;        // hostname or ip of the ntpserver
-  int mfrcslaveselectpin;  // mfrc slave select pin number
-  int mfrcresetpin;        // mfrc reset pin number
-  int mfrccardwaittime;    // time to wait between checking whether a new card is present or not, some mfrcs balk at to high a check
-  int lcdi2caddress;       // integer of the i2c address for the lcd screen, hex can be converted here: https://www.rapidtables.com/convert/number/hex-to-decimal.html
-  int lcdwidth;            // width in characters for the lcd display
-  int lcdheight;           // numler of lines for the lcd display
-  int webserverporthttp;   // http port number for web admin
-  int webserverporthttps;  // https port number for the web admin
-  int webapiwaittime;      // forced delay in seconds between web api calls
-  int webpagedelay;        // delay in seconds to wait the webadmin page to wait for a response before updating webpage
-  String serverurl;        // url of authentication server, e.g. "http://something.com/" or "https://192.168.20.60"
-  String serverapitoken;   // api token used to authenticate against the user management system
-  String checkuserpage;    // check user webpage hosted on authentication server, e.g. "checkuser.php"
-  String getuserpage;      // get user webpage hosted on authentication server, e.g. "getuser.php"
-  String moduserpage;      // mod user webpage hosted on authentication server, e.g. "moduser.php"
-  String overridecodes;    // list of rfid card numbers, seperated by commas, that have override access
-  bool telegrafenable;     // turns on or off shipping of metrics to telegraf
-  String telegrafserver;   // hostname or ip of telegraf server
-  int telegrafserverport;  // port number for telegraf
-  int telegrafshiptime;    // how often should we ship metrics to telegraf
+  String hostname;           // hostname of device
+  String device;             // device name
+  String appname;            // application name
+  String ssid;               // wifi ssid
+  String wifipassword;       // wifi password
+  int relaypin;              // relay pin number
+  int ledpin;                // led pin number
+  String httpuser;           // username to access web admin
+  String httppassword;       // password to access web admin
+  String httpapitoken;       // api token used to authenticate against the device
+  String syslogserver;       // hostname or ip of the syslog server
+  int syslogport;            // sylog port number
+  bool inmaintenance;        // records whether the device is in maintenance mode between reboots
+  String ntptimezone;        // ntp time zone to use, use the TZ database name from https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+  int ntpsynctime;           // how frequently to schedule the regular syncing of ntp time
+  int ntpwaitsynctime;       // upon boot, wait these many seconds to get ntp time from server
+  String ntpserver;          // hostname or ip of the ntpserver
+  int mfrcslaveselectpin;    // mfrc slave select pin number
+  int mfrcresetpin;          // mfrc reset pin number
+  int mfrccardwaittime;      // time to wait between checking whether a new card is present or not, some mfrcs balk at to high a check
+  int lcdi2caddress;         // integer of the i2c address for the lcd screen, hex can be converted here: https://www.rapidtables.com/convert/number/hex-to-decimal.html
+  int lcdwidth;              // width in characters for the lcd display
+  int lcdheight;             // numler of lines for the lcd display
+  int webserverporthttp;     // http port number for web admin
+  int webserverporthttps;    // https port number for the web admin
+  int webapiwaittime;        // forced delay in seconds between web api calls
+  int webpagedelay;          // delay in seconds to wait the webadmin page to wait for a response before updating webpage
+  String serverurl;          // url of authentication server, e.g. "http://something.com/" or "https://192.168.20.60"
+  String serverapitoken;     // api token used to authenticate against the user management system
+  String checkuserpage;      // check user webpage hosted on authentication server, e.g. "checkuser.php"
+  String getuserpage;        // get user webpage hosted on authentication server, e.g. "getuser.php"
+  String moduserpage;        // mod user webpage hosted on authentication server, e.g. "moduser.php"
+  String overridecodes;      // list of rfid card numbers, seperated by commas, that have override access
+  bool telegrafenable;       // turns on or off shipping of metrics to telegraf
+  String telegrafserver;     // hostname or ip of telegraf server
+  int telegrafserverport;    // port number for telegraf
+  int telegrafshiptime;      // how often should we ship metrics to telegraf
+  bool discordproxyenable;   // turns on or off sending events to discord proxy server
+  String discordproxyserver; // discord proxy server
+  String discordproxyapitoken; // discord proxy server api token
 };
 
 String listFiles(bool ishtml = false);
@@ -194,38 +197,43 @@ void setup() {
   delay(4); // delay needed to allow mfrc522 to spin up properly
 
   Serial.println("\nSystem Configuration:");
-  Serial.println("---------------------");
-  Serial.print("          Hostname: "); Serial.println(config.hostname);
-  Serial.print("          App Name: "); Serial.println(config.appname);
-  Serial.print("        EEH Device: "); Serial.println(config.device);
+  Serial.println("-----------------------");
+  Serial.print("             Hostname: "); Serial.println(config.hostname);
+  Serial.print("             App Name: "); Serial.println(config.appname);
+  Serial.print("           EEH Device: "); Serial.println(config.device);
   if (config.inmaintenance) {
-    Serial.println("  Maintenance Mode: true");
+    Serial.println("     Maintenance Mode: true");
   } else {
-    Serial.println("  Maintenance Mode: false");
+    Serial.println("     Maintenance Mode: false");
   }
   Serial.print("     Syslog Server: "); Serial.print(config.syslogserver); Serial.print(":"); Serial.println(config.syslogport);
-  Serial.print(" Web API Wait Time: "); Serial.print(config.webapiwaittime); Serial.println(" seconds");
-  Serial.print("   RFID Card Delay: "); Serial.print(config.mfrccardwaittime); Serial.println(" seconds");
-  Serial.print("         Relay Pin: "); Serial.println(config.relaypin);
-  Serial.print("           LED Pin: "); Serial.println(config.ledpin);
-  Serial.print("     Web HTTP Port: "); Serial.println(config.webserverporthttp);
-  Serial.print("    Web HTTPS Port: "); Serial.println(config.webserverporthttps);
-  Serial.print("       ESP32 Flash: "); Serial.println(FIRMWARE_VERSION);
-  Serial.print("    Flash Compiled: "); Serial.println(String(__DATE__) + " " + String(__TIME__));
-  Serial.print("        ESP32 Temp: "); Serial.print((temprature_sens_read() - 32) / 1.8); Serial.println("C");
-  Serial.print("   MFRC522 Version: "); Serial.println(getmfrcversion());
-  Serial.print("        NTP Server: "); Serial.println(config.ntpserver);
-  Serial.print("     NTP Time Sync: "); Serial.println(config.ntpsynctime);
-  Serial.print("     NTP Time Zone: "); Serial.println(config.ntptimezone);
-  Serial.print("        Server URL: "); Serial.println(config.serverurl);
-  Serial.print("   Check User Page: "); Serial.println(config.checkuserpage);
-  Serial.print("     Get User Page: "); Serial.println(config.getuserpage);
-  Serial.print("     Mod User Page: "); Serial.println(config.moduserpage);
+  Serial.print("    Web API Wait Time: "); Serial.print(config.webapiwaittime); Serial.println(" seconds");
+  Serial.print("      RFID Card Delay: "); Serial.print(config.mfrccardwaittime); Serial.println(" seconds");
+  Serial.print("            Relay Pin: "); Serial.println(config.relaypin);
+  Serial.print("              LED Pin: "); Serial.println(config.ledpin);
+  Serial.print("        Web HTTP Port: "); Serial.println(config.webserverporthttp);
+  Serial.print("       Web HTTPS Port: "); Serial.println(config.webserverporthttps);
+  Serial.print("          ESP32 Flash: "); Serial.println(FIRMWARE_VERSION);
+  Serial.print("       Flash Compiled: "); Serial.println(String(__DATE__) + " " + String(__TIME__));
+  Serial.print("           ESP32 Temp: "); Serial.print((temprature_sens_read() - 32) / 1.8); Serial.println("C");
+  Serial.print("      MFRC522 Version: "); Serial.println(getmfrcversion());
+  Serial.print("           NTP Server: "); Serial.println(config.ntpserver);
+  Serial.print("        NTP Time Sync: "); Serial.println(config.ntpsynctime);
+  Serial.print("        NTP Time Zone: "); Serial.println(config.ntptimezone);
+  Serial.print("           Server URL: "); Serial.println(config.serverurl);
+  Serial.print("      Check User Page: "); Serial.println(config.checkuserpage);
+  Serial.print("        Get User Page: "); Serial.println(config.getuserpage);
+  Serial.print("        Mod User Page: "); Serial.println(config.moduserpage);
   if (config.telegrafenable) {
-    Serial.println("  Telegraf Enabled: true");
-    Serial.print("   Telegraf Server: "); Serial.println(config.telegrafserver);
-    Serial.print("     Telegraf Port: "); Serial.println(config.telegrafserverport);
-    Serial.print("Telegraf Ship Time: "); Serial.println(config.telegrafshiptime);
+    Serial.println("     Telegraf Enabled: true");
+    Serial.print("      Telegraf Server: "); Serial.println(config.telegrafserver);
+    Serial.print("        Telegraf Port: "); Serial.println(config.telegrafserverport);
+    Serial.print("   Telegraf Ship Time: "); Serial.println(config.telegrafshiptime);
+  }
+
+  if (config.discordproxyenable) {
+    Serial.println("Discord Proxy Enabled: true");
+    Serial.print(" Discord Proxy Server: "); Serial.println(config.discordproxyserver);
   }
 
   lcdPrint("Connecting Wifi...");
@@ -372,6 +380,13 @@ void dowebcall(const char *foundrfid) {
             lcdPrint(config.device, "ACCESS GRANTED", "RFID: " + String(currentRFIDcard), currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
             enableLed(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
             enableRelay(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
+            if (config.discordproxyenable) {
+              HTTPClient http;
+              String deviceurl = config.discordproxyserver + "/" + config.device + "?user=" + currentRFIDFirstNameStr + "%20" + currentRFIDSurnameStr + "&api=" + config.discordproxyapitoken + "&action=on";
+              http.begin(deviceurl);
+              int httpResponseCode = http.GET();
+              Serial.println("getting " + deviceurl);
+            }
           } else {
             // in maintenance mode, show message, deny access
             Serial.println(String(iteration) + " In maintenance mode, ignoring non-Override access");
@@ -454,6 +469,13 @@ void loop() {
           currentRFIDUserIDStr = "0";
           currentRFIDaccess = true;
           lcdPrint(config.device, "ACCESS GRANTED", "RFID: " + String(currentRFIDcard), currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
+          if (config.discordproxyenable) {
+            HTTPClient http;
+            String deviceurl = config.discordproxyserver + "/" + config.device + "?api=" + config.discordproxyapitoken + "&action=override";
+            http.begin(deviceurl);
+            int httpResponseCode = http.GET();
+            Serial.println("getting " + deviceurl);
+          }
         } else {
           // normal user, do webcall
           dowebcall(newcard);
@@ -479,6 +501,13 @@ void loop() {
   } else {
     // should be in maintenance mode, update LCD
     lcdPrint(config.device, "MAINTENANCE MODE", "ALL ACCESS DENIED");
+  }
+  if (config.discordproxyenable) {
+    HTTPClient http;
+    String deviceurl = config.discordproxyserver + "/" + config.device + "?api=" + config.discordproxyapitoken + "&action=off";
+    http.begin(deviceurl);
+    int httpResponseCode = http.GET();
+    Serial.println("getting " + deviceurl);
   }
   disableLed(String(iteration) + " " + "Access Revoked: Card Removed: Disable LED: " + String(newcard));
   disableRelay(String(iteration) + " " + "Access Revoked: Card Removed: Disable Relay: " + String(newcard));
@@ -649,9 +678,17 @@ String getFullStatus() {
   fullStatusDoc["TelegrafServer"] = config.telegrafserver;
   fullStatusDoc["TelegrafServerPort"] = config.telegrafserverport;
   fullStatusDoc["TelegrafShipTime"] = config.telegrafshiptime;
+
   fullStatusDoc["SPIFFSFree"] = (SPIFFS.totalBytes() - SPIFFS.usedBytes());
   fullStatusDoc["SPIFFSUsed"] = SPIFFS.usedBytes();
   fullStatusDoc["SPIFFSTotal"] = SPIFFS.totalBytes();
+
+  if (config.discordproxyenable) {
+    fullStatusDoc["DiscordProxyEnable"] = "true";
+  } else {
+    fullStatusDoc["DiscordProxyEnable"] = "false";
+  }
+  fullStatusDoc["DiscordProxyServer"] = config.discordproxyserver;
 
   String fullStatus = "";
   serializeJson(fullStatusDoc, fullStatus);

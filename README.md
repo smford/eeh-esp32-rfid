@@ -26,6 +26,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Metrics collected in influxdb/telegraf: system temp, access granted, wifi signal strength, and whether actual device being used (still to come)
 - NTP Time synchronisation
 - Support tls web api calls using json
+- Integration with Discord - "Laser has been fired!" when laser is being used,  or "!laser status" like commands to query the status of the device
 
 ## Pin Out
 
