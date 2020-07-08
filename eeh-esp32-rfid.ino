@@ -25,7 +25,7 @@
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 // wifi scanning based upon https://github.com/me-no-dev/ESPAsyncWebServer#scanning-for-available-wifi-networks
 
-#define FIRMWARE_VERSION "v1.8.1-ota"
+#define FIRMWARE_VERSION "v1.8.2-ota"
 
 // configuration structure
 struct Config {
@@ -944,4 +944,12 @@ String i2cScanner() {
   }
   returnText += "]";
   return returnText;
+}
+
+void discordProxySend(String action, String state) {
+  HTTPClient http;
+  String deviceurl = config.discordproxyserver + "/api?token=" + config.discordproxyapitoken + "&device=" + config.device + "&action=" + action + "&state=" + state;
+  http.begin(deviceurl);
+  int httpResponseCode = http.GET();
+  Serial.println("getting " + deviceurl);
 }

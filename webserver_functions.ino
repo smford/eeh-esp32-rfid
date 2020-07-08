@@ -323,11 +323,7 @@ void configureWebServer() {
             saveConfiguration(filename, config);
             gotoToggleMaintenance = true;
             if (config.discordproxyenable) {
-              HTTPClient http;
-              String deviceurl = config.discordproxyserver + "/" + config.device + "?api=" + config.discordproxyapitoken + "&action=maintenanceon";
-              http.begin(deviceurl);
-              int httpResponseCode = http.GET();
-              Serial.println("getting " + deviceurl);
+              discordProxySend("maintenance", "enable");
             }
           } else {
             logmessage += " Already in maintenance mode";
@@ -343,11 +339,7 @@ void configureWebServer() {
             saveConfiguration(filename, config);
             gotoToggleMaintenance = true;
             if (config.discordproxyenable) {
-              HTTPClient http;
-              String deviceurl = config.discordproxyserver + "/" + config.device + "?api=" + config.discordproxyapitoken + "&action=off";
-              http.begin(deviceurl);
-              int httpResponseCode = http.GET();
-              Serial.println("getting " + deviceurl);
+              discordProxySend("maintenance", "disable");
             }
           } else {
             logmessage += " Already not in maintenance mode";
@@ -390,11 +382,17 @@ void configureWebServer() {
           returnText = "LCD Backlight On";
           logmessage = logmessage + " " + returnText;
           returnCode = 200;
+          if (config.discordproxyenable) {
+            discordProxySend("backlight", "on");
+          }
         } else if (strcmp(selectState, "off") == 0) {
           lcd->noBacklight();
           returnText = "LCD Backlight Off";
           logmessage = logmessage + " " + returnText;
           returnCode = 200;
+          if (config.discordproxyenable) {
+            discordProxySend("backlight", "off");
+          }
         } else {
           returnText = "ERROR: bad state param supplied";
           logmessage = logmessage + " " + returnText;
