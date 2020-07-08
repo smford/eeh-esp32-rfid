@@ -323,7 +323,7 @@ void configureWebServer() {
             saveConfiguration(filename, config);
             gotoToggleMaintenance = true;
             if (config.discordproxyenable) {
-              discordProxySend("maintenance", "enable");
+              discordProxySend("maintenance", "on");
             }
           } else {
             logmessage += " Already in maintenance mode";
@@ -339,7 +339,7 @@ void configureWebServer() {
             saveConfiguration(filename, config);
             gotoToggleMaintenance = true;
             if (config.discordproxyenable) {
-              discordProxySend("maintenance", "disable");
+              discordProxySend("maintenance", "off");
             }
           } else {
             logmessage += " Already not in maintenance mode";

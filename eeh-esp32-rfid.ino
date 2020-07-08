@@ -25,7 +25,7 @@
 // file upload progress based upon https://codepen.io/PerfectIsShit/pen/zogMXP
 // wifi scanning based upon https://github.com/me-no-dev/ESPAsyncWebServer#scanning-for-available-wifi-networks
 
-#define FIRMWARE_VERSION "v1.8.2-ota"
+#define FIRMWARE_VERSION "v1.8.3-ota"
 
 // configuration structure
 struct Config {
@@ -381,11 +381,14 @@ void dowebcall(const char *foundrfid) {
             enableLed(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
             enableRelay(String(iteration) + " Access Granted: Enable LED: UserID:" + currentRFIDUserIDStr + " RFID:" + String(currentRFIDcard));
             if (config.discordproxyenable) {
+              /*
               HTTPClient http;
               String deviceurl = config.discordproxyserver + "/" + config.device + "?user=" + currentRFIDFirstNameStr + "%20" + currentRFIDSurnameStr + "&api=" + config.discordproxyapitoken + "&action=on";
               http.begin(deviceurl);
               int httpResponseCode = http.GET();
               Serial.println("getting " + deviceurl);
+              */
+              discordProxySend("user", "login");
             }
           } else {
             // in maintenance mode, show message, deny access
@@ -468,13 +471,16 @@ void loop() {
           currentRFIDSurnameStr = "Mode";
           currentRFIDUserIDStr = "0";
           currentRFIDaccess = true;
+          inOverrideMode = true;
           lcdPrint(config.device, "ACCESS GRANTED", "RFID: " + String(currentRFIDcard), currentRFIDFirstNameStr + " " + currentRFIDSurnameStr);
           if (config.discordproxyenable) {
+            /*
             HTTPClient http;
             String deviceurl = config.discordproxyserver + "/" + config.device + "?api=" + config.discordproxyapitoken + "&action=override";
             http.begin(deviceurl);
             int httpResponseCode = http.GET();
-            Serial.println("getting " + deviceurl);
+            Serial.println("getting " + deviceurl);*/
+            discordProxySend("override", "on");
           }
         } else {
           // normal user, do webcall
@@ -493,6 +499,7 @@ void loop() {
     }
   }
 
+  // card has been removed
   mfrc522[0].PICC_HaltA();
   mfrc522[0].PCD_StopCrypto1();
   if (!config.inmaintenance) {
@@ -503,11 +510,13 @@ void loop() {
     lcdPrint(config.device, "MAINTENANCE MODE", "ALL ACCESS DENIED");
   }
   if (config.discordproxyenable) {
-    HTTPClient http;
-    String deviceurl = config.discordproxyserver + "/" + config.device + "?api=" + config.discordproxyapitoken + "&action=off";
-    http.begin(deviceurl);
-    int httpResponseCode = http.GET();
-    Serial.println("getting " + deviceurl);
+    // discordProxySend(action, state)
+    if (inOverrideMode) {
+      discordProxySend("override", "off");
+    } else {
+      discordProxySend("user", "logout");
+      Serial.println("some generic message");
+    }
   }
   disableLed(String(iteration) + " " + "Access Revoked: Card Removed: Disable LED: " + String(newcard));
   disableRelay(String(iteration) + " " + "Access Revoked: Card Removed: Disable Relay: " + String(newcard));
