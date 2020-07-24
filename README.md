@@ -86,6 +86,8 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - Standardise time format: https://github.com/ropg/ezTime#built-in-date-and-time-formats
 - Upon boot, pull time from server, then start using ntp
 - If ntp sync fails 10 times, force a reboot to address bug with ESP32s
+- fix reboot button, it errornously does an extra call to reboot
+- Fix Auth:Success
 
 ## Bugs
 - Bad/odd http response codes can cause a crash - often seen when having trouble doing web calls, do a check after httpGETRequest
