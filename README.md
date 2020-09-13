@@ -88,6 +88,7 @@ A simple ESP32 Based RFID Access Control System for tools or door.
 - If ntp sync fails 10 times, force a reboot to address bug with ESP32s
 - fix reboot button, it errornously does an extra call to reboot
 - Fix Auth:Success
+- Do a deactivation call back to an api: 1) when a user removes their card; 2) when a denied user removes their card; 3) when a users access is revoked and they are kicked off
 
 ## Bugs
 - Bad/odd http response codes can cause a crash - often seen when having trouble doing web calls, do a check after httpGETRequest
